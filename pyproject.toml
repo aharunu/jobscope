@@ -36,10 +36,23 @@ include = ["backend*"]
 testpaths = ["tests"]
 pythonpath = [".", "backend"]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore:.*starlette\\.testclient.*:DeprecationWarning",
+    "ignore:.*httpx.*:DeprecationWarning",
+    "ignore:.*BlockingPortal.*:DeprecationWarning",
+    "ignore:.*starlette.*",
+]
 
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

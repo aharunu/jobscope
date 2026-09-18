@@ -18,6 +18,7 @@ def test_package_structure_imports() -> None:
         "backend.domain.matching",
         # Application Layer
         "backend.application",
+        "backend.application.common",
         "backend.application.job_discovery",
         "backend.application.job_processing",
         "backend.application.job_matching",
