@@ -43,6 +43,7 @@ def test_package_structure_imports() -> None:
         "backend.interfaces",
         "backend.interfaces.api",
         "backend.interfaces.api.routes",
+        "backend.interfaces.api.dependencies",
     ]
 
     for pkg in packages:
