@@ -1,0 +1,1 @@
+"""JobScope automated test suite."""
