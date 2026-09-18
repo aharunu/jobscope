@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,6 +38,16 @@ class Settings(BaseSettings):
 
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Log verbosity level")
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        """Validate that the database URL scheme is PostgreSQL-compatible."""
+        if not v.startswith(("postgresql+asyncpg://", "postgresql://")):
+            raise ValueError(
+                "DATABASE_URL must start with 'postgresql+asyncpg://' or 'postgresql://'"
+            )
+        return v
 
 
 @lru_cache
