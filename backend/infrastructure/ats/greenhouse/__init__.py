@@ -1,0 +1,1 @@
+"""Greenhouse ATS adapter package."""
