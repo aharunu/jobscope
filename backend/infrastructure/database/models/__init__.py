@@ -1,1 +1,5 @@
-"""SQLAlchemy ORM models package (models to be implemented in Phase 1.2+)."""
+"""SQLAlchemy ORM models package."""
+
+from backend.infrastructure.database.models.user import UserModel
+
+__all__ = ["UserModel"]
