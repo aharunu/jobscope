@@ -40,6 +40,9 @@ if TYPE_CHECKING:
     from backend.infrastructure.database.models.application import (
         ApplicationModel,
     )
+    from backend.infrastructure.database.models.crawl_run import (
+        CrawlRunJobModel,
+    )
     from backend.infrastructure.database.models.matching import (
         MatchResultModel,
         RequirementMatchModel,
@@ -145,6 +148,11 @@ class JobModel(BaseModel):
     )
     applications: Mapped[list[ApplicationModel]] = relationship(
         "ApplicationModel",
+        back_populates="job",
+        cascade="all, delete-orphan",
+    )
+    crawl_run_jobs: Mapped[list[CrawlRunJobModel]] = relationship(
+        "CrawlRunJobModel",
         back_populates="job",
         cascade="all, delete-orphan",
     )

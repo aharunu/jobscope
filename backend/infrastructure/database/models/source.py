@@ -13,6 +13,7 @@ from backend.domain.source.entities import Source
 from backend.infrastructure.database.base import BaseModel
 
 if TYPE_CHECKING:
+    from backend.infrastructure.database.models.crawl_run import CrawlRunModel
     from backend.infrastructure.database.models.job import JobModel
 
 
@@ -68,6 +69,11 @@ class SourceModel(BaseModel):
     jobs: Mapped[list[JobModel]] = relationship(
         "JobModel",
         back_populates="source",
+    )
+    crawl_runs: Mapped[list[CrawlRunModel]] = relationship(
+        "CrawlRunModel",
+        back_populates="source",
+        cascade="all, delete-orphan",
     )
 
     def to_domain(self) -> Source:
