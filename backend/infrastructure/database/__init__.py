@@ -16,6 +16,7 @@ from backend.infrastructure.database.engine import (
     get_engine,
 )
 from backend.infrastructure.database.health import check_database_health
+from backend.infrastructure.database.models.user import UserModel
 from backend.infrastructure.database.session import (
     create_session_factory,
     get_db_context,
@@ -28,6 +29,7 @@ __all__ = [
     "BaseModel",
     "TimestampMixin",
     "UUIDPrimaryKeyMixin",
+    "UserModel",
     "create_database_engine",
     "get_engine",
     "dispose_engine",
