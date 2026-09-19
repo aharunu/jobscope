@@ -16,6 +16,21 @@ from backend.infrastructure.database.engine import (
     get_engine,
 )
 from backend.infrastructure.database.health import check_database_health
+from backend.infrastructure.database.models.base_profile import (
+    BaseProfileModel,
+    ProfileEducationModel,
+    ProfileExperienceModel,
+    ProfileProjectModel,
+    ProfileSkillModel,
+)
+from backend.infrastructure.database.models.job import (
+    JobModel,
+    RawJobModel,
+)
+from backend.infrastructure.database.models.search_profile import (
+    SearchProfileModel,
+)
+from backend.infrastructure.database.models.source import SourceModel
 from backend.infrastructure.database.models.user import UserModel
 from backend.infrastructure.database.session import (
     create_session_factory,
@@ -27,15 +42,24 @@ from backend.infrastructure.database.session import (
 __all__ = [
     "Base",
     "BaseModel",
+    "BaseProfileModel",
+    "JobModel",
+    "ProfileEducationModel",
+    "ProfileExperienceModel",
+    "ProfileProjectModel",
+    "ProfileSkillModel",
+    "RawJobModel",
+    "SearchProfileModel",
+    "SourceModel",
     "TimestampMixin",
     "UUIDPrimaryKeyMixin",
     "UserModel",
-    "create_database_engine",
-    "get_engine",
-    "dispose_engine",
-    "create_session_factory",
-    "get_session_factory",
-    "get_db_session",
-    "get_db_context",
     "check_database_health",
+    "create_database_engine",
+    "create_session_factory",
+    "dispose_engine",
+    "get_db_context",
+    "get_db_session",
+    "get_engine",
+    "get_session_factory",
 ]
