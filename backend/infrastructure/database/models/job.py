@@ -20,8 +20,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.domain.job.entities import Job, RawJob
-from backend.domain.job.enums import JobStatus
+from backend.domain.job.entities import (
+    Job,
+    JobRequirement,
+    RawJob,
+)
+from backend.domain.job.enums import (
+    JobStatus,
+    RequirementLevel,
+    RequirementType,
+)
 from backend.infrastructure.database.base import (
     Base,
     BaseModel,
@@ -29,6 +37,13 @@ from backend.infrastructure.database.base import (
 )
 
 if TYPE_CHECKING:
+    from backend.infrastructure.database.models.application import (
+        ApplicationModel,
+    )
+    from backend.infrastructure.database.models.matching import (
+        MatchResultModel,
+        RequirementMatchModel,
+    )
     from backend.infrastructure.database.models.source import SourceModel
 
 
@@ -115,6 +130,21 @@ class JobModel(BaseModel):
     )
     raw_jobs: Mapped[list[RawJobModel]] = relationship(
         "RawJobModel",
+        back_populates="job",
+        cascade="all, delete-orphan",
+    )
+    requirements: Mapped[list[JobRequirementModel]] = relationship(
+        "JobRequirementModel",
+        back_populates="job",
+        cascade="all, delete-orphan",
+    )
+    match_results: Mapped[list[MatchResultModel]] = relationship(
+        "MatchResultModel",
+        back_populates="job",
+        cascade="all, delete-orphan",
+    )
+    applications: Mapped[list[ApplicationModel]] = relationship(
+        "ApplicationModel",
         back_populates="job",
         cascade="all, delete-orphan",
     )
@@ -237,3 +267,98 @@ class RawJobModel(Base, UUIDPrimaryKeyMixin):
 
     def __repr__(self) -> str:
         return f"<RawJobModel id={self.id} content_type={self.content_type!r}>"
+
+
+class JobRequirementModel(BaseModel):
+    """SQLAlchemy ORM model for the job_requirements table."""
+
+    __tablename__ = "job_requirements"
+
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("jobs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    type: Mapped[RequirementType] = mapped_column(
+        SQLEnum(RequirementType, native_enum=False, length=50),
+        nullable=False,
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_skill: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+        index=True,
+    )
+    required_level: Mapped[RequirementLevel] = mapped_column(
+        SQLEnum(RequirementLevel, native_enum=False, length=50),
+        default=RequirementLevel.REQUIRED,
+        server_default=sa.text("'REQUIRED'"),
+        nullable=False,
+    )
+    importance: Mapped[str] = mapped_column(
+        String(50),
+        default="MEDIUM",
+        server_default=sa.text("'MEDIUM'"),
+        nullable=False,
+    )
+    criticality: Mapped[str] = mapped_column(
+        String(50),
+        default="NORMAL",
+        server_default=sa.text("'NORMAL'"),
+        nullable=False,
+    )
+    evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Relationships
+    job: Mapped[JobModel] = relationship(
+        "JobModel",
+        back_populates="requirements",
+    )
+    matches: Mapped[list[RequirementMatchModel]] = relationship(
+        "RequirementMatchModel",
+        back_populates="requirement",
+        cascade="all, delete-orphan",
+    )
+
+    def to_domain(self) -> JobRequirement:
+        """Convert ORM model to domain entity."""
+        return JobRequirement(
+            id=self.id,
+            job_id=self.job_id,
+            type=self.type,
+            description=self.description,
+            normalized_skill=self.normalized_skill,
+            required_level=self.required_level,
+            importance=self.importance,
+            criticality=self.criticality,
+            evidence=self.evidence,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+
+    @classmethod
+    def from_domain(cls, req: JobRequirement) -> JobRequirementModel:
+        """Construct ORM model from domain entity."""
+        kwargs: dict[str, Any] = {
+            "id": req.id,
+            "job_id": req.job_id,
+            "type": req.type,
+            "description": req.description,
+            "normalized_skill": req.normalized_skill,
+            "required_level": req.required_level,
+            "importance": req.importance,
+            "criticality": req.criticality,
+            "evidence": req.evidence,
+        }
+        if req.created_at is not None:
+            kwargs["created_at"] = req.created_at
+        if req.updated_at is not None:
+            kwargs["updated_at"] = req.updated_at
+        return cls(**kwargs)
+
+    def __repr__(self) -> str:
+        type_val = getattr(self.type, "value", self.type)
+        return (
+            f"<JobRequirementModel id={self.id} type={type_val!r} "
+            f"normalized_skill={self.normalized_skill!r}>"
+        )

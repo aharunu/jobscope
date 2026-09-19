@@ -16,6 +16,10 @@ from backend.infrastructure.database.engine import (
     get_engine,
 )
 from backend.infrastructure.database.health import check_database_health
+from backend.infrastructure.database.models.application import (
+    ApplicationModel,
+    ApplicationStatusHistoryModel,
+)
 from backend.infrastructure.database.models.base_profile import (
     BaseProfileModel,
     ProfileEducationModel,
@@ -25,7 +29,14 @@ from backend.infrastructure.database.models.base_profile import (
 )
 from backend.infrastructure.database.models.job import (
     JobModel,
+    JobRequirementModel,
     RawJobModel,
+)
+from backend.infrastructure.database.models.matching import (
+    AIAnalysisModel,
+    AIEvidenceModel,
+    MatchResultModel,
+    RequirementMatchModel,
 )
 from backend.infrastructure.database.models.search_profile import (
     SearchProfileModel,
@@ -40,15 +51,22 @@ from backend.infrastructure.database.session import (
 )
 
 __all__ = [
+    "AIAnalysisModel",
+    "AIEvidenceModel",
+    "ApplicationModel",
+    "ApplicationStatusHistoryModel",
     "Base",
     "BaseModel",
     "BaseProfileModel",
     "JobModel",
+    "JobRequirementModel",
+    "MatchResultModel",
     "ProfileEducationModel",
     "ProfileExperienceModel",
     "ProfileProjectModel",
     "ProfileSkillModel",
     "RawJobModel",
+    "RequirementMatchModel",
     "SearchProfileModel",
     "SourceModel",
     "TimestampMixin",

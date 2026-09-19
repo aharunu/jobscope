@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from backend.infrastructure.database.models.base_profile import (
         BaseProfileModel,
     )
+    from backend.infrastructure.database.models.matching import (
+        MatchResultModel,
+    )
 
 
 class SearchProfileModel(BaseModel):
@@ -71,10 +74,15 @@ class SearchProfileModel(BaseModel):
         nullable=True,
     )
 
-    # Relationship
+    # Relationships
     base_profile: Mapped[BaseProfileModel] = relationship(
         "BaseProfileModel",
         back_populates="search_profiles",
+    )
+    match_results: Mapped[list[MatchResultModel]] = relationship(
+        "MatchResultModel",
+        back_populates="search_profile",
+        cascade="all, delete-orphan",
     )
 
     def to_domain(self) -> SearchProfile:
