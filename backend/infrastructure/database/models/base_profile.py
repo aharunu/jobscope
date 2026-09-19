@@ -30,6 +30,9 @@ from backend.domain.profile.entities import (
 from backend.infrastructure.database.base import BaseModel
 
 if TYPE_CHECKING:
+    from backend.infrastructure.database.models.matching import (
+        MatchResultModel,
+    )
     from backend.infrastructure.database.models.search_profile import (
         SearchProfileModel,
     )
@@ -76,6 +79,11 @@ class BaseProfileModel(BaseModel):
     )
     projects: Mapped[list[ProfileProjectModel]] = relationship(
         "ProfileProjectModel",
+        back_populates="base_profile",
+        cascade="all, delete-orphan",
+    )
+    match_results: Mapped[list[MatchResultModel]] = relationship(
+        "MatchResultModel",
         back_populates="base_profile",
         cascade="all, delete-orphan",
     )

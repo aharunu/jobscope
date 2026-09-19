@@ -10,7 +10,12 @@ from backend.domain.user.entities import User
 from backend.infrastructure.database.base import BaseModel
 
 if TYPE_CHECKING:
-    from backend.infrastructure.database.models.base_profile import BaseProfileModel
+    from backend.infrastructure.database.models.application import (
+        ApplicationModel,
+    )
+    from backend.infrastructure.database.models.base_profile import (
+        BaseProfileModel,
+    )
 
 
 class UserModel(BaseModel):
@@ -20,6 +25,11 @@ class UserModel(BaseModel):
 
     base_profiles: Mapped[list[BaseProfileModel]] = relationship(
         "BaseProfileModel",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    applications: Mapped[list[ApplicationModel]] = relationship(
+        "ApplicationModel",
         back_populates="user",
         cascade="all, delete-orphan",
     )

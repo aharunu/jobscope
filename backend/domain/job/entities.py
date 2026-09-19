@@ -6,7 +6,11 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from backend.domain.job.enums import JobStatus
+from backend.domain.job.enums import (
+    JobStatus,
+    RequirementLevel,
+    RequirementType,
+)
 
 
 @dataclass(slots=True)
@@ -51,3 +55,23 @@ class RawJob:
     content_type: str
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     fetched_at: datetime | None = None
+
+
+@dataclass(slots=True)
+class JobRequirement:
+    """Domain entity representing a parsed/normalized requirement of a job posting.
+
+    Pure Python representation independent of persistence or ORM frameworks.
+    """
+
+    job_id: uuid.UUID
+    type: RequirementType
+    description: str
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    normalized_skill: str | None = None
+    required_level: RequirementLevel = RequirementLevel.REQUIRED
+    importance: str = "MEDIUM"
+    criticality: str = "NORMAL"
+    evidence: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
