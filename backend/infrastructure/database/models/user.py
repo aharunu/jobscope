@@ -2,16 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from sqlalchemy.orm import Mapped, relationship
 
 from backend.domain.user.entities import User
 from backend.infrastructure.database.base import BaseModel
+
+if TYPE_CHECKING:
+    from backend.infrastructure.database.models.base_profile import BaseProfileModel
 
 
 class UserModel(BaseModel):
     """SQLAlchemy ORM model for the users table."""
 
     __tablename__ = "users"
+
+    base_profiles: Mapped[list[BaseProfileModel]] = relationship(
+        "BaseProfileModel",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
     def to_domain(self) -> User:
         """Convert ORM model to domain entity."""
