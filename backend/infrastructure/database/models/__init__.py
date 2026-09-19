@@ -9,6 +9,10 @@ from backend.infrastructure.database.models.base_profile import (
     ProfileProjectModel,
     ProfileSkillModel,
 )
+from backend.infrastructure.database.models.crawl_run import (
+    CrawlRunJobModel,
+    CrawlRunModel,
+)
 from backend.infrastructure.database.models.job import (
     JobModel,
     JobRequirementModel,
@@ -32,6 +36,8 @@ __all__ = [
     "ApplicationModel",
     "ApplicationStatusHistoryModel",
     "BaseProfileModel",
+    "CrawlRunJobModel",
+    "CrawlRunModel",
     "JobModel",
     "JobRequirementModel",
     "MatchResultModel",
