@@ -30,6 +30,7 @@ from backend.domain.profile.entities import (
 from backend.infrastructure.database.base import BaseModel
 
 if TYPE_CHECKING:
+    from backend.infrastructure.database.models.cv import CVModel
     from backend.infrastructure.database.models.matching import (
         MatchResultModel,
     )
@@ -84,6 +85,11 @@ class BaseProfileModel(BaseModel):
     )
     match_results: Mapped[list[MatchResultModel]] = relationship(
         "MatchResultModel",
+        back_populates="base_profile",
+        cascade="all, delete-orphan",
+    )
+    cvs: Mapped[list[CVModel]] = relationship(
+        "CVModel",
         back_populates="base_profile",
         cascade="all, delete-orphan",
     )
