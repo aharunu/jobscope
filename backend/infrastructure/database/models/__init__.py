@@ -13,6 +13,7 @@ from backend.infrastructure.database.models.crawl_run import (
     CrawlRunJobModel,
     CrawlRunModel,
 )
+from backend.infrastructure.database.models.cv import CVModel
 from backend.infrastructure.database.models.job import (
     JobModel,
     JobRequirementModel,
@@ -36,6 +37,7 @@ __all__ = [
     "ApplicationModel",
     "ApplicationStatusHistoryModel",
     "BaseProfileModel",
+    "CVModel",
     "CrawlRunJobModel",
     "CrawlRunModel",
     "JobModel",
