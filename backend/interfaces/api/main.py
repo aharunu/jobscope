@@ -11,6 +11,7 @@ from backend.infrastructure.database.engine import dispose_engine, get_engine
 from backend.infrastructure.logging.logger import setup_logging
 from backend.interfaces.api.errors import register_exception_handlers
 from backend.interfaces.api.routes.health import router as health_router
+from backend.interfaces.api.routes.sources import router as sources_router
 
 
 @asynccontextmanager
@@ -56,6 +57,9 @@ def create_app(
     # Health and readiness check endpoints mounted at root and API prefix
     app.include_router(health_router)
     app.include_router(health_router, prefix="/api")
+
+    # Sources registry endpoint
+    app.include_router(sources_router, prefix="/api")
 
     # Centralized exception handlers for safe, standardized error responses
     register_exception_handlers(app)
