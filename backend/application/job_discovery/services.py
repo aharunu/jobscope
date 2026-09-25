@@ -11,6 +11,8 @@ from backend.application.job_discovery.dtos import (
     SourceCreateDTO,
     SourceFilterDTO,
     SourceProbeResultDTO,
+    SourceStatsDTO,
+    SourceUpdateDTO,
     SyncResultDTO,
 )
 from backend.application.job_discovery.ports import (
@@ -53,7 +55,9 @@ class SourceRegistryService:
 
         return await self.repository.list_all(
             active_only=filter_.active_only,
+            is_active=filter_.is_active,
             ats_type=filter_.ats_type,
+            search_query=filter_.search_query,
             limit=filter_.limit,
             offset=filter_.offset,
         )
@@ -61,12 +65,16 @@ class SourceRegistryService:
     async def count_sources(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
     ) -> int:
         """Count registered sources matching criteria."""
         return await self.repository.count(
             active_only=active_only,
+            is_active=is_active,
             ats_type=ats_type,
+            search_query=search_query,
         )
 
     async def get_source(self, source_id: uuid.UUID) -> Source | None:
@@ -281,4 +289,95 @@ class SourceRegistryService:
         return await self.health_probe.probe_batch(
             sources=probe_targets,
             max_concurrency=max_concurrency,
+        )
+
+    async def update_source(
+        self,
+        source_id: uuid.UUID,
+        dto: SourceUpdateDTO,
+    ) -> Source | None:
+        """Update operational configurations and metadata for a registered source.
+
+        Does NOT modify Source.active (strictly handled by set_source_status).
+        """
+        existing = await self.repository.get_by_id(source_id)
+        if existing is None:
+            return None
+
+        updated_source = Source(
+            id=existing.id,
+            name=dto.name if dto.name is not None else existing.name,
+            url=existing.url,
+            ats_type=existing.ats_type,
+            company=existing.company,
+            country=existing.country,
+            active=existing.active,
+            adapter_config=(
+                dto.adapter_config
+                if dto.adapter_config is not None
+                else existing.adapter_config
+            ),
+            pagination_config=(
+                dto.pagination_config
+                if dto.pagination_config is not None
+                else existing.pagination_config
+            ),
+            endpoint_config=(
+                dto.endpoint_config
+                if dto.endpoint_config is not None
+                else existing.endpoint_config
+            ),
+            rate_limit_config=(
+                dto.rate_limit_config
+                if dto.rate_limit_config is not None
+                else existing.rate_limit_config
+            ),
+            metadata=(dto.metadata if dto.metadata is not None else existing.metadata),
+            created_at=existing.created_at,
+        )
+        return await self.repository.save(updated_source)
+
+    async def set_source_status(
+        self,
+        source_id: uuid.UUID,
+        active: bool,
+    ) -> Source | None:
+        """Explicitly activate or deactivate a registered source.
+
+        Sole application use-case for administrative active state mutations.
+        """
+        existing = await self.repository.get_by_id(source_id)
+        if existing is None:
+            return None
+
+        updated_source = Source(
+            id=existing.id,
+            name=existing.name,
+            url=existing.url,
+            ats_type=existing.ats_type,
+            company=existing.company,
+            country=existing.country,
+            active=active,
+            adapter_config=existing.adapter_config,
+            pagination_config=existing.pagination_config,
+            endpoint_config=existing.endpoint_config,
+            rate_limit_config=existing.rate_limit_config,
+            metadata=existing.metadata,
+            created_at=existing.created_at,
+        )
+        return await self.repository.save(updated_source)
+
+    async def get_source_statistics(self) -> SourceStatsDTO:
+        """Compute operational statistics across registered sources."""
+        total = await self.repository.count()
+        active = await self.repository.count(is_active=True)
+        inactive = total - active
+        by_ats = await self.repository.count_by_ats_type()
+        by_country = await self.repository.count_by_country()
+        return SourceStatsDTO(
+            total_sources=total,
+            active_sources=active,
+            inactive_sources=inactive,
+            by_ats_type=by_ats,
+            by_country=by_country,
         )

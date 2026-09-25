@@ -27,7 +27,9 @@ class SourceRepository(Protocol):
     async def list_all(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[Source]:
@@ -45,7 +47,17 @@ class SourceRepository(Protocol):
     async def count(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
     ) -> int:
         """Count sources matching the given filters."""
+        ...
+
+    async def count_by_ats_type(self) -> dict[str, int]:
+        """Aggregate total sources grouped by ATS platform type."""
+        ...
+
+    async def count_by_country(self) -> dict[str, int]:
+        """Aggregate total sources grouped by country code."""
         ...

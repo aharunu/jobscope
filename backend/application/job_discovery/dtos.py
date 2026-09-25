@@ -13,7 +13,9 @@ class SourceFilterDTO:
     """Filter criteria for querying registered job sources."""
 
     active_only: bool = False
+    is_active: bool | None = None
     ats_type: str | None = None
+    search_query: str | None = None
     limit: int = 100
     offset: int = 0
 
@@ -72,3 +74,26 @@ class SourceBatchProbeResultDTO:
     reachable_count: int
     unreachable_count: int
     results: list[SourceProbeResultDTO] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class SourceUpdateDTO:
+    """DTO for operational configuration updates. Does NOT contain active status."""
+
+    name: str | None = None
+    adapter_config: dict[str, Any] | None = None
+    pagination_config: dict[str, Any] | None = None
+    endpoint_config: dict[str, Any] | None = None
+    rate_limit_config: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
+
+
+@dataclass(slots=True)
+class SourceStatsDTO:
+    """Aggregated operational statistics for registered sources."""
+
+    total_sources: int
+    active_sources: int
+    inactive_sources: int
+    by_ats_type: dict[str, int] = field(default_factory=dict)
+    by_country: dict[str, int] = field(default_factory=dict)

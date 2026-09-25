@@ -5,7 +5,10 @@ from backend.interfaces.api.schemas.source import (
     SourceListResponse,
     SourceProbeResponse,
     SourceResponse,
+    SourceStatsResponse,
+    SourceStatusUpdateRequest,
     SourceSyncResponse,
+    SourceUpdateRequest,
 )
 
 __all__ = [
@@ -13,5 +16,8 @@ __all__ = [
     "SourceListResponse",
     "SourceProbeResponse",
     "SourceResponse",
+    "SourceStatsResponse",
+    "SourceStatusUpdateRequest",
     "SourceSyncResponse",
+    "SourceUpdateRequest",
 ]

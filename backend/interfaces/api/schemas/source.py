@@ -118,3 +118,55 @@ class SourceBatchProbeResponse(BaseModel):
     )
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SourceUpdateRequest(BaseModel):
+    """Request schema for updating operational configuration.
+
+    Does NOT contain active.
+    """
+
+    name: str | None = Field(
+        default=None, min_length=1, max_length=150, description="Display name"
+    )
+    adapter_config: dict[str, Any] | None = Field(
+        default=None, description="Adapter parameters"
+    )
+    pagination_config: dict[str, Any] | None = Field(
+        default=None, description="Pagination parameters"
+    )
+    endpoint_config: dict[str, Any] | None = Field(
+        default=None, description="Endpoint query/header parameters"
+    )
+    rate_limit_config: dict[str, Any] | None = Field(
+        default=None, description="Rate limit settings"
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Operational metadata attributes"
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class SourceStatusUpdateRequest(BaseModel):
+    """Request schema for explicitly setting source active/inactive status."""
+
+    active: bool = Field(description="Whether the source is active for discovery")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class SourceStatsResponse(BaseModel):
+    """Response schema for operational source statistics."""
+
+    total_sources: int = Field(description="Total registered sources")
+    active_sources: int = Field(description="Number of active sources")
+    inactive_sources: int = Field(description="Number of inactive sources")
+    by_ats_type: dict[str, int] = Field(
+        default_factory=dict, description="Source count by ATS type"
+    )
+    by_country: dict[str, int] = Field(
+        default_factory=dict, description="Source count by country"
+    )
+
+    model_config = ConfigDict(from_attributes=True)

@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import sys
 import uuid
+from unittest.mock import AsyncMock
 
 import pytest
 
-from backend.application.job_discovery.dtos import SourceCreateDTO, SourceFilterDTO
+from backend.application.job_discovery.dtos import (
+    SourceCreateDTO,
+    SourceFilterDTO,
+    SourceUpdateDTO,
+)
+from backend.application.job_discovery.ports import SourceHealthProbe
 from backend.application.job_discovery.services import SourceRegistryService
 from backend.domain.source import Source, SourceRepository
 
@@ -30,15 +36,31 @@ class InMemorySourceRepository(SourceRepository):
     async def list_all(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[Source]:
         res = list(self.sources.values())
-        if active_only:
+        if is_active is not None:
+            res = [s for s in res if s.active is is_active]
+        elif active_only:
             res = [s for s in res if s.active]
+
         if ats_type is not None:
             res = [s for s in res if s.ats_type == ats_type]
+
+        if search_query and search_query.strip():
+            sq = search_query.strip().lower()
+            res = [
+                s
+                for s in res
+                if sq in s.name.lower()
+                or (s.company and sq in s.company.lower())
+                or sq in s.url.lower()
+            ]
+
         res.sort(key=lambda s: s.name)
         if offset:
             res = res[offset:]
@@ -58,14 +80,30 @@ class InMemorySourceRepository(SourceRepository):
     async def count(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
     ) -> int:
-        res = list(self.sources.values())
-        if active_only:
-            res = [s for s in res if s.active]
-        if ats_type is not None:
-            res = [s for s in res if s.ats_type == ats_type]
+        res = await self.list_all(
+            active_only=active_only,
+            is_active=is_active,
+            ats_type=ats_type,
+            search_query=search_query,
+        )
         return len(res)
+
+    async def count_by_ats_type(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for s in self.sources.values():
+            counts[s.ats_type] = counts.get(s.ats_type, 0) + 1
+        return counts
+
+    async def count_by_country(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for s in self.sources.values():
+            country = s.country or "Unknown"
+            counts[country] = counts.get(country, 0) + 1
+        return counts
 
 
 def test_application_service_layer_independence() -> None:
@@ -216,3 +254,156 @@ async def test_service_save_sources_bulk() -> None:
 
     assert len(saved) == 2
     assert len(repo.sources) == 2
+
+
+@pytest.mark.asyncio
+async def test_service_update_source_mutable_fields() -> None:
+    """Verify update_source updates operational configurations and name."""
+    s = Source(
+        name="Old Name",
+        url="https://source.com",
+        ats_type="lever",
+        company="Company A",
+        country="TR",
+        active=True,
+    )
+    repo = InMemorySourceRepository([s])
+    service = SourceRegistryService(repo)
+
+    dto = SourceUpdateDTO(
+        name="New Name",
+        adapter_config={"site_id": "comp-a"},
+        pagination_config={"page_size": 50},
+        endpoint_config={"headers": {"X-Custom": "val"}},
+        rate_limit_config={"rpm": 60},
+        metadata={"priority": "high"},
+    )
+    updated = await service.update_source(s.id, dto)
+
+    assert updated is not None
+    assert updated.id == s.id
+    assert updated.name == "New Name"
+    assert updated.url == "https://source.com"
+    assert updated.ats_type == "lever"
+    assert updated.company == "Company A"
+    assert updated.country == "TR"
+    assert updated.active is True
+    assert updated.adapter_config == {"site_id": "comp-a"}
+    assert updated.pagination_config == {"page_size": 50}
+    assert updated.endpoint_config == {"headers": {"X-Custom": "val"}}
+    assert updated.rate_limit_config == {"rpm": 60}
+    assert updated.metadata == {"priority": "high"}
+
+
+@pytest.mark.asyncio
+async def test_service_update_source_does_not_mutate_active() -> None:
+    """Verify update_source preserves active status untouched."""
+    s = Source(name="S", url="https://s.com", ats_type="lever", active=False)
+    repo = InMemorySourceRepository([s])
+    service = SourceRegistryService(repo)
+
+    dto = SourceUpdateDTO(name="Renamed")
+    updated = await service.update_source(s.id, dto)
+
+    assert updated is not None
+    assert updated.active is False
+
+
+@pytest.mark.asyncio
+async def test_service_set_source_status() -> None:
+    """Verify set_source_status explicitly mutates active status."""
+    s = Source(name="S", url="https://s.com", ats_type="lever", active=True)
+    repo = InMemorySourceRepository([s])
+    service = SourceRegistryService(repo)
+
+    # Deactivate
+    deactivated = await service.set_source_status(s.id, active=False)
+    assert deactivated is not None
+    assert deactivated.active is False
+
+    # Reactivate
+    reactivated = await service.set_source_status(s.id, active=True)
+    assert reactivated is not None
+    assert reactivated.active is True
+
+
+@pytest.mark.asyncio
+async def test_service_update_source_not_found() -> None:
+    """Verify update_source and set_source_status return None when ID not found."""
+    repo = InMemorySourceRepository()
+    service = SourceRegistryService(repo)
+
+    missing_id = uuid.uuid4()
+    assert await service.update_source(missing_id, SourceUpdateDTO(name="X")) is None
+    assert await service.set_source_status(missing_id, active=True) is None
+
+
+@pytest.mark.asyncio
+async def test_service_get_source_statistics() -> None:
+    """Verify get_source_statistics aggregates counts and breakdowns."""
+    s1 = Source(
+        name="S1", url="https://s1.com", ats_type="lever", country="TR", active=True
+    )
+    s2 = Source(
+        name="S2", url="https://s2.com", ats_type="lever", country="TR", active=False
+    )
+    s3 = Source(
+        name="S3",
+        url="https://s3.com",
+        ats_type="greenhouse",
+        country="US",
+        active=True,
+    )
+    repo = InMemorySourceRepository([s1, s2, s3])
+    service = SourceRegistryService(repo)
+
+    stats = await service.get_source_statistics()
+
+    assert stats.total_sources == 3
+    assert stats.active_sources == 2
+    assert stats.inactive_sources == 1
+    assert stats.by_ats_type == {"lever": 2, "greenhouse": 1}
+    assert stats.by_country == {"TR": 2, "US": 1}
+
+
+@pytest.mark.asyncio
+async def test_service_management_does_not_invoke_health_probe() -> None:
+    """Verify management methods never call health_probe."""
+    mock_probe = AsyncMock(spec=SourceHealthProbe)
+    s = Source(name="S", url="https://s.com", ats_type="lever", active=True)
+    repo = InMemorySourceRepository([s])
+    service = SourceRegistryService(repo, health_probe=mock_probe)
+
+    await service.update_source(s.id, SourceUpdateDTO(name="Updated"))
+    await service.set_source_status(s.id, active=False)
+    await service.get_source_statistics()
+
+    mock_probe.probe.assert_not_called()
+    mock_probe.probe_batch.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_service_catalog_sync_preserves_administrative_deactivation() -> None:
+    """Verify catalog sync preserves manual deactivation."""
+    s = Source(
+        name="Trendyol", url="https://trendyol.com", ats_type="lever", active=True
+    )
+    repo = InMemorySourceRepository([s])
+    service = SourceRegistryService(repo)
+
+    # Manually deactivate
+    await service.set_source_status(s.id, active=False)
+    assert repo.sources[s.id].active is False
+
+    # Simulate catalog sync with active=True
+    catalog_dto = SourceCreateDTO(
+        name="Trendyol Careers",
+        url="https://trendyol.com",
+        ats_type="lever",
+        active=True,
+    )
+    await service.sync_sources([catalog_dto])
+
+    # Must remain False
+    persisted = repo.sources[s.id]
+    assert persisted.active is False

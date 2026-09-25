@@ -31,15 +31,31 @@ class InMemorySourceRepo(SourceRepository):
     async def list_all(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[Source]:
         res = list(self.sources.values())
-        if active_only:
+        if is_active is not None:
+            res = [s for s in res if s.active is is_active]
+        elif active_only:
             res = [s for s in res if s.active]
+
         if ats_type is not None:
             res = [s for s in res if s.ats_type == ats_type]
+
+        if search_query and search_query.strip():
+            sq = search_query.strip().lower()
+            res = [
+                s
+                for s in res
+                if sq in s.name.lower()
+                or (s.company and sq in s.company.lower())
+                or sq in s.url.lower()
+            ]
+
         res.sort(key=lambda s: s.name)
         if offset:
             res = res[offset:]
@@ -59,14 +75,30 @@ class InMemorySourceRepo(SourceRepository):
     async def count(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
     ) -> int:
-        res = list(self.sources.values())
-        if active_only:
-            res = [s for s in res if s.active]
-        if ats_type is not None:
-            res = [s for s in res if s.ats_type == ats_type]
+        res = await self.list_all(
+            active_only=active_only,
+            is_active=is_active,
+            ats_type=ats_type,
+            search_query=search_query,
+        )
         return len(res)
+
+    async def count_by_ats_type(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for s in self.sources.values():
+            counts[s.ats_type] = counts.get(s.ats_type, 0) + 1
+        return counts
+
+    async def count_by_country(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for s in self.sources.values():
+            country = s.country or "Unknown"
+            counts[country] = counts.get(country, 0) + 1
+        return counts
 
 
 def _seed_test_sources() -> list[Source]:
@@ -212,21 +244,206 @@ def test_negative_post_source_not_implemented(client: TestClient) -> None:
     assert response.status_code == 405
 
 
-def test_negative_get_source_detail_not_implemented(client: TestClient) -> None:
-    """Verify GET /api/sources/{id} returns 404 (excluded from Phase 3.1)."""
+def test_get_source_detail_success(app: FastAPI, client: TestClient) -> None:
+    """Verify GET /api/sources/{id} returns 200 and full source details."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    target = sources[0]
+    response = client.get(f"/api/sources/{target.id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(target.id)
+    assert data["name"] == target.name
+    assert data["company"] == target.company
+    assert data["url"] == target.url
+    assert data["active"] is True
+    assert data["adapter_config"] == target.adapter_config
+
+
+def test_get_source_detail_not_found(app: FastAPI, client: TestClient) -> None:
+    """Verify GET /api/sources/{id} returns 404 when ID does not exist."""
+    repo = InMemorySourceRepo([])
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
     random_id = uuid.uuid4()
     response = client.get(f"/api/sources/{random_id}")
     assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
 
 
-def test_negative_patch_source_not_implemented(client: TestClient) -> None:
-    """Verify PATCH /api/sources/{id} returns 404 or 405 (excluded from Phase 3.1)."""
+def test_get_sources_is_active_filter(app: FastAPI, client: TestClient) -> None:
+    """Verify GET /api/sources?is_active=false returns only inactive sources."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    response = client.get("/api/sources?is_active=false")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["active"] is False
+    assert data["items"][0]["name"] == "Deprecated Source"
+
+
+def test_get_sources_search_filter(app: FastAPI, client: TestClient) -> None:
+    """Verify GET /api/sources?search=trendyol performs case-insensitive search."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    response = client.get("/api/sources?search=trendyol")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["name"] == "Trendyol Greenhouse"
+
+
+def test_get_sources_stats_success(app: FastAPI, client: TestClient) -> None:
+    """Verify GET /api/sources/stats returns aggregated operational metrics."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    response = client.get("/api/sources/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_sources"] == 3
+    assert data["active_sources"] == 2
+    assert data["inactive_sources"] == 1
+    assert "by_ats_type" in data
+    assert "by_country" in data
+
+
+def test_patch_source_config_success(app: FastAPI, client: TestClient) -> None:
+    """Verify PATCH /api/sources/{id} updates operational config."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    target = sources[0]
+    response = client.patch(
+        f"/api/sources/{target.id}",
+        json={
+            "name": "Renamed Getir",
+            "adapter_config": {"site_id": "new-getir"},
+            "metadata": {"updated_by": "admin"},
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Renamed Getir"
+    assert data["adapter_config"] == {"site_id": "new-getir"}
+    assert data["metadata"]["updated_by"] == "admin"
+    assert data["active"] is True  # Preserved!
+
+
+def test_patch_source_config_rejects_active_field(
+    app: FastAPI, client: TestClient
+) -> None:
+    """CRITICAL: PATCH /api/sources/{id} must forbid active field (use /status)."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    target = sources[0]
+    response = client.patch(
+        f"/api/sources/{target.id}",
+        json={"active": False},
+    )
+    assert response.status_code == 422  # extra="forbid" triggers validation error
+
+
+def test_patch_source_config_not_found(app: FastAPI, client: TestClient) -> None:
+    """Verify PATCH /api/sources/{id} returns 404 for unknown ID."""
+    repo = InMemorySourceRepo([])
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
     random_id = uuid.uuid4()
     response = client.patch(
         f"/api/sources/{random_id}",
         json={"name": "Renamed"},
     )
-    assert response.status_code in (404, 405)
+    assert response.status_code == 404
+
+
+def test_patch_source_forbidden_extra_fields(app: FastAPI, client: TestClient) -> None:
+    """Verify unknown fields in PATCH /api/sources/{id} are rejected with 422."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    target = sources[0]
+    response = client.patch(
+        f"/api/sources/{target.id}",
+        json={"unknown_property": "bad_data"},
+    )
+    assert response.status_code == 422
+
+
+def test_patch_source_status_success(app: FastAPI, client: TestClient) -> None:
+    """Verify PATCH /api/sources/{id}/status explicitly toggles active status."""
+    sources = _seed_test_sources()
+    repo = InMemorySourceRepo(sources)
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    target = sources[0]
+    assert target.active is True
+
+    # Deactivate
+    response = client.patch(
+        f"/api/sources/{target.id}/status",
+        json={"active": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["active"] is False
+
+    # Reactivate
+    response = client.patch(
+        f"/api/sources/{target.id}/status",
+        json={"active": True},
+    )
+    assert response.status_code == 200
+    assert response.json()["active"] is True
+
+
+def test_patch_source_status_not_found(app: FastAPI, client: TestClient) -> None:
+    """Verify PATCH /api/sources/{id}/status returns 404 for unknown ID."""
+    repo = InMemorySourceRepo([])
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    random_id = uuid.uuid4()
+    response = client.patch(
+        f"/api/sources/{random_id}/status",
+        json={"active": False},
+    )
+    assert response.status_code == 404
+
+
+def test_route_ordering_stats_not_matched_as_uuid(
+    app: FastAPI, client: TestClient
+) -> None:
+    """Verify /stats is resolved properly and not parsed as a source_id UUID."""
+    repo = InMemorySourceRepo([])
+    service = SourceRegistryService(repo)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
+    response = client.get("/api/sources/stats")
+    assert response.status_code == 200
 
 
 def test_sync_endpoint_available_in_phase_3_2(app: FastAPI, client: TestClient) -> None:
