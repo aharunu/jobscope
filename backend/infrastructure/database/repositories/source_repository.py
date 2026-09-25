@@ -64,7 +64,11 @@ class SQLAlchemySourceRepository(SourceRepository):
                 )
             )
 
-        stmt = stmt.order_by(SourceModel.name.asc(), SourceModel.created_at.desc())
+        stmt = stmt.order_by(
+            SourceModel.name.asc(),
+            SourceModel.created_at.desc().nulls_last(),
+            SourceModel.id.asc(),
+        )
 
         if offset > 0:
             stmt = stmt.offset(offset)

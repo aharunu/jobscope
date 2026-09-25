@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from backend.application.job_discovery.dtos import (
+    RuntimeSourceDTO,
     SourceBatchProbeResultDTO,
     SourceCreateDTO,
     SourceProbeResultDTO,
@@ -45,4 +46,25 @@ class SourceHealthProbe(Protocol):
         max_concurrency: int = 10,
     ) -> SourceBatchProbeResultDTO:
         """Probe multiple sources concurrently with bounded concurrency."""
+        ...
+
+
+@runtime_checkable
+class RuntimeSourceProvider(Protocol):
+    """Port for retrieving crawlable active sources for crawler execution."""
+
+    async def get_crawlable_sources(
+        self,
+        ats_type: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[RuntimeSourceDTO]:
+        """Retrieve deterministic list of active sources ready for crawling."""
+        ...
+
+    async def get_crawlable_source(
+        self,
+        source_id: uuid.UUID,
+    ) -> RuntimeSourceDTO | None:
+        """Retrieve a single active crawlable source by its ID."""
         ...
