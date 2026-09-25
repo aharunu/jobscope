@@ -71,3 +71,50 @@ class SourceSyncResponse(BaseModel):
         default_factory=list,
         description="Warnings or skipped entries during sync",
     )
+
+
+class SourceProbeResponse(BaseModel):
+    """Response schema for an individual source health probe."""
+
+    source_id: uuid.UUID | None = Field(default=None, description="Source ID if known")
+    url: str = Field(description="Target URL probed")
+    is_reachable: bool = Field(
+        description="Whether target returned a 2xx or 3xx terminal status"
+    )
+    status_code: int | None = Field(
+        default=None, description="HTTP status code received"
+    )
+    latency_ms: float | None = Field(
+        default=None, description="Total request latency in milliseconds"
+    )
+    final_url: str | None = Field(
+        default=None, description="Final URL reached after any redirects"
+    )
+    redirect_count: int = Field(
+        default=0, description="Number of redirect hops followed"
+    )
+    error_type: str | None = Field(
+        default=None, description="Categorized error reason if probe failed"
+    )
+    error_message: str | None = Field(
+        default=None, description="Descriptive error detail if probe failed"
+    )
+    ats_type: str | None = Field(default=None, description="Source ATS type if known")
+    probed_at: datetime = Field(description="UTC timestamp of the probe")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SourceBatchProbeResponse(BaseModel):
+    """Response schema for batch source health probe execution."""
+
+    total_probed: int = Field(description="Total sources probed")
+    reachable_count: int = Field(description="Number of sources successfully reached")
+    unreachable_count: int = Field(
+        description="Number of sources unreachable or failing"
+    )
+    results: list[SourceProbeResponse] = Field(
+        default_factory=list, description="Detailed probe metrics per source"
+    )
+
+    model_config = ConfigDict(from_attributes=True)
