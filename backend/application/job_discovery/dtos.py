@@ -33,3 +33,14 @@ class SourceCreateDTO:
     endpoint_config: dict[str, Any] = field(default_factory=dict)
     rate_limit_config: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class SyncResultDTO:
+    """Summary of source catalog synchronization."""
+
+    total_scanned: int
+    created: int
+    updated: int
+    skipped: int
+    errors: list[str] = field(default_factory=list)

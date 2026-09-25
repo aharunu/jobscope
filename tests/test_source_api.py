@@ -229,7 +229,21 @@ def test_negative_patch_source_not_implemented(client: TestClient) -> None:
     assert response.status_code in (404, 405)
 
 
-def test_negative_sync_endpoint_reserved_for_phase_3_2(client: TestClient) -> None:
-    """Verify POST /api/sources/sync is not implemented in Phase 3.1."""
+def test_sync_endpoint_available_in_phase_3_2(app: FastAPI, client: TestClient) -> None:
+    """Verify POST /api/sources/sync is implemented and returns 200 in Phase 3.2."""
+    from backend.infrastructure.parsers.markdown_source_parser import (
+        MarkdownSourceParser,
+    )
+
+    repo = InMemorySourceRepo([])
+    parser = MarkdownSourceParser()
+    service = SourceRegistryService(repo, catalog_parser=parser)
+    app.dependency_overrides[get_source_registry_service] = lambda: service
+
     response = client.post("/api/sources/sync")
-    assert response.status_code in (404, 405)
+    assert response.status_code == 200
+    data = response.json()
+    assert "total_scanned" in data
+    assert "created" in data
+    assert "updated" in data
+    assert "skipped" in data

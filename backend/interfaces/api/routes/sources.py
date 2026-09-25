@@ -6,7 +6,11 @@ from fastapi import APIRouter, Query, status
 
 from backend.application.job_discovery.dtos import SourceFilterDTO
 from backend.interfaces.api.dependencies.sources import SourceRegistryDep
-from backend.interfaces.api.schemas.source import SourceListResponse, SourceResponse
+from backend.interfaces.api.schemas.source import (
+    SourceListResponse,
+    SourceResponse,
+    SourceSyncResponse,
+)
 
 router = APIRouter(prefix="/sources", tags=["Sources"])
 
@@ -58,3 +62,27 @@ async def list_sources(
 
     items = [SourceResponse.model_validate(s) for s in sources]
     return SourceListResponse(items=items, total=total)
+
+
+@router.post(
+    "/sync",
+    response_model=SourceSyncResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Synchronize sources from Markdown catalog",
+    description=(
+        "Imports and synchronizes job sources from data/turkish-job-sources.md "
+        "into the PostgreSQL source registry."
+    ),
+)
+async def sync_sources(
+    service: SourceRegistryDep,
+) -> SourceSyncResponse:
+    """Synchronize source registry with canonical catalog."""
+    result = await service.sync_from_catalog()
+    return SourceSyncResponse(
+        total_scanned=result.total_scanned,
+        created=result.created,
+        updated=result.updated,
+        skipped=result.skipped,
+        errors=result.errors,
+    )
