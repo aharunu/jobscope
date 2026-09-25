@@ -7,6 +7,7 @@ import uuid
 from typing import Any
 
 from backend.application.job_discovery.dtos import (
+    RuntimeSourceDTO,
     SourceBatchProbeResultDTO,
     SourceCreateDTO,
     SourceFilterDTO,
@@ -381,3 +382,31 @@ class SourceRegistryService:
             by_ats_type=by_ats,
             by_country=by_country,
         )
+
+    async def get_crawlable_sources(
+        self,
+        ats_type: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[RuntimeSourceDTO]:
+        """Retrieve deterministic active sources for crawler consumption."""
+        sources = await self.repository.list_all(
+            is_active=True,
+            ats_type=ats_type,
+            limit=limit,
+            offset=offset,
+        )
+        return [RuntimeSourceDTO.from_domain(s) for s in sources]
+
+    async def get_crawlable_source(
+        self,
+        source_id: uuid.UUID,
+    ) -> RuntimeSourceDTO | None:
+        """Retrieve a single active source by ID for crawler consumption.
+
+        Returns None if source does not exist or is inactive.
+        """
+        source = await self.repository.get_by_id(source_id)
+        if source is None or not source.active:
+            return None
+        return RuntimeSourceDTO.from_domain(source)

@@ -1,6 +1,7 @@
 """Job discovery application package."""
 
 from backend.application.job_discovery.dtos import (
+    RuntimeSourceDTO,
     SourceBatchProbeResultDTO,
     SourceCreateDTO,
     SourceFilterDTO,
@@ -11,12 +12,15 @@ from backend.application.job_discovery.dtos import (
 )
 from backend.application.job_discovery.ports import (
     CatalogParser,
+    RuntimeSourceProvider,
     SourceHealthProbe,
 )
 from backend.application.job_discovery.services import SourceRegistryService
 
 __all__ = [
     "CatalogParser",
+    "RuntimeSourceDTO",
+    "RuntimeSourceProvider",
     "SourceBatchProbeResultDTO",
     "SourceCreateDTO",
     "SourceFilterDTO",

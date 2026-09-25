@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import copy
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from backend.domain.source.entities import Source
 
 
 @dataclass(slots=True)
@@ -97,3 +101,44 @@ class SourceStatsDTO:
     inactive_sources: int
     by_ats_type: dict[str, int] = field(default_factory=dict)
     by_country: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeSourceDTO:
+    """Read-only source specification consumed by the crawler runtime."""
+
+    id: uuid.UUID
+    name: str
+    url: str
+    ats_type: str
+    company: str | None
+    country: str | None
+    adapter_config: dict[str, Any]
+    pagination_config: dict[str, Any]
+    endpoint_config: dict[str, Any]
+    rate_limit_config: dict[str, Any]
+    metadata: dict[str, Any]
+
+    @property
+    def is_known_ats(self) -> bool:
+        """Check if this source uses a recognized ATS platform."""
+        from backend.domain.source.enums import is_known_ats_type
+
+        return is_known_ats_type(self.ats_type)
+
+    @classmethod
+    def from_domain(cls, source: Source) -> RuntimeSourceDTO:
+        """Construct read-only runtime DTO from a domain entity using deep copies."""
+        return cls(
+            id=source.id,
+            name=source.name,
+            url=source.url,
+            ats_type=source.ats_type,
+            company=source.company,
+            country=source.country,
+            adapter_config=copy.deepcopy(source.adapter_config),
+            pagination_config=copy.deepcopy(source.pagination_config),
+            endpoint_config=copy.deepcopy(source.endpoint_config),
+            rate_limit_config=copy.deepcopy(source.rate_limit_config),
+            metadata=copy.deepcopy(source.metadata),
+        )
