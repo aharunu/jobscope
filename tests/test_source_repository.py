@@ -198,3 +198,58 @@ async def test_repository_count() -> None:
 
     assert total == 42
     mock_session.execute.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_repository_list_all_with_is_active_and_search() -> None:
+    """Verify list_all builds query with is_active and search_query."""
+    mock_session = AsyncMock(spec=AsyncSession)
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    repo = SQLAlchemySourceRepository(mock_session)
+    result = await repo.list_all(
+        is_active=False,
+        search_query="trendyol",
+        limit=10,
+        offset=5,
+    )
+
+    assert result == []
+    mock_session.execute.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_repository_count_by_ats_type() -> None:
+    """Verify count_by_ats_type groups and aggregates counts."""
+    mock_session = AsyncMock(spec=AsyncSession)
+    mock_result = MagicMock()
+    mock_result.all.return_value = [("lever", 5), ("greenhouse", 3)]
+    mock_session.execute.return_value = mock_result
+
+    repo = SQLAlchemySourceRepository(mock_session)
+    counts = await repo.count_by_ats_type()
+
+    assert counts == {"lever": 5, "greenhouse": 3}
+    mock_session.execute.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_repository_count_by_country() -> None:
+    """Verify count_by_country groups and aggregates counts with Unknown fallback."""
+    mock_session = AsyncMock(spec=AsyncSession)
+    mock_result = MagicMock()
+    mock_result.all.return_value = [("TR", 10), ("DE", 2), ("Unknown", 5)]
+    mock_session.execute.return_value = mock_result
+
+    repo = SQLAlchemySourceRepository(mock_session)
+    counts = await repo.count_by_country()
+
+    assert counts == {"TR": 10, "DE": 2, "Unknown": 5}
+    mock_session.execute.assert_awaited_once()
+
+    stmt = mock_session.execute.call_args[0][0]
+    sql_str = str(stmt).lower()
+    assert "coalesce" in sql_str
+    assert "Unknown" in stmt.compile().params.values()

@@ -5,6 +5,8 @@ from backend.application.job_discovery.dtos import (
     SourceCreateDTO,
     SourceFilterDTO,
     SourceProbeResultDTO,
+    SourceStatsDTO,
+    SourceUpdateDTO,
     SyncResultDTO,
 )
 from backend.application.job_discovery.ports import (
@@ -21,5 +23,7 @@ __all__ = [
     "SourceHealthProbe",
     "SourceProbeResultDTO",
     "SourceRegistryService",
+    "SourceStatsDTO",
+    "SourceUpdateDTO",
     "SyncResultDTO",
 ]

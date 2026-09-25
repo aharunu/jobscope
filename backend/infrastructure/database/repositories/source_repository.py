@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.source.entities import Source
@@ -38,16 +38,31 @@ class SQLAlchemySourceRepository(SourceRepository):
     async def list_all(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
         limit: int | None = None,
         offset: int = 0,
     ) -> list[Source]:
         """List sources matching filters and pagination."""
         stmt = select(SourceModel)
-        if active_only:
+        if is_active is not None:
+            stmt = stmt.where(SourceModel.active.is_(is_active))
+        elif active_only:
             stmt = stmt.where(SourceModel.active.is_(True))
+
         if ats_type is not None:
             stmt = stmt.where(SourceModel.ats_type == ats_type)
+
+        if search_query and search_query.strip():
+            pattern = f"%{search_query.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    SourceModel.name.ilike(pattern),
+                    SourceModel.company.ilike(pattern),
+                    SourceModel.url.ilike(pattern),
+                )
+            )
 
         stmt = stmt.order_by(SourceModel.name.asc(), SourceModel.created_at.desc())
 
@@ -80,14 +95,47 @@ class SQLAlchemySourceRepository(SourceRepository):
     async def count(
         self,
         active_only: bool = False,
+        is_active: bool | None = None,
         ats_type: str | None = None,
+        search_query: str | None = None,
     ) -> int:
         """Count registered sources matching criteria."""
         stmt = select(func.count()).select_from(SourceModel)
-        if active_only:
+        if is_active is not None:
+            stmt = stmt.where(SourceModel.active.is_(is_active))
+        elif active_only:
             stmt = stmt.where(SourceModel.active.is_(True))
+
         if ats_type is not None:
             stmt = stmt.where(SourceModel.ats_type == ats_type)
 
+        if search_query and search_query.strip():
+            pattern = f"%{search_query.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    SourceModel.name.ilike(pattern),
+                    SourceModel.company.ilike(pattern),
+                    SourceModel.url.ilike(pattern),
+                )
+            )
+
         result = await self.session.execute(stmt)
         return int(result.scalar_one())
+
+    async def count_by_ats_type(self) -> dict[str, int]:
+        """Aggregate total sources grouped by ATS platform type."""
+        stmt = select(SourceModel.ats_type, func.count(SourceModel.id)).group_by(
+            SourceModel.ats_type
+        )
+        result = await self.session.execute(stmt)
+        return {str(row[0]): int(row[1]) for row in result.all()}
+
+    async def count_by_country(self) -> dict[str, int]:
+        """Aggregate total sources grouped by country code."""
+        country_expr = func.coalesce(SourceModel.country, "Unknown")
+        stmt = select(
+            country_expr,
+            func.count(SourceModel.id),
+        ).group_by(country_expr)
+        result = await self.session.execute(stmt)
+        return {str(row[0]): int(row[1]) for row in result.all()}
