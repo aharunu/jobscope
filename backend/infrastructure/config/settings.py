@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Log verbosity level")
 
+    # Source Catalog Configuration
+    source_catalog_path: str = Field(
+        default="data/turkish-job-sources.md",
+        description="Path to the canonical Markdown source catalog",
+    )
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

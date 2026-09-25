@@ -58,3 +58,16 @@ class SourceListResponse(BaseModel):
         description="List of registered job discovery sources",
     )
     total: int = Field(description="Total count of sources matching filter criteria")
+
+
+class SourceSyncResponse(BaseModel):
+    """Response schema for catalog synchronization."""
+
+    total_scanned: int = Field(description="Total entries processed from catalog")
+    created: int = Field(description="Number of new sources registered")
+    updated: int = Field(description="Number of existing sources updated")
+    skipped: int = Field(description="Number of invalid entries skipped")
+    errors: list[str] = Field(
+        default_factory=list,
+        description="Warnings or skipped entries during sync",
+    )

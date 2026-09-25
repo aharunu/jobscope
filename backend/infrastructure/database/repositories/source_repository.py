@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.source.entities import Source
+from backend.domain.source.normalization import normalize_source_url
 from backend.domain.source.repositories import SourceRepository
 from backend.infrastructure.database.models.source import SourceModel
 
@@ -25,8 +26,11 @@ class SQLAlchemySourceRepository(SourceRepository):
         return orm_source.to_domain() if orm_source is not None else None
 
     async def get_by_url(self, url: str) -> Source | None:
-        """Retrieve a source by its exact career page / API URL."""
-        stmt = select(SourceModel).where(SourceModel.url == url)
+        """Retrieve a source by its exact or normalized career page / API URL."""
+        normalized = normalize_source_url(url)
+        stmt = select(SourceModel).where(
+            (SourceModel.url == url) | (SourceModel.url == normalized)
+        )
         result = await self.session.execute(stmt)
         orm_source = result.scalars().first()
         return orm_source.to_domain() if orm_source is not None else None
