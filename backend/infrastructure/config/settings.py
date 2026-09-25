@@ -45,6 +45,16 @@ class Settings(BaseSettings):
         description="Path to the canonical Markdown source catalog",
     )
 
+    # Source Health Probe Configuration
+    source_probe_timeout_seconds: float = Field(
+        default=10.0,
+        description="Timeout in seconds for source health probe HTTP requests",
+    )
+    source_probe_user_agent: str = Field(
+        default="JobScope/0.1.0 (source-health-probe)",
+        description="User-Agent header sent during source health probing",
+    )
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

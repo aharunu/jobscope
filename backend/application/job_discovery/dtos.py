@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -44,3 +45,30 @@ class SyncResultDTO:
     updated: int
     skipped: int
     errors: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class SourceProbeResultDTO:
+    """Diagnostic health result for an individual source probe."""
+
+    source_id: uuid.UUID | None
+    url: str
+    is_reachable: bool
+    status_code: int | None
+    latency_ms: float | None
+    final_url: str | None
+    redirect_count: int
+    error_type: str | None
+    error_message: str | None
+    ats_type: str | None = None
+    probed_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
+
+@dataclass(slots=True)
+class SourceBatchProbeResultDTO:
+    """Summary of batch source health probing."""
+
+    total_probed: int
+    reachable_count: int
+    unreachable_count: int
+    results: list[SourceProbeResultDTO] = field(default_factory=list)

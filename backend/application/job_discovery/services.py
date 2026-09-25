@@ -7,11 +7,16 @@ import uuid
 from typing import Any
 
 from backend.application.job_discovery.dtos import (
+    SourceBatchProbeResultDTO,
     SourceCreateDTO,
     SourceFilterDTO,
+    SourceProbeResultDTO,
     SyncResultDTO,
 )
-from backend.application.job_discovery.ports import CatalogParser
+from backend.application.job_discovery.ports import (
+    CatalogParser,
+    SourceHealthProbe,
+)
 from backend.domain.source.entities import Source
 from backend.domain.source.normalization import normalize_source_url
 from backend.domain.source.repositories import SourceRepository
@@ -30,10 +35,12 @@ class SourceRegistryService:
         self,
         repository: SourceRepository,
         catalog_parser: CatalogParser | None = None,
+        health_probe: SourceHealthProbe | None = None,
         default_catalog_path: str = "data/turkish-job-sources.md",
     ) -> None:
         self.repository = repository
         self.catalog_parser = catalog_parser
+        self.health_probe = health_probe
         self.default_catalog_path = default_catalog_path
 
     async def list_sources(
@@ -222,3 +229,56 @@ class SourceRegistryService:
 
         dtos, parse_warnings = self.catalog_parser.parse_file(path_to_use)
         return await self.sync_sources(dtos, initial_warnings=parse_warnings)
+
+    async def probe_source(
+        self,
+        source_id: uuid.UUID,
+    ) -> SourceProbeResultDTO | None:
+        """Probe an individual registered source for HTTP health.
+
+        Returns None if the source ID is not found in the repository.
+        Does NOT modify Source.active or any database state.
+        """
+        if self.health_probe is None:
+            raise RuntimeError(
+                "Health probe port is not configured on SourceRegistryService."
+            )
+
+        source = await self.repository.get_by_id(source_id)
+        if source is None:
+            return None
+
+        return await self.health_probe.probe(
+            url=source.url,
+            source_id=source.id,
+            ats_type=source.ats_type,
+        )
+
+    async def probe_sources_batch(
+        self,
+        filter_: SourceFilterDTO | None = None,
+        max_concurrency: int = 10,
+    ) -> SourceBatchProbeResultDTO:
+        """Probe multiple registered sources matching filters concurrently.
+
+        Does NOT modify Source.active or any database state.
+        """
+        if self.health_probe is None:
+            raise RuntimeError(
+                "Health probe port is not configured on SourceRegistryService."
+            )
+
+        sources = await self.list_sources(filter_=filter_)
+        if not sources:
+            return SourceBatchProbeResultDTO(
+                total_probed=0,
+                reachable_count=0,
+                unreachable_count=0,
+                results=[],
+            )
+
+        probe_targets = [(source.id, source.url, source.ats_type) for source in sources]
+        return await self.health_probe.probe_batch(
+            sources=probe_targets,
+            max_concurrency=max_concurrency,
+        )
