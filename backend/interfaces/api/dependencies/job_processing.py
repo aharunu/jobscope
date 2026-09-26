@@ -6,18 +6,32 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from backend.application.job_processing.extraction import (
+    RequirementExtractionService,
+    RequirementExtractor,
+)
 from backend.application.job_processing.lifecycle import JobLifecycleService
 from backend.application.job_processing.normalizer import JobNormalizer
 from backend.application.job_processing.query_service import JobQueryService
 from backend.application.job_processing.services import JobIngestionService
 from backend.domain.crawl.repositories import CrawlRunRepository
-from backend.domain.job.repositories import JobRepository, RawJobRepository
+from backend.domain.job.repositories import (
+    JobRepository,
+    JobRequirementRepository,
+    RawJobRepository,
+)
 from backend.infrastructure.database.repositories.crawl_run_repository import (
     SQLAlchemyCrawlRunRepository,
 )
 from backend.infrastructure.database.repositories.job_repository import (
     SQLAlchemyJobRepository,
     SQLAlchemyRawJobRepository,
+)
+from backend.infrastructure.database.repositories.job_requirement_repository import (
+    SQLAlchemyJobRequirementRepository,
+)
+from backend.infrastructure.extraction.deterministic_extractor import (
+    DeterministicRequirementExtractor,
 )
 from backend.interfaces.api.dependencies.database import DbSession
 
@@ -54,6 +68,42 @@ def get_job_normalizer() -> JobNormalizer:
 JobNormalizerDep = Annotated[JobNormalizer, Depends(get_job_normalizer)]
 
 
+def get_job_requirement_repository(session: DbSession) -> JobRequirementRepository:
+    """Provide a JobRequirementRepository instance bound to the database session."""
+    return SQLAlchemyJobRequirementRepository(session)
+
+
+JobRequirementRepositoryDep = Annotated[
+    JobRequirementRepository, Depends(get_job_requirement_repository)
+]
+
+
+def get_requirement_extractor() -> RequirementExtractor:
+    """Provide a stateless DeterministicRequirementExtractor instance."""
+    return DeterministicRequirementExtractor()
+
+
+RequirementExtractorDep = Annotated[
+    RequirementExtractor, Depends(get_requirement_extractor)
+]
+
+
+def get_requirement_extraction_service(
+    requirement_repo: JobRequirementRepositoryDep,
+    extractor: RequirementExtractorDep,
+) -> RequirementExtractionService:
+    """Provide a RequirementExtractionService instance."""
+    return RequirementExtractionService(
+        requirement_repo=requirement_repo,
+        extractor=extractor,
+    )
+
+
+RequirementExtractionServiceDep = Annotated[
+    RequirementExtractionService, Depends(get_requirement_extraction_service)
+]
+
+
 def get_job_lifecycle_service(
     job_repo: JobRepositoryDep,
     crawl_run_repo: CrawlRunRepositoryDep,
@@ -75,6 +125,8 @@ def get_job_ingestion_service(
     raw_job_repo: RawJobRepositoryDep,
     crawl_run_repo: CrawlRunRepositoryDep,
     normalizer: JobNormalizerDep,
+    job_requirement_repo: JobRequirementRepositoryDep | None = None,
+    requirement_service: RequirementExtractionServiceDep | None = None,
     lifecycle_service: JobLifecycleServiceDep | None = None,
 ) -> JobIngestionService:
     """Provide a JobIngestionService injected with request-scoped repositories."""
@@ -83,6 +135,8 @@ def get_job_ingestion_service(
         raw_job_repo=raw_job_repo,
         crawl_run_repo=crawl_run_repo,
         normalizer=normalizer,
+        job_requirement_repo=job_requirement_repo,
+        requirement_service=requirement_service,
         lifecycle_service=lifecycle_service,
     )
 
@@ -108,12 +162,18 @@ __all__ = [
     "JobNormalizerDep",
     "JobQueryServiceDep",
     "JobRepositoryDep",
+    "JobRequirementRepositoryDep",
     "RawJobRepositoryDep",
+    "RequirementExtractionServiceDep",
+    "RequirementExtractorDep",
     "get_crawl_run_repository",
     "get_job_ingestion_service",
     "get_job_lifecycle_service",
     "get_job_normalizer",
     "get_job_query_service",
     "get_job_repository",
+    "get_job_requirement_repository",
     "get_raw_job_repository",
+    "get_requirement_extraction_service",
+    "get_requirement_extractor",
 ]

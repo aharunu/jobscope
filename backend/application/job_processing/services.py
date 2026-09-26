@@ -13,6 +13,10 @@ from backend.application.job_discovery.dtos import (
     RuntimeSourceDTO,
 )
 from backend.application.job_processing.dtos import JobIngestionResultDTO
+from backend.application.job_processing.extraction import (
+    RequirementExtractionService,
+    RequirementExtractor,
+)
 from backend.application.job_processing.lifecycle import JobLifecycleService
 from backend.application.job_processing.normalizer import JobNormalizer
 from backend.domain.crawl.entities import CrawlRun
@@ -20,7 +24,11 @@ from backend.domain.crawl.enums import CrawlJobAction, CrawlStatus
 from backend.domain.crawl.repositories import CrawlRunRepository
 from backend.domain.job.entities import Job, RawJob
 from backend.domain.job.enums import JobStatus
-from backend.domain.job.repositories import JobRepository, RawJobRepository
+from backend.domain.job.repositories import (
+    JobRepository,
+    JobRequirementRepository,
+    RawJobRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +40,9 @@ class JobIngestionService:
     job_repo: JobRepository
     raw_job_repo: RawJobRepository
     crawl_run_repo: CrawlRunRepository
+    job_requirement_repo: JobRequirementRepository | None = None
+    requirement_extractor: RequirementExtractor | None = None
+    requirement_service: RequirementExtractionService | None = None
     normalizer: JobNormalizer = field(default_factory=JobNormalizer)
     lifecycle_service: JobLifecycleService | None = None
 
@@ -40,6 +51,15 @@ class JobIngestionService:
             self.lifecycle_service = JobLifecycleService(
                 job_repo=self.job_repo,
                 crawl_run_repo=self.crawl_run_repo,
+            )
+        if (
+            self.requirement_service is None
+            and self.job_requirement_repo is not None
+            and self.requirement_extractor is not None
+        ):
+            self.requirement_service = RequirementExtractionService(
+                requirement_repo=self.job_requirement_repo,
+                extractor=self.requirement_extractor,
             )
 
     async def ingest_crawl_result(
@@ -96,6 +116,7 @@ class JobIngestionService:
                     discovered=discovered,
                     run_id=crawl_run.id,
                     now=now,
+                    warnings=warnings,
                 )
                 seen_job_ids.add(job_id)
                 if action == CrawlJobAction.CREATED:
@@ -199,6 +220,7 @@ class JobIngestionService:
         discovered: DiscoveredJobDTO,
         run_id: uuid.UUID,
         now: datetime,
+        warnings: list[str] | None = None,
     ) -> tuple[CrawlJobAction, uuid.UUID]:
         """Normalize, deduplicate, persist, and record action for discovered job."""
         canonical = self.normalizer.normalize(discovered, source)
@@ -232,6 +254,22 @@ class JobIngestionService:
                 fetched_at=now,
             )
             await self.raw_job_repo.save(raw_job)
+
+            if self.requirement_service is not None:
+                try:
+                    await self.requirement_service.extract_and_persist(saved_job)
+                except Exception as exc:
+                    warn_msg = (
+                        f"requirement_extraction_failed_job_{saved_job.id}: {exc}"
+                    )
+                    logger.warning(
+                        "Requirement extraction failed for job %s: %s",
+                        saved_job.id,
+                        exc,
+                        exc_info=True,
+                    )
+                    if warnings is not None and warn_msg not in warnings:
+                        warnings.append(warn_msg)
 
             await self.crawl_run_repo.record_job_action(
                 run_id=run_id,
@@ -275,6 +313,22 @@ class JobIngestionService:
                 fetched_at=now,
             )
             await self.raw_job_repo.save(raw_job)
+
+            if self.requirement_service is not None:
+                try:
+                    await self.requirement_service.extract_and_persist(saved_job)
+                except Exception as exc:
+                    warn_msg = (
+                        f"requirement_extraction_failed_job_{saved_job.id}: {exc}"
+                    )
+                    logger.warning(
+                        "Requirement extraction failed for job %s: %s",
+                        saved_job.id,
+                        exc,
+                        exc_info=True,
+                    )
+                    if warnings is not None and warn_msg not in warnings:
+                        warnings.append(warn_msg)
 
             await self.crawl_run_repo.record_job_action(
                 run_id=run_id,

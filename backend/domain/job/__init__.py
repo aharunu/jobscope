@@ -12,6 +12,7 @@ from backend.domain.job.enums import (
 )
 from backend.domain.job.repositories import (
     JobRepository,
+    JobRequirementRepository,
     RawJobRepository,
 )
 
@@ -19,6 +20,7 @@ __all__ = [
     "Job",
     "JobRepository",
     "JobRequirement",
+    "JobRequirementRepository",
     "JobStatus",
     "RawJob",
     "RawJobRepository",

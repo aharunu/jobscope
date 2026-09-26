@@ -7,6 +7,9 @@ from backend.infrastructure.database.repositories.job_repository import (
     SQLAlchemyJobRepository,
     SQLAlchemyRawJobRepository,
 )
+from backend.infrastructure.database.repositories.job_requirement_repository import (
+    SQLAlchemyJobRequirementRepository,
+)
 from backend.infrastructure.database.repositories.source_repository import (
     SQLAlchemySourceRepository,
 )
@@ -14,6 +17,7 @@ from backend.infrastructure.database.repositories.source_repository import (
 __all__ = [
     "SQLAlchemyCrawlRunRepository",
     "SQLAlchemyJobRepository",
+    "SQLAlchemyJobRequirementRepository",
     "SQLAlchemyRawJobRepository",
     "SQLAlchemySourceRepository",
 ]
