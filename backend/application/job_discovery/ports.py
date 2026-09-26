@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from backend.application.job_discovery.dtos import (
+    CrawlResultDTO,
     RuntimeSourceDTO,
+    SafeHttpResponseDTO,
     SourceBatchProbeResultDTO,
     SourceCreateDTO,
     SourceProbeResultDTO,
@@ -67,4 +69,42 @@ class RuntimeSourceProvider(Protocol):
         source_id: uuid.UUID,
     ) -> RuntimeSourceDTO | None:
         """Retrieve a single active crawlable source by its ID."""
+        ...
+
+
+@runtime_checkable
+class ATSAdapter(Protocol):
+    """Port implemented by platform-specific ATS adapters (Lever, Greenhouse, etc.).
+
+    Decouples crawler orchestration from platform-specific HTTP schemas,
+    pagination conventions, and payload extraction.
+    """
+
+    @property
+    def ats_type(self) -> str:
+        """Canonical ATS platform identifier handled by this adapter (e.g. 'lever')."""
+        ...
+
+    async def crawl(self, source: RuntimeSourceDTO) -> CrawlResultDTO:
+        """Execute job discovery against a target runtime source.
+
+        Consumes immutable RuntimeSourceDTO and returns a CrawlResultDTO containing
+        discovered job items without touching canonical DB models.
+        """
+        ...
+
+
+@runtime_checkable
+class SafeHttpClient(Protocol):
+    """Port for executing outbound HTTP requests with mandatory SSRF protection."""
+
+    async def get(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+    ) -> SafeHttpResponseDTO:
+        """Perform an SSRF-validated GET request."""
         ...

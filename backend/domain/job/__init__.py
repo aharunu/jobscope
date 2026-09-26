@@ -10,12 +10,18 @@ from backend.domain.job.enums import (
     RequirementLevel,
     RequirementType,
 )
+from backend.domain.job.repositories import (
+    JobRepository,
+    RawJobRepository,
+)
 
 __all__ = [
     "Job",
+    "JobRepository",
     "JobRequirement",
     "JobStatus",
     "RawJob",
+    "RawJobRepository",
     "RequirementLevel",
     "RequirementType",
 ]

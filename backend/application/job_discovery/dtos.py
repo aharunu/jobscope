@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from backend.domain.crawl.enums import CrawlStatus
+
 if TYPE_CHECKING:
     from backend.domain.source.entities import Source
 
@@ -142,3 +144,55 @@ class RuntimeSourceDTO:
             rate_limit_config=copy.deepcopy(source.rate_limit_config),
             metadata=copy.deepcopy(source.metadata),
         )
+
+
+@dataclass(slots=True)
+class SafeHttpResponseDTO:
+    """Structured response representation from an SSRF-safe HTTP request."""
+
+    status_code: int
+    url: str
+    headers: dict[str, str] = field(default_factory=dict)
+    text: str = ""
+    content_bytes: bytes | None = None
+
+
+@dataclass(slots=True)
+class DiscoveredJobDTO:
+    """Intermediate representation of a discovered job posting from an adapter."""
+
+    external_job_id: str | None
+    url: str
+    title: str | None
+    raw_content: str
+    content_type: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    discovered_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
+
+@dataclass(slots=True)
+class CrawlResultDTO:
+    """Pure output payload produced by an ATSAdapter after crawling a source."""
+
+    source_id: uuid.UUID
+    ats_type: str
+    jobs: list[DiscoveredJobDTO] = field(default_factory=list)
+    raw_payload_count: int = 0
+    warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class CrawlExecutionResultDTO:
+    """Execution lifecycle metadata produced by the CrawlerOrchestrator."""
+
+    source_id: uuid.UUID
+    source_name: str
+    ats_type: str
+    status: CrawlStatus
+    success: bool
+    jobs_found: int = 0
+    duration_ms: float = 0.0
+    error_type: str | None = None
+    error_message: str | None = None
+    crawl_result: CrawlResultDTO | None = None
