@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from backend.application.job_discovery.adapter_registry import ATSAdapterRegistry
 from backend.application.job_discovery.ports import SafeHttpClient
+from backend.infrastructure.ats.greenhouse import GreenhouseAdapter
 from backend.infrastructure.ats.lever import LeverAdapter
 
 
@@ -17,4 +18,5 @@ def create_adapter_registry(http_client: SafeHttpClient) -> ATSAdapterRegistry:
         Populated ATSAdapterRegistry ready for orchestrator consumption.
     """
     lever_adapter = LeverAdapter(http_client=http_client)
-    return ATSAdapterRegistry([lever_adapter])
+    greenhouse_adapter = GreenhouseAdapter(http_client=http_client)
+    return ATSAdapterRegistry([lever_adapter, greenhouse_adapter])

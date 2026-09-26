@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Protocol, runtime_checkable
 
-from backend.domain.job.entities import Job, RawJob
+from backend.domain.job.entities import Job, JobRequirement, RawJob
 from backend.domain.job.enums import JobStatus
 
 
@@ -98,4 +98,25 @@ class RawJobRepository(Protocol):
 
     async def get_by_job_id(self, job_id: uuid.UUID) -> list[RawJob]:
         """Retrieve all historical raw payloads associated with a canonical job."""
+        ...
+
+
+@runtime_checkable
+class JobRequirementRepository(Protocol):
+    """Domain repository interface for JobRequirement persistence and retrieval."""
+
+    async def get_by_job_id(self, job_id: uuid.UUID) -> list[JobRequirement]:
+        """Retrieve all requirements associated with a canonical job."""
+        ...
+
+    async def save_requirements(
+        self,
+        job_id: uuid.UUID,
+        requirements: list[JobRequirement],
+    ) -> list[JobRequirement]:
+        """Atomically replace and persist requirements for a canonical job."""
+        ...
+
+    async def delete_by_job_id(self, job_id: uuid.UUID) -> int:
+        """Delete all requirements associated with a canonical job."""
         ...

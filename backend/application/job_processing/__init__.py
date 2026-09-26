@@ -6,6 +6,10 @@ from backend.application.job_processing.dtos import (
     JobIngestionResultDTO,
     JobSummaryDTO,
 )
+from backend.application.job_processing.extraction import (
+    RequirementExtractionService,
+    RequirementExtractor,
+)
 from backend.application.job_processing.lifecycle import (
     AbsenceClosureEvaluation,
     JobLifecycleService,
@@ -24,4 +28,6 @@ __all__ = [
     "JobNormalizer",
     "JobQueryService",
     "JobSummaryDTO",
+    "RequirementExtractionService",
+    "RequirementExtractor",
 ]
