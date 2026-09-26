@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.application.job_processing.lifecycle import JobLifecycleService
 from backend.application.job_processing.normalizer import JobNormalizer
 from backend.application.job_processing.services import JobIngestionService
 from backend.infrastructure.database.repositories.crawl_run_repository import (
@@ -18,6 +19,7 @@ from backend.infrastructure.database.repositories.job_repository import (
 from backend.interfaces.api.dependencies.job_processing import (
     get_crawl_run_repository,
     get_job_ingestion_service,
+    get_job_lifecycle_service,
     get_job_normalizer,
     get_job_repository,
     get_raw_job_repository,
@@ -43,14 +45,22 @@ def test_dependency_providers() -> None:
     normalizer = get_job_normalizer()
     assert isinstance(normalizer, JobNormalizer)
 
+    lifecycle_service = get_job_lifecycle_service(
+        job_repo=job_repo,
+        crawl_run_repo=crawl_repo,
+    )
+    assert isinstance(lifecycle_service, JobLifecycleService)
+
     service = get_job_ingestion_service(
         job_repo=job_repo,
         raw_job_repo=raw_repo,
         crawl_run_repo=crawl_repo,
         normalizer=normalizer,
+        lifecycle_service=lifecycle_service,
     )
     assert isinstance(service, JobIngestionService)
     assert service.job_repo == job_repo
     assert service.raw_job_repo == raw_repo
     assert service.crawl_run_repo == crawl_repo
     assert service.normalizer == normalizer
+    assert service.lifecycle_service == lifecycle_service

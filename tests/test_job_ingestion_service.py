@@ -42,6 +42,7 @@ def _make_crawl_result(
     source_id: uuid.UUID,
     jobs: list[DiscoveredJobDTO],
     warnings: list[str] | None = None,
+    is_complete: bool = True,
 ) -> CrawlResultDTO:
     return CrawlResultDTO(
         source_id=source_id,
@@ -49,6 +50,7 @@ def _make_crawl_result(
         jobs=jobs,
         raw_payload_count=len(jobs),
         warnings=warnings or [],
+        is_complete=is_complete,
     )
 
 
@@ -61,7 +63,10 @@ def mock_repos() -> tuple[AsyncMock, AsyncMock, AsyncMock]:
     # Default behaviors
     crawl_run_repo.create_run.side_effect = lambda r: r
     crawl_run_repo.update_run.side_effect = lambda r: r
+    crawl_run_repo.record_job_actions.return_value = None
     job_repo.save.side_effect = lambda j: j
+    job_repo.save_bulk.side_effect = lambda jobs: jobs
+    job_repo.get_active_jobs_by_source.return_value = []
     raw_job_repo.save.side_effect = lambda r: r
 
     return job_repo, raw_job_repo, crawl_run_repo
@@ -394,6 +399,8 @@ async def test_reopen_closed_job(
     assert existing_job.status == JobStatus.ACTIVE
     assert existing_job.closed_at is None
     assert existing_job.first_seen_at == original_first_seen
+    assert result.jobs_updated == 1
+    assert result.jobs_unchanged == 0
 
 
 @pytest.mark.asyncio

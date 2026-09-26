@@ -247,6 +247,7 @@ class CrawlerOrchestrator:
                     jobs_created=ingest_res.jobs_created,
                     jobs_updated=ingest_res.jobs_updated,
                     jobs_unchanged=ingest_res.jobs_unchanged,
+                    jobs_closed=ingest_res.jobs_closed,
                     error_count=ingest_res.error_count,
                 )
             except Exception as exc:

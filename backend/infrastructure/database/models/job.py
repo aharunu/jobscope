@@ -159,6 +159,14 @@ class JobModel(BaseModel):
 
     def to_domain(self) -> Job:
         """Convert ORM model to domain entity."""
+        source_name = None
+        ats_type = None
+        source_url = None
+        if "source" in self.__dict__ and self.source is not None:
+            source_name = self.source.name
+            ats_type = self.source.ats_type
+            source_url = self.source.url
+
         return Job(
             id=self.id,
             source_id=self.source_id,
@@ -180,6 +188,9 @@ class JobModel(BaseModel):
             content_hash=self.content_hash,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            source_name=source_name,
+            ats_type=ats_type,
+            source_url=source_url,
         )
 
     @classmethod

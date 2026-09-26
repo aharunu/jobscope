@@ -40,6 +40,9 @@ class Job:
     status: JobStatus = JobStatus.ACTIVE
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    source_name: str | None = None
+    ats_type: str | None = None
+    source_url: str | None = None
 
 
 @dataclass(slots=True)

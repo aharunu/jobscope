@@ -13,6 +13,7 @@ from backend.application.job_discovery.dtos import (
     RuntimeSourceDTO,
 )
 from backend.application.job_processing.dtos import JobIngestionResultDTO
+from backend.application.job_processing.lifecycle import JobLifecycleService
 from backend.application.job_processing.normalizer import JobNormalizer
 from backend.domain.crawl.entities import CrawlRun
 from backend.domain.crawl.enums import CrawlJobAction, CrawlStatus
@@ -32,6 +33,14 @@ class JobIngestionService:
     raw_job_repo: RawJobRepository
     crawl_run_repo: CrawlRunRepository
     normalizer: JobNormalizer = field(default_factory=JobNormalizer)
+    lifecycle_service: JobLifecycleService | None = None
+
+    def __post_init__(self) -> None:
+        if self.lifecycle_service is None:
+            self.lifecycle_service = JobLifecycleService(
+                job_repo=self.job_repo,
+                crawl_run_repo=self.crawl_run_repo,
+            )
 
     async def ingest_crawl_result(
         self,
@@ -77,16 +86,18 @@ class JobIngestionService:
         jobs_closed = 0
         errors: list[str] = []
         warnings: list[str] = list(crawl_result.warnings)
+        seen_job_ids: set[uuid.UUID] = set()
 
         # 2. Process each discovered job
         for discovered in crawl_result.jobs:
             try:
-                action = await self._process_discovered_job(
+                action, job_id = await self._process_discovered_job(
                     source=source,
                     discovered=discovered,
                     run_id=crawl_run.id,
                     now=now,
                 )
+                seen_job_ids.add(job_id)
                 if action == CrawlJobAction.CREATED:
                     jobs_created += 1
                 elif action == CrawlJobAction.UPDATED:
@@ -101,21 +112,67 @@ class JobIngestionService:
                 logger.error(err_msg, exc_info=True)
                 errors.append(err_msg)
 
-        # 3. Determine final status
+        # 3. Determine interim crawl status
         error_count = len(errors)
         if error_count > 0:
             if (jobs_created + jobs_updated + jobs_unchanged) > 0:
-                final_status = CrawlStatus.PARTIAL
+                interim_status = CrawlStatus.PARTIAL
             else:
-                final_status = CrawlStatus.FAILED
+                interim_status = CrawlStatus.FAILED
         elif warnings:
+            interim_status = CrawlStatus.PARTIAL
+        else:
+            interim_status = CrawlStatus.COMPLETED
+
+        # 4. Safe absence-based closure evaluation & execution
+        active_jobs = await self.job_repo.get_active_jobs_by_source(source.id)
+        active_count = len(active_jobs)
+
+        evaluation = self.lifecycle_service.evaluate_crawl_completeness(
+            source=source,
+            crawl_result=crawl_result,
+            error_count=error_count,
+            active_count=active_count,
+            crawl_status=interim_status,
+        )
+
+        if evaluation.warning and evaluation.warning not in warnings:
+            warnings.append(evaluation.warning)
+
+        if evaluation.is_eligible:
+            closed_jobs = await self.lifecycle_service.close_absent_jobs(
+                source_id=source.id,
+                crawl_run_id=crawl_run.id,
+                seen_job_ids=seen_job_ids,
+                now=now,
+            )
+            jobs_closed = len(closed_jobs)
+        else:
+            logger.info(
+                "Absence closure skipped for source %s in crawl run %s: %s",
+                source.id,
+                crawl_run.id,
+                evaluation.reason,
+            )
+
+        # 5. Determine final crawl status
+        if interim_status == CrawlStatus.COMPLETED and warnings:
             final_status = CrawlStatus.PARTIAL
         else:
-            final_status = CrawlStatus.COMPLETED
+            final_status = interim_status
 
-        # 4. Finalize and persist CrawlRun update
+        # 6. Finalize CrawlRun update
+        # jobs_found strictly preserves its historical meaning: job postings
+        # discovered during the network crawl.
+        # Invariant: jobs_found = (
+        #     jobs_created + jobs_updated + jobs_unchanged + error_count
+        # )
+        # jobs_closed represents the separate absence-reconciliation outcome.
+        jobs_discovered = len(crawl_result.jobs)
+
         crawl_run.status = final_status
         crawl_run.finished_at = datetime.now(UTC)
+        crawl_run.jobs_found = jobs_discovered
         crawl_run.jobs_created = jobs_created
         crawl_run.jobs_updated = jobs_updated
         crawl_run.jobs_closed = jobs_closed
@@ -126,7 +183,7 @@ class JobIngestionService:
             crawl_run_id=crawl_run.id,
             source_id=source.id,
             status=final_status,
-            jobs_found=len(crawl_result.jobs),
+            jobs_found=jobs_discovered,
             jobs_created=jobs_created,
             jobs_updated=jobs_updated,
             jobs_unchanged=jobs_unchanged,
@@ -142,7 +199,7 @@ class JobIngestionService:
         discovered: DiscoveredJobDTO,
         run_id: uuid.UUID,
         now: datetime,
-    ) -> CrawlJobAction:
+    ) -> tuple[CrawlJobAction, uuid.UUID]:
         """Normalize, deduplicate, persist, and record action for discovered job."""
         canonical = self.normalizer.normalize(discovered, source)
 
@@ -181,18 +238,19 @@ class JobIngestionService:
                 job_id=saved_job.id,
                 action=CrawlJobAction.CREATED,
             )
-            return CrawlJobAction.CREATED
+            return CrawlJobAction.CREATED, saved_job.id
 
         # Existing job found: preserve first_seen_at, touch last_seen_at
         existing.last_seen_at = now
+        was_closed = existing.status == JobStatus.CLOSED
 
         # Re-open if previously closed
-        if existing.status == JobStatus.CLOSED:
+        if was_closed:
             existing.status = JobStatus.ACTIVE
             existing.closed_at = None
 
-        if canonical.content_hash != existing.content_hash:
-            # --- UPDATED ---
+        if canonical.content_hash != existing.content_hash or was_closed:
+            # --- UPDATED --- (or REOPEN)
             existing.title = canonical.title
             existing.description = canonical.description
             existing.responsibilities = canonical.responsibilities
@@ -223,7 +281,7 @@ class JobIngestionService:
                 job_id=saved_job.id,
                 action=CrawlJobAction.UPDATED,
             )
-            return CrawlJobAction.UPDATED
+            return CrawlJobAction.UPDATED, saved_job.id
 
         # --- UNCHANGED ---
         saved_job = await self.job_repo.save(existing)
@@ -233,4 +291,4 @@ class JobIngestionService:
             job_id=saved_job.id,
             action=CrawlJobAction.UNCHANGED,
         )
-        return CrawlJobAction.UNCHANGED
+        return CrawlJobAction.UNCHANGED, saved_job.id

@@ -281,6 +281,7 @@ async def test_lever_adapter_multi_page_pagination() -> None:
     assert len(result.jobs) == 3
     assert result.metadata["pages_fetched"] == 2
     assert "pagination_max_pages_reached" not in result.warnings
+    assert result.is_complete is True
 
     # Verify second request passed skip=last_id
     assert len(mock_http.requests) == 2
@@ -309,6 +310,7 @@ async def test_lever_adapter_records_pagination_max_pages_reached_warning() -> N
     assert len(result.jobs) == 4
     assert result.metadata["pages_fetched"] == 2
     assert "pagination_max_pages_reached" in result.warnings
+    assert result.is_complete is False
 
 
 @pytest.mark.asyncio
