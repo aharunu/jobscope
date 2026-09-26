@@ -136,6 +136,7 @@ class LeverAdapter(ATSAdapter):
         raw_payload_count = 0
         pages_fetched = 0
         current_skip: str | int | None = None
+        is_complete = False
 
         while True:
             if pages_fetched > 0 and delay_seconds > 0:
@@ -258,11 +259,13 @@ class LeverAdapter(ATSAdapter):
 
             # Check pagination termination
             if len(data) < page_size:
-                # All postings retrieved
+                # All postings retrieved naturally
+                is_complete = True
                 break
 
             if pages_fetched >= max_pages:
                 warnings.append("pagination_max_pages_reached")
+                is_complete = False
                 break
 
             # Calculate next cursor/offset
@@ -273,6 +276,7 @@ class LeverAdapter(ATSAdapter):
             else:
                 last_item = data[-1] if data else None
                 if not isinstance(last_item, dict) or not last_item.get("id"):
+                    is_complete = False
                     break
                 current_skip = str(last_item["id"])
 
@@ -287,4 +291,5 @@ class LeverAdapter(ATSAdapter):
                 "pages_fetched": pages_fetched,
                 "total_discovered": len(jobs),
             },
+            is_complete=is_complete,
         )

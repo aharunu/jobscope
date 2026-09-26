@@ -113,6 +113,12 @@ class CrawlRunModel(Base, UUIDPrimaryKeyMixin):
 
     def to_domain(self) -> CrawlRun:
         """Convert ORM model to domain entity."""
+        source_name = None
+        ats_type = None
+        if "source" in self.__dict__ and self.source is not None:
+            source_name = self.source.name
+            ats_type = self.source.ats_type
+
         return CrawlRun(
             id=self.id,
             source_id=self.source_id,
@@ -125,6 +131,8 @@ class CrawlRunModel(Base, UUIDPrimaryKeyMixin):
             jobs_closed=self.jobs_closed,
             error_count=self.error_count,
             created_at=self.created_at,
+            source_name=source_name,
+            ats_type=ats_type,
         )
 
     @classmethod
@@ -186,10 +194,33 @@ class CrawlRunJobModel(Base):
 
     def to_domain(self) -> CrawlRunJob:
         """Convert ORM model to domain entity."""
+        canonical_url = None
+        title = None
+        company = None
+        location = None
+        job_status = None
+        first_seen_at = None
+        last_seen_at = None
+        if "job" in self.__dict__ and self.job is not None:
+            canonical_url = self.job.canonical_url
+            title = self.job.title
+            company = self.job.company
+            location = self.job.location
+            job_status = getattr(self.job.status, "value", str(self.job.status))
+            first_seen_at = self.job.first_seen_at
+            last_seen_at = self.job.last_seen_at
+
         return CrawlRunJob(
             crawl_run_id=self.crawl_run_id,
             job_id=self.job_id,
             action=self.action,
+            canonical_url=canonical_url,
+            title=title,
+            company=company,
+            location=location,
+            job_status=job_status,
+            first_seen_at=first_seen_at,
+            last_seen_at=last_seen_at,
         )
 
     @classmethod

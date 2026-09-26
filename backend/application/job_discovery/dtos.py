@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from backend.domain.crawl.enums import CrawlStatus
+from backend.domain.crawl.enums import CrawlJobAction, CrawlStatus
 
 if TYPE_CHECKING:
     from backend.domain.source.entities import Source
@@ -172,7 +172,19 @@ class DiscoveredJobDTO:
 
 @dataclass(slots=True)
 class CrawlResultDTO:
-    """Pure output payload produced by an ATSAdapter after crawling a source."""
+    """Pure output payload produced by an ATSAdapter after crawling a source.
+
+    Attributes:
+        source_id: Target source identifier.
+        ats_type: ATS platform type.
+        jobs: List of discovered job postings.
+        raw_payload_count: Total raw payload items parsed.
+        warnings: Non-fatal operational warnings emitted during discovery.
+        metadata: Diagnostic execution metadata from adapter.
+        is_complete: Fail-safe completeness assertion (defaults to False).
+            Must be explicitly set to True by an adapter only after genuine,
+            uninterrupted catalog exhaustion without hitting pagination limits.
+    """
 
     source_id: uuid.UUID
     ats_type: str
@@ -180,6 +192,7 @@ class CrawlResultDTO:
     raw_payload_count: int = 0
     warnings: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    is_complete: bool = False
 
 
 @dataclass(slots=True)
@@ -200,4 +213,54 @@ class CrawlExecutionResultDTO:
     jobs_created: int = 0
     jobs_updated: int = 0
     jobs_unchanged: int = 0
+    jobs_closed: int = 0
     error_count: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class CrawlRunFilterDTO:
+    """Filter criteria for querying historical crawl runs."""
+
+    source_id: uuid.UUID | None = None
+    status: CrawlStatus | None = None
+    ats_type: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    limit: int = 50
+    offset: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class CrawlRunSummaryDTO:
+    """Projected summary of a crawl run including source metadata and duration."""
+
+    id: uuid.UUID
+    source_id: uuid.UUID
+    source_name: str
+    ats_type: str
+    status: CrawlStatus
+    started_at: datetime
+    finished_at: datetime | None
+    duration_ms: float | None
+    jobs_found: int
+    jobs_created: int
+    jobs_updated: int
+    jobs_unchanged: int
+    jobs_closed: int
+    error_count: int
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class CrawlRunJobItemDTO:
+    """Projected details of a job action record within a crawl run."""
+
+    job_id: uuid.UUID
+    crawl_run_id: uuid.UUID
+    action: CrawlJobAction
+    title: str | None = None
+    company: str | None = None
+    canonical_url: str | None = None
+    status: str | None = None
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None

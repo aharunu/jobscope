@@ -5,13 +5,16 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 
+import sqlalchemy as sa
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from backend.domain.job.entities import Job, RawJob
 from backend.domain.job.enums import JobStatus
 from backend.domain.job.repositories import JobRepository, RawJobRepository
 from backend.infrastructure.database.models.job import JobModel, RawJobModel
+from backend.infrastructure.database.models.source import SourceModel
 
 
 class SQLAlchemyJobRepository(JobRepository):
@@ -76,6 +79,131 @@ class SQLAlchemyJobRepository(JobRepository):
             stmt = stmt.where(JobModel.status == status)
         result = await self.session.execute(stmt)
         return int(result.scalar_one())
+
+    async def get_job_detail(self, job_id: uuid.UUID) -> Job | None:
+        """Retrieve a canonical job with related source metadata projected."""
+        stmt = (
+            select(JobModel)
+            .options(joinedload(JobModel.source))
+            .where(JobModel.id == job_id)
+        )
+        result = await self.session.execute(stmt)
+        orm_job = result.scalars().first()
+        return orm_job.to_domain() if orm_job is not None else None
+
+    async def list_jobs(
+        self,
+        status: JobStatus | None = None,
+        source_id: uuid.UUID | None = None,
+        ats_type: str | None = None,
+        company: str | None = None,
+        location: str | None = None,
+        work_mode: str | None = None,
+        employment_type: str | None = None,
+        search_query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Job]:
+        """List canonical jobs matching filter criteria with deterministic ordering."""
+        stmt = select(JobModel).options(joinedload(JobModel.source))
+        if ats_type is not None:
+            stmt = stmt.join(SourceModel, JobModel.source_id == SourceModel.id)
+            stmt = stmt.where(SourceModel.ats_type == ats_type)
+
+        if status is not None:
+            stmt = stmt.where(JobModel.status == status)
+
+        if source_id is not None:
+            stmt = stmt.where(JobModel.source_id == source_id)
+
+        if company is not None and company.strip():
+            stmt = stmt.where(JobModel.company == company.strip())
+
+        if location is not None and location.strip():
+            stmt = stmt.where(JobModel.location == location.strip())
+
+        if work_mode is not None and work_mode.strip():
+            stmt = stmt.where(JobModel.work_mode == work_mode.strip())
+
+        if employment_type is not None and employment_type.strip():
+            stmt = stmt.where(JobModel.employment_type == employment_type.strip())
+
+        if search_query is not None and search_query.strip():
+            q_pat = f"%{search_query.strip()}%"
+            stmt = stmt.where(
+                sa.or_(
+                    JobModel.title.ilike(q_pat),
+                    JobModel.company.ilike(q_pat),
+                )
+            )
+
+        stmt = (
+            stmt.order_by(JobModel.first_seen_at.desc(), JobModel.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        return [orm_job.to_domain() for orm_job in result.scalars().all()]
+
+    async def count_jobs(
+        self,
+        status: JobStatus | None = None,
+        source_id: uuid.UUID | None = None,
+        ats_type: str | None = None,
+        company: str | None = None,
+        location: str | None = None,
+        work_mode: str | None = None,
+        employment_type: str | None = None,
+        search_query: str | None = None,
+    ) -> int:
+        """Count canonical jobs matching filter criteria."""
+        stmt = select(func.count(JobModel.id))
+        if ats_type is not None:
+            stmt = stmt.join(SourceModel, JobModel.source_id == SourceModel.id)
+            stmt = stmt.where(SourceModel.ats_type == ats_type)
+
+        if status is not None:
+            stmt = stmt.where(JobModel.status == status)
+
+        if source_id is not None:
+            stmt = stmt.where(JobModel.source_id == source_id)
+
+        if company is not None and company.strip():
+            stmt = stmt.where(JobModel.company == company.strip())
+
+        if location is not None and location.strip():
+            stmt = stmt.where(JobModel.location == location.strip())
+
+        if work_mode is not None and work_mode.strip():
+            stmt = stmt.where(JobModel.work_mode == work_mode.strip())
+
+        if employment_type is not None and employment_type.strip():
+            stmt = stmt.where(JobModel.employment_type == employment_type.strip())
+
+        if search_query is not None and search_query.strip():
+            q_pat = f"%{search_query.strip()}%"
+            stmt = stmt.where(
+                sa.or_(
+                    JobModel.title.ilike(q_pat),
+                    JobModel.company.ilike(q_pat),
+                )
+            )
+
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def get_active_jobs_by_source(self, source_id: uuid.UUID) -> list[Job]:
+        """Retrieve all currently active canonical jobs for a source."""
+        stmt = (
+            select(JobModel)
+            .where(
+                JobModel.source_id == source_id,
+                JobModel.status == JobStatus.ACTIVE,
+            )
+            .order_by(JobModel.first_seen_at.desc(), JobModel.id.desc())
+        )
+        result = await self.session.execute(stmt)
+        return [orm_job.to_domain() for orm_job in result.scalars().all()]
 
 
 class SQLAlchemyRawJobRepository(RawJobRepository):

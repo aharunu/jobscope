@@ -27,6 +27,8 @@ class CrawlRun:
     jobs_closed: int = 0
     error_count: int = 0
     created_at: datetime | None = None
+    source_name: str | None = None
+    ats_type: str | None = None
 
 
 @dataclass(slots=True)
@@ -39,3 +41,10 @@ class CrawlRunJob:
     crawl_run_id: uuid.UUID
     job_id: uuid.UUID
     action: CrawlJobAction
+    canonical_url: str | None = None
+    title: str | None = None
+    company: str | None = None
+    location: str | None = None
+    job_status: str | None = None
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None

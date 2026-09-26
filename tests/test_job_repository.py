@@ -249,3 +249,35 @@ async def test_raw_job_repository_save_and_get() -> None:
     history = await raw_repo.get_by_job_id(job_id)
     assert len(history) == 1
     assert history[0].job_id == job_id
+
+
+@pytest.mark.asyncio
+async def test_job_repository_get_active_jobs_by_source() -> None:
+    """Verify get_active_jobs_by_source filters by source_id and ACTIVE status."""
+    mock_session = AsyncMock(spec=AsyncSession)
+    source_id = uuid.uuid4()
+    orm_jobs = [
+        JobModel(
+            id=uuid.uuid4(),
+            source_id=source_id,
+            canonical_url=f"https://example.com/job/{i}",
+            company="Acme Corp",
+            title=f"Engineer {i}",
+            description="Code",
+            content_hash=f"hash{i}",
+            status=JobStatus.ACTIVE,
+        )
+        for i in range(2)
+    ]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = orm_jobs
+    mock_session.execute.return_value = mock_result
+
+    repo = SQLAlchemyJobRepository(mock_session)
+    result = await repo.get_active_jobs_by_source(source_id)
+
+    assert len(result) == 2
+    assert all(isinstance(j, Job) for j in result)
+    assert all(j.status == JobStatus.ACTIVE for j in result)
+    assert all(j.source_id == source_id for j in result)
+    mock_session.execute.assert_awaited_once()

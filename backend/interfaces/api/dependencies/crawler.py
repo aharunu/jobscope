@@ -8,6 +8,7 @@ from fastapi import Depends, Request
 
 from backend.application.job_discovery.adapter_registry import ATSAdapterRegistry
 from backend.application.job_discovery.crawler_service import CrawlerOrchestrator
+from backend.application.job_discovery.history_service import CrawlHistoryService
 from backend.application.job_discovery.ports import (
     CrawlPersistenceManager,
     RuntimeSourceProvider,
@@ -18,6 +19,7 @@ from backend.infrastructure.database.crawl_persistence import (
     SQLAlchemyCrawlPersistenceManager,
 )
 from backend.infrastructure.http.safe_client import HttpSafeClient
+from backend.interfaces.api.dependencies.job_processing import CrawlRunRepositoryDep
 from backend.interfaces.api.dependencies.sources import get_source_registry_service
 
 
@@ -81,12 +83,26 @@ CrawlerOrchestratorDep = Annotated[
     CrawlerOrchestrator, Depends(get_crawler_orchestrator)
 ]
 
+
+def get_crawl_history_service(
+    crawl_run_repo: CrawlRunRepositoryDep,
+) -> CrawlHistoryService:
+    """Yield a CrawlHistoryService injected with request-scoped CrawlRunRepository."""
+    return CrawlHistoryService(repository=crawl_run_repo)
+
+
+CrawlHistoryServiceDep = Annotated[
+    CrawlHistoryService, Depends(get_crawl_history_service)
+]
+
 __all__ = [
     "ATSAdapterRegistryDep",
+    "CrawlHistoryServiceDep",
     "CrawlPersistenceManagerDep",
     "CrawlerOrchestratorDep",
     "SafeHttpClientDep",
     "get_adapter_registry",
+    "get_crawl_history_service",
     "get_crawl_persistence_manager",
     "get_crawler_orchestrator",
     "get_safe_http_client",

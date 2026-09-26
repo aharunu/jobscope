@@ -5,6 +5,9 @@ from backend.application.job_discovery.crawler_service import CrawlerOrchestrato
 from backend.application.job_discovery.dtos import (
     CrawlExecutionResultDTO,
     CrawlResultDTO,
+    CrawlRunFilterDTO,
+    CrawlRunJobItemDTO,
+    CrawlRunSummaryDTO,
     DiscoveredJobDTO,
     RuntimeSourceDTO,
     SafeHttpResponseDTO,
@@ -24,6 +27,7 @@ from backend.application.job_discovery.exceptions import (
     MalformedAdapterResultError,
     UnsupportedATSError,
 )
+from backend.application.job_discovery.history_service import CrawlHistoryService
 from backend.application.job_discovery.ports import (
     ATSAdapter,
     CatalogParser,
@@ -41,8 +45,12 @@ __all__ = [
     "AdapterUnavailableError",
     "CatalogParser",
     "CrawlExecutionResultDTO",
+    "CrawlHistoryService",
     "CrawlPersistenceManager",
     "CrawlResultDTO",
+    "CrawlRunFilterDTO",
+    "CrawlRunJobItemDTO",
+    "CrawlRunSummaryDTO",
     "CrawlerError",
     "CrawlerOrchestrator",
     "DiscoveredJobDTO",
