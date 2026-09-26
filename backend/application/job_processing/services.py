@@ -37,6 +37,7 @@ class JobIngestionService:
         self,
         source: RuntimeSourceDTO,
         crawl_result: CrawlResultDTO,
+        crawl_run_id: uuid.UUID | None = None,
     ) -> JobIngestionResultDTO:
         """Process a crawl result: normalize, deduplicate, and record audit run.
 
@@ -46,14 +47,29 @@ class JobIngestionService:
         """
         now = datetime.now(UTC)
 
-        # 1. Initialize CrawlRun record
-        crawl_run = CrawlRun(
-            source_id=source.id,
-            status=CrawlStatus.RUNNING,
-            started_at=now,
-            jobs_found=len(crawl_result.jobs),
-        )
-        crawl_run = await self.crawl_run_repo.create_run(crawl_run)
+        # 1. Initialize or load CrawlRun record
+        if crawl_run_id is not None:
+            existing_run = await self.crawl_run_repo.get_by_id(crawl_run_id)
+            if existing_run is not None:
+                crawl_run = existing_run
+                crawl_run.jobs_found = len(crawl_result.jobs)
+            else:
+                crawl_run = CrawlRun(
+                    id=crawl_run_id,
+                    source_id=source.id,
+                    status=CrawlStatus.RUNNING,
+                    started_at=now,
+                    jobs_found=len(crawl_result.jobs),
+                )
+                crawl_run = await self.crawl_run_repo.create_run(crawl_run)
+        else:
+            crawl_run = CrawlRun(
+                source_id=source.id,
+                status=CrawlStatus.RUNNING,
+                started_at=now,
+                jobs_found=len(crawl_result.jobs),
+            )
+            crawl_run = await self.crawl_run_repo.create_run(crawl_run)
 
         jobs_created = 0
         jobs_updated = 0

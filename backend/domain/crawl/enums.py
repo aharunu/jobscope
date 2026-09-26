@@ -10,6 +10,7 @@ class CrawlStatus(enum.StrEnum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     PARTIAL = "PARTIAL"
+    SUCCESS = "COMPLETED"  # Canonical alias for completed crawl run status
 
 
 class CrawlJobAction(enum.StrEnum):

@@ -27,6 +27,7 @@ from backend.application.job_discovery.exceptions import (
 from backend.application.job_discovery.ports import (
     ATSAdapter,
     CatalogParser,
+    CrawlPersistenceManager,
     RuntimeSourceProvider,
     SafeHttpClient,
     SourceHealthProbe,
@@ -40,6 +41,7 @@ __all__ = [
     "AdapterUnavailableError",
     "CatalogParser",
     "CrawlExecutionResultDTO",
+    "CrawlPersistenceManager",
     "CrawlResultDTO",
     "CrawlerError",
     "CrawlerOrchestrator",

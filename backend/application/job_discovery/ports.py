@@ -108,3 +108,39 @@ class SafeHttpClient(Protocol):
     ) -> SafeHttpResponseDTO:
         """Perform an SSRF-validated GET request."""
         ...
+
+
+@runtime_checkable
+class CrawlPersistenceManager(Protocol):
+    """Port for managing CrawlRun lifecycle and transactional persistence boundaries."""
+
+    async def create_initial_run(self, source_id: uuid.UUID) -> uuid.UUID:
+        """Transaction A: Persist initial CrawlRun with RUNNING status and commit.
+
+        Returns the persistent crawl_run_id.
+        """
+        ...
+
+    async def mark_run_failed(
+        self,
+        crawl_run_id: uuid.UUID,
+        error_count: int = 1,
+        error_message: str | None = None,
+    ) -> None:
+        """Failure Transaction: Update existing CrawlRun to FAILED status
+        in a fresh transaction and commit.
+        """
+        ...
+
+    async def execute_ingestion(
+        self,
+        source: RuntimeSourceDTO,
+        crawl_result: CrawlResultDTO,
+        crawl_run_id: uuid.UUID,
+    ) -> Any:
+        """Transaction B: Ingest crawl result and finalize CrawlRun
+        in an atomic transaction.
+
+        Rolls back on error.
+        """
+        ...

@@ -196,3 +196,8 @@ class CrawlExecutionResultDTO:
     error_type: str | None = None
     error_message: str | None = None
     crawl_result: CrawlResultDTO | None = None
+    crawl_run_id: uuid.UUID | None = None
+    jobs_created: int = 0
+    jobs_updated: int = 0
+    jobs_unchanged: int = 0
+    error_count: int = 0

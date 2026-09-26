@@ -3,8 +3,10 @@
 from backend.interfaces.api.dependencies.crawler import (
     ATSAdapterRegistryDep,
     CrawlerOrchestratorDep,
+    CrawlPersistenceManagerDep,
     SafeHttpClientDep,
     get_adapter_registry,
+    get_crawl_persistence_manager,
     get_crawler_orchestrator,
     get_safe_http_client,
 )
@@ -34,6 +36,7 @@ from backend.interfaces.api.dependencies.sources import (
 __all__ = [
     "ATSAdapterRegistryDep",
     "CatalogParserDep",
+    "CrawlPersistenceManagerDep",
     "CrawlRunRepositoryDep",
     "CrawlerOrchestratorDep",
     "DbSession",
@@ -46,6 +49,7 @@ __all__ = [
     "SourceRegistryDep",
     "get_adapter_registry",
     "get_catalog_parser",
+    "get_crawl_persistence_manager",
     "get_crawl_run_repository",
     "get_crawler_orchestrator",
     "get_db_session",
