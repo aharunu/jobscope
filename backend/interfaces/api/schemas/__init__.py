@@ -1,5 +1,8 @@
-"""API schemas package."""
-
+from backend.interfaces.api.schemas.crawl import (
+    CrawlRunRequest,
+    CrawlRunResponse,
+    CrawlSourceResultResponse,
+)
 from backend.interfaces.api.schemas.source import (
     SourceBatchProbeResponse,
     SourceListResponse,
@@ -12,6 +15,9 @@ from backend.interfaces.api.schemas.source import (
 )
 
 __all__ = [
+    "CrawlRunRequest",
+    "CrawlRunResponse",
+    "CrawlSourceResultResponse",
     "SourceBatchProbeResponse",
     "SourceListResponse",
     "SourceProbeResponse",

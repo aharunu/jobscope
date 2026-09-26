@@ -9,10 +9,14 @@ from fastapi import Depends, Request
 from backend.application.job_discovery.adapter_registry import ATSAdapterRegistry
 from backend.application.job_discovery.crawler_service import CrawlerOrchestrator
 from backend.application.job_discovery.ports import (
+    CrawlPersistenceManager,
     RuntimeSourceProvider,
     SafeHttpClient,
 )
 from backend.infrastructure.ats.factory import create_adapter_registry
+from backend.infrastructure.database.crawl_persistence import (
+    SQLAlchemyCrawlPersistenceManager,
+)
 from backend.infrastructure.http.safe_client import HttpSafeClient
 from backend.interfaces.api.dependencies.sources import get_source_registry_service
 
@@ -43,18 +47,33 @@ def get_adapter_registry(
 ATSAdapterRegistryDep = Annotated[ATSAdapterRegistry, Depends(get_adapter_registry)]
 
 
+def get_crawl_persistence_manager(request: Request) -> CrawlPersistenceManager:
+    """Provide a CrawlPersistenceManager instance backed by the session factory."""
+    custom_mgr = getattr(request.app.state, "crawl_persistence_manager", None)
+    if custom_mgr is not None:
+        return custom_mgr
+    return SQLAlchemyCrawlPersistenceManager()
+
+
+CrawlPersistenceManagerDep = Annotated[
+    CrawlPersistenceManager, Depends(get_crawl_persistence_manager)
+]
+
+
 def get_crawler_orchestrator(
     source_provider: Annotated[
         RuntimeSourceProvider, Depends(get_source_registry_service)
     ],
     adapter_registry: ATSAdapterRegistryDep,
+    persistence_manager: CrawlPersistenceManagerDep,
 ) -> CrawlerOrchestrator:
-    """Yield a CrawlerOrchestrator injected with runtime source provider
-    and adapter registry.
+    """Yield a CrawlerOrchestrator injected with runtime source provider,
+    adapter registry, and persistence manager.
     """
     return CrawlerOrchestrator(
         source_provider=source_provider,
         adapter_registry=adapter_registry,
+        persistence_manager=persistence_manager,
     )
 
 
@@ -64,9 +83,11 @@ CrawlerOrchestratorDep = Annotated[
 
 __all__ = [
     "ATSAdapterRegistryDep",
+    "CrawlPersistenceManagerDep",
     "CrawlerOrchestratorDep",
     "SafeHttpClientDep",
     "get_adapter_registry",
+    "get_crawl_persistence_manager",
     "get_crawler_orchestrator",
     "get_safe_http_client",
 ]
