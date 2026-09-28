@@ -43,6 +43,7 @@ class Job:
     source_name: str | None = None
     ats_type: str | None = None
     source_url: str | None = None
+    requirements: list[JobRequirement] = field(default_factory=list)
 
 
 @dataclass(slots=True)

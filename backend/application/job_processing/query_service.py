@@ -131,6 +131,24 @@ class JobQueryService:
     @staticmethod
     def _to_detail_dto(job: Job) -> JobDetailDTO:
         """Map canonical Job domain entity to public detail DTO."""
+        requirements = [
+            {
+                "id": str(r.id),
+                "job_id": str(r.job_id),
+                "type": r.type.value if hasattr(r.type, "value") else str(r.type),
+                "description": r.description,
+                "normalized_skill": r.normalized_skill,
+                "required_level": (
+                    r.required_level.value
+                    if hasattr(r.required_level, "value")
+                    else str(r.required_level)
+                ),
+                "importance": r.importance,
+                "criticality": r.criticality,
+                "evidence": r.evidence,
+            }
+            for r in job.requirements
+        ]
         return JobDetailDTO(
             id=job.id,
             source_id=job.source_id,
@@ -155,5 +173,5 @@ class JobQueryService:
             source_name=job.source_name or "Unknown",
             ats_type=job.ats_type or "unknown",
             source_url=job.source_url or "",
-            requirements=[],
+            requirements=requirements,
         )

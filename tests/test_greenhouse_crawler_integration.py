@@ -711,3 +711,112 @@ def test_crawler_orchestrator_contains_no_greenhouse_specific_branches() -> None
     assert "greenhouse" not in content.lower(), (
         "CrawlerOrchestrator must remain completely ATS-agnostic"
     )
+
+
+@pytest.mark.asyncio
+async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() -> None:
+    """Test 14: Controlled multi-page response with max_pages=1 ceiling.
+
+    Verifies:
+    1. Adapter stops at max_pages=1 despite continuation (next page exists).
+    2. Adapter returns discovered jobs from page 1.
+    3. Adapter sets is_complete=False.
+    4. Adapter emits 'pagination_max_pages_reached' warning.
+    5. Ingestion pipeline skips absence-based closure (jobs_closed == 0).
+    6. Active jobs belonging to page 2 (unseen in page 1) remain ACTIVE
+       and are NOT closed.
+    """
+    job_repo = InMemoryJobRepository()
+    raw_job_repo = InMemoryRawJobRepository()
+    crawl_run_repo = InMemoryCrawlRunRepository()
+    lifecycle_service = JobLifecycleService(
+        job_repo=job_repo,
+        crawl_run_repo=crawl_run_repo,
+    )
+    ingestion_service = JobIngestionService(
+        job_repo=job_repo,
+        raw_job_repo=raw_job_repo,
+        crawl_run_repo=crawl_run_repo,
+        lifecycle_service=lifecycle_service,
+    )
+
+    source = make_greenhouse_source(
+        pagination_config={"page_size": 2, "max_pages": 1}
+    )
+
+    # Pre-populate active job that would only appear on page 2
+    normalizer = JobNormalizer()
+    page2_active_job = normalizer.normalize(
+        DiscoveredJobDTO(
+            external_job_id="PAGE2_JOB",
+            url="https://boards.greenhouse.io/gramgamescareers/jobs/PAGE2_JOB",
+            title="Senior Engineer (Page 2)",
+            raw_content="{}",
+            content_type="application/json",
+            metadata={"company": "Gram Games"},
+        ),
+        source,
+    )
+    await job_repo.save(page2_active_job)
+
+    # Multi-page HTTP response mock
+    page1 = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
+    page2 = [
+        {
+            "id": 99991,
+            "title": "PAGE2_JOB",
+            "absolute_url": "https://boards.greenhouse.io/gramgamescareers/jobs/PAGE2_JOB",
+        }
+    ]
+    mock_http = MockSafeHttpClient(
+        [
+            SafeHttpResponseDTO(
+                status_code=200, url="...", text=json.dumps({"jobs": page1})
+            ),
+            SafeHttpResponseDTO(
+                status_code=200, url="...", text=json.dumps({"jobs": page2})
+            ),
+        ]
+    )
+    adapter = GreenhouseAdapter(http_client=mock_http)
+
+    # 1. Crawl with adapter
+    crawl_result = await adapter.crawl(source)
+
+    # Assertions on Adapter Result:
+    assert len(crawl_result.jobs) == 2
+    assert crawl_result.metadata["pages_fetched"] == 1
+    assert crawl_result.is_complete is False
+    assert "pagination_max_pages_reached" in crawl_result.warnings
+    # Only 1 request was issued because max_pages=1 was reached immediately after page 1
+    assert len(mock_http.requests) == 1
+
+    # 2. Ingest crawl result into pipeline
+    run = CrawlRun(
+        id=uuid.uuid4(),
+        source_id=source.id,
+        status=CrawlStatus.RUNNING,
+        started_at=datetime.now(UTC),
+    )
+    await crawl_run_repo.save(run)
+
+    summary = await ingestion_service.ingest_crawl_result(
+        source, crawl_result, crawl_run_id=run.id
+    )
+
+    # Assertions on Ingestion & Lifecycle:
+    assert summary.status == CrawlStatus.PARTIAL
+    assert summary.jobs_found == 2
+    assert summary.jobs_closed == 0
+    assert "pagination_max_pages_reached" in summary.warnings
+
+    # 3. Verify page2_active_job was NOT closed due to incomplete crawl
+    active_jobs = await job_repo.get_active_jobs_by_source(source.id)
+    active_ids = {j.external_job_id for j in active_jobs}
+    assert "PAGE2_JOB" in active_ids
+
+    job_check = await job_repo.get_by_source_and_external_id(source.id, "PAGE2_JOB")
+    assert job_check is not None
+    assert job_check.status == JobStatus.ACTIVE
+    assert job_check.closed_at is None
+
