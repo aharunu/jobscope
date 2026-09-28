@@ -25,7 +25,13 @@ from backend.infrastructure.database.repositories.job_repository import (
     SQLAlchemyJobRepository,
     SQLAlchemyRawJobRepository,
 )
+from backend.infrastructure.database.repositories.job_requirement_repository import (
+    SQLAlchemyJobRequirementRepository,
+)
 from backend.infrastructure.database.session import get_session_factory
+from backend.infrastructure.extraction.deterministic_extractor import (
+    DeterministicRequirementExtractor,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +111,14 @@ class SQLAlchemyCrawlPersistenceManager(CrawlPersistenceManager):
                 job_repo = SQLAlchemyJobRepository(session)
                 raw_job_repo = SQLAlchemyRawJobRepository(session)
                 crawl_run_repo = SQLAlchemyCrawlRunRepository(session)
+                job_requirement_repo = SQLAlchemyJobRequirementRepository(session)
+                requirement_extractor = DeterministicRequirementExtractor()
                 ingestion_service = JobIngestionService(
                     job_repo=job_repo,
                     raw_job_repo=raw_job_repo,
                     crawl_run_repo=crawl_run_repo,
+                    job_requirement_repo=job_requirement_repo,
+                    requirement_extractor=requirement_extractor,
                     normalizer=JobNormalizer(),
                 )
                 result = await ingestion_service.ingest_crawl_result(

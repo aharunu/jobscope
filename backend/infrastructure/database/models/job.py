@@ -167,6 +167,10 @@ class JobModel(BaseModel):
             ats_type = self.source.ats_type
             source_url = self.source.url
 
+        requirements = []
+        if "requirements" in self.__dict__ and self.requirements is not None:
+            requirements = [r.to_domain() for r in self.requirements]
+
         return Job(
             id=self.id,
             source_id=self.source_id,
@@ -191,6 +195,7 @@ class JobModel(BaseModel):
             source_name=source_name,
             ats_type=ats_type,
             source_url=source_url,
+            requirements=requirements,
         )
 
     @classmethod

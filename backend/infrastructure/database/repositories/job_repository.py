@@ -8,7 +8,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from backend.domain.job.entities import Job, RawJob
 from backend.domain.job.enums import JobStatus
@@ -84,7 +84,10 @@ class SQLAlchemyJobRepository(JobRepository):
         """Retrieve a canonical job with related source metadata projected."""
         stmt = (
             select(JobModel)
-            .options(joinedload(JobModel.source))
+            .options(
+                joinedload(JobModel.source),
+                selectinload(JobModel.requirements),
+            )
             .where(JobModel.id == job_id)
         )
         result = await self.session.execute(stmt)

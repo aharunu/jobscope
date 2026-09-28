@@ -187,11 +187,60 @@ def test_extract_token_fallback_keys_in_config() -> None:
         assert extract_greenhouse_board_token(source) == f"token_via_{key}"
 
 
-def test_extract_token_rejects_non_greenhouse_hostnames() -> None:
-    source = make_greenhouse_source(url="https://careers.greenhouse-corp.com/jobs")
+@pytest.mark.parametrize(
+    "invalid_url",
+    [
+        "https://careers.greenhouse-corp.com/jobs",
+        "https://example.com/greenhouse/jobs",
+        "https://greenhouse.example.com/board",
+        "https://fake-greenhouse.io/jobs",
+    ],
+)
+def test_extract_token_rejects_non_greenhouse_hostnames(invalid_url: str) -> None:
+    """Verify URLs with 'greenhouse' in path or non-greenhouse domain are rejected."""
+    source = make_greenhouse_source(url=invalid_url)
     with pytest.raises(InvalidSourceConfigurationError) as exc_info:
         extract_greenhouse_board_token(source)
     assert "does not belong to Greenhouse" in exc_info.value.message
+
+
+@pytest.mark.parametrize(
+    ("url", "expected_token"),
+    [
+        ("https://job-boards.greenhouse.io/goodjobgames", "goodjobgames"),
+        ("https://boards.greenhouse.io/okx", "okx"),
+        (
+            "https://boards-api.greenhouse.io/v1/boards/okx/jobs?content=true",
+            "okx",
+        ),
+        (
+            "https://job-boards.eu.greenhouse.io/constructortech",
+            "constructortech",
+        ),
+    ],
+)
+def test_extract_token_accepts_valid_greenhouse_hosts(
+    url: str, expected_token: str
+) -> None:
+    """Verify authentic Greenhouse hostnames resolve valid board tokens."""
+    source = make_greenhouse_source(url=url)
+    assert extract_greenhouse_board_token(source) == expected_token
+
+
+@pytest.mark.asyncio
+async def test_greenhouse_adapter_crawl_rejects_false_positive_url() -> None:
+    """Verify GreenhouseAdapter.crawl rejects false-positive URL
+    without network calls.
+    """
+    mock_client = MockSafeHttpClient()
+    adapter = GreenhouseAdapter(http_client=mock_client)
+    source = make_greenhouse_source(url="https://example.com/greenhouse/jobs")
+
+    with pytest.raises(InvalidSourceConfigurationError) as exc_info:
+        await adapter.crawl(source)
+
+    assert "does not belong to Greenhouse" in exc_info.value.message
+    assert len(mock_client.requests) == 0
 
 
 def test_extract_token_rejects_missing_url() -> None:

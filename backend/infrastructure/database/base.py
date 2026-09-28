@@ -36,6 +36,8 @@ class UUIDPrimaryKeyMixin:
 class TimestampMixin:
     """Mixin for models that track creation and update timestamps with timezone."""
 
+    __mapper_args__ = {"eager_defaults": True}
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
