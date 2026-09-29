@@ -11,6 +11,34 @@ from backend.domain.matching.enums import MatchStatus
 
 
 @dataclass(slots=True)
+class CategoryExplanation:
+    """Deterministic explanation for a single evaluation category."""
+
+    category: str
+    status: MatchStatus
+    score: Decimal
+    reason: str
+    details: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class MatchExplanation:
+    """Structured deterministic explanation of the entire matching evaluation."""
+
+    summary: str
+    matched_skills: list[str] = field(default_factory=list)
+    missing_skills: list[str] = field(default_factory=list)
+    partial_matches: list[str] = field(default_factory=list)
+    role_result: str = ""
+    experience_result: str = ""
+    education_result: str = ""
+    location_result: str = ""
+    blockers: list[str] = field(default_factory=list)
+    unknowns: list[str] = field(default_factory=list)
+    category_explanations: dict[str, CategoryExplanation] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class MatchResult:
     """Domain entity representing matching evaluation between a job and a profile.
 
@@ -28,6 +56,14 @@ class MatchResult:
     ai_adjustment: Decimal | None = Decimal("0.0")
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    category_scores: dict[str, Decimal] = field(default_factory=dict)
+    requirement_matches: list[RequirementMatch] = field(default_factory=list)
+    explanation: MatchExplanation | None = None
+
+    @property
+    def overall_score(self) -> Decimal:
+        """Alias for deterministic_score representing the overall match score."""
+        return self.deterministic_score
 
 
 @dataclass(slots=True)

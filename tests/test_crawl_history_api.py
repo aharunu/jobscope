@@ -373,19 +373,19 @@ def test_list_runs_duration_is_null_for_running(client: TestClient) -> None:
 def test_list_runs_rejects_limit_over_100(client: TestClient) -> None:
     """Verify limit > 100 is rejected with 422."""
     resp = client.get("/api/crawl/runs?limit=101")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_runs_rejects_limit_under_1(client: TestClient) -> None:
     """Verify limit < 1 is rejected with 422."""
     resp = client.get("/api/crawl/runs?limit=0")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_runs_rejects_negative_offset(client: TestClient) -> None:
     """Verify offset < 0 is rejected with 422."""
     resp = client.get("/api/crawl/runs?offset=-1")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_runs_rejects_invalid_date_range(client: TestClient) -> None:
@@ -393,7 +393,7 @@ def test_list_runs_rejects_invalid_date_range(client: TestClient) -> None:
     d_from = "2026-09-28T00:00:00Z"
     d_to = "2026-09-25T00:00:00Z"
     resp = client.get(f"/api/crawl/runs?date_from={d_from}&date_to={d_to}")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "date_from must not be later than date_to" in resp.json()["detail"]
 
 
@@ -438,7 +438,7 @@ def test_get_run_detail_not_found(client: TestClient) -> None:
 def test_get_run_detail_invalid_uuid(client: TestClient) -> None:
     """Verify malformed UUID returns 422."""
     resp = client.get("/api/crawl/runs/not-a-valid-uuid")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 # ==============================================================================
@@ -502,13 +502,13 @@ def test_list_run_jobs_rejects_limit_bounds(
     target = runs[0]
 
     resp1 = client.get(f"/api/crawl/runs/{target.id}/jobs?limit=101")
-    assert resp1.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp1.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     resp2 = client.get(f"/api/crawl/runs/{target.id}/jobs?limit=0")
-    assert resp2.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp2.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     resp3 = client.get(f"/api/crawl/runs/{target.id}/jobs?offset=-1")
-    assert resp3.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp3.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 # ==============================================================================
