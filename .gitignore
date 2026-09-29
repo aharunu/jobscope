@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -47,6 +47,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+coverage/
 cover/
 
 # Jupyter Notebook
@@ -86,7 +87,33 @@ Thumbs.db
 logs/
 *.log
 *.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Node.js / Frontend dependencies & artifacts
+node_modules/
+.next/
+out/
+.vitest/
+.vitest*/
+*.tsbuildinfo
+next-env.d.ts
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vercel deployment
+.vercel/
 
 # Agent reports
 docs/agent-reports/
+

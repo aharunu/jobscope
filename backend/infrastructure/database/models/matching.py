@@ -128,6 +128,13 @@ class MatchResultModel(BaseModel):
 
     def to_domain(self) -> MatchResult:
         """Convert ORM model to domain entity."""
+        req_matches = []
+        if (
+            "requirement_matches" in self.__dict__
+            and self.requirement_matches is not None
+        ):
+            req_matches = [rm.to_domain() for rm in self.requirement_matches]
+
         return MatchResult(
             id=self.id,
             job_id=self.job_id,
@@ -140,6 +147,7 @@ class MatchResultModel(BaseModel):
             confidence=self.confidence,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            requirement_matches=req_matches,
         )
 
     @classmethod

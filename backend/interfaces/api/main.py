@@ -15,6 +15,11 @@ from backend.interfaces.api.errors import register_exception_handlers
 from backend.interfaces.api.routes.crawl import router as crawl_router
 from backend.interfaces.api.routes.health import router as health_router
 from backend.interfaces.api.routes.jobs import router as jobs_router
+from backend.interfaces.api.routes.matching import router as matching_router
+from backend.interfaces.api.routes.profile import router as profile_router
+from backend.interfaces.api.routes.search_profile import (
+    router as search_profile_router,
+)
 from backend.interfaces.api.routes.sources import router as sources_router
 
 
@@ -88,7 +93,17 @@ def create_app(
     # Canonical Jobs query endpoint
     app.include_router(jobs_router, prefix="/api")
 
+    # Deterministic matching endpoint
+    app.include_router(matching_router, prefix="/api")
+
+    # Base profile endpoint
+    app.include_router(profile_router, prefix="/api")
+
+    # Search profile endpoint
+    app.include_router(search_profile_router, prefix="/api")
+
     # Centralized exception handlers for safe, standardized error responses
+
     register_exception_handlers(app)
 
     return app

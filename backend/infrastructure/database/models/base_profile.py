@@ -96,6 +96,22 @@ class BaseProfileModel(BaseModel):
 
     def to_domain(self) -> BaseProfile:
         """Convert ORM model to domain entity."""
+        skills = []
+        if "skills" in self.__dict__ and self.skills is not None:
+            skills = [s.to_domain() for s in self.skills]
+
+        experiences = []
+        if "experiences" in self.__dict__ and self.experiences is not None:
+            experiences = [e.to_domain() for e in self.experiences]
+
+        educations = []
+        if "educations" in self.__dict__ and self.educations is not None:
+            educations = [e.to_domain() for e in self.educations]
+
+        projects = []
+        if "projects" in self.__dict__ and self.projects is not None:
+            projects = [p.to_domain() for p in self.projects]
+
         return BaseProfile(
             id=self.id,
             user_id=self.user_id,
@@ -103,6 +119,10 @@ class BaseProfileModel(BaseModel):
             summary=self.summary,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            skills=skills,
+            experiences=experiences,
+            educations=educations,
+            projects=projects,
         )
 
     @classmethod

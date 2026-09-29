@@ -397,13 +397,13 @@ def test_list_jobs_invalid_limit_returns_422(
 ) -> None:
     """Verify limit < 1 or limit > 100 returns HTTP 422."""
     resp = client.get(f"/api/jobs?limit={invalid_limit}")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_jobs_invalid_offset_returns_422(client: TestClient) -> None:
     """Verify offset < 0 returns HTTP 422."""
     resp = client.get("/api/jobs?offset=-1")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 # ==============================================================================
@@ -444,7 +444,7 @@ def test_get_job_detail_not_found(client: TestClient) -> None:
 def test_get_job_detail_malformed_uuid(client: TestClient) -> None:
     """Verify malformed UUID string returns 422."""
     resp = client.get("/api/jobs/not-a-valid-uuid")
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 # ==============================================================================

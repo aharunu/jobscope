@@ -21,6 +21,10 @@ class BaseProfile:
     summary: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    skills: list[ProfileSkill] = field(default_factory=list)
+    experiences: list[ProfileExperience] = field(default_factory=list)
+    educations: list[ProfileEducation] = field(default_factory=list)
+    projects: list[ProfileProject] = field(default_factory=list)
 
 
 @dataclass(slots=True)

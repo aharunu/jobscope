@@ -740,9 +740,7 @@ async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() ->
         lifecycle_service=lifecycle_service,
     )
 
-    source = make_greenhouse_source(
-        pagination_config={"page_size": 2, "max_pages": 1}
-    )
+    source = make_greenhouse_source(pagination_config={"page_size": 2, "max_pages": 1})
 
     # Pre-populate active job that would only appear on page 2
     normalizer = JobNormalizer()
@@ -819,4 +817,3 @@ async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() ->
     assert job_check is not None
     assert job_check.status == JobStatus.ACTIVE
     assert job_check.closed_at is None
-
