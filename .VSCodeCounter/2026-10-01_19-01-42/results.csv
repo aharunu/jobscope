@@ -1,0 +1,297 @@
+"filename", "language", "TypeScript", "Python", "JSON with Comments", "TypeScript JSX", "Markdown", "PostCSS", "JavaScript", "Ini", "JSON", "YAML", "TOML", "comment", "blank", "total"
+"c:\Users\aharu\Documents\GitHub\jobscope\README.md", "Markdown", 0, 0, 0, 0, 184, 0, 0, 0, 0, 0, 0, 0, 54, 238
+"c:\Users\aharu\Documents\GitHub\jobscope\alembic.ini", "Ini", 0, 0, 0, 0, 0, 0, 0, 39, 0, 0, 0, 0, 14, 53
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\__init__.py", "Python", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 4
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\application_tracking\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\common\__init__.py", "Python", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 6
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\common\exceptions.py", "Python", 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 39
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\__init__.py", "Python", 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 74
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\adapter_registry.py", "Python", 0, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 12, 53
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\crawler_service.py", "Python", 0, 284, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 19, 323
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\dtos.py", "Python", 0, 184, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 53, 267
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\exceptions.py", "Python", 0, 87, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 22, 116
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\history_service.py", "Python", 0, 113, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 19, 147
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\ports.py", "Python", 0, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 28, 147
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_discovery\services.py", "Python", 0, 324, 0, 0, 0, 0, 0, 0, 0, 0, 0, 49, 40, 413
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_matching\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\__init__.py", "Python", 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 34
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\content_cleaning.py", "Python", 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 15, 103
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\dtos.py", "Python", 0, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 16, 101
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\extraction.py", "Python", 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 12, 47
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\lifecycle.py", "Python", 0, 125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 23, 192
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\normalizer.py", "Python", 0, 142, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 27, 187
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\query_service.py", "Python", 0, 155, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15, 185
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\job_processing\services.py", "Python", 0, 280, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 37, 349
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\matching\__init__.py", "Python", 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 18
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\matching\exceptions.py", "Python", 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 20
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\matching\services.py", "Python", 0, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 15, 96
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\profile_management\__init__.py", "Python", 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 38
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\profile_management\child_services.py", "Python", 0, 487, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 89, 600
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\profile_management\exceptions.py", "Python", 0, 62, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 24, 94
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\profile_management\search_profile_service.py", "Python", 0, 268, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 40, 328
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\profile_management\services.py", "Python", 0, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 17, 106
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\system\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\application\system\health_service.py", "Python", 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 8, 43
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\application\__init__.py", "Python", 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 14
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\application\entities.py", "Python", 0, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 10, 40
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\application\enums.py", "Python", 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 15
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\crawl\__init__.py", "Python", 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 14
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\crawl\entities.py", "Python", 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 10, 51
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\crawl\enums.py", "Python", 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 23
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\crawl\repositories.py", "Python", 0, 61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 17, 91
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\cv\__init__.py", "Python", 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 10
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\cv\entities.py", "Python", 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 7, 28
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\cv\enums.py", "Python", 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 12
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\job\__init__.py", "Python", 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 30
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\job\entities.py", "Python", 0, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 13, 82
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\job\enums.py", "Python", 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 11, 29
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\job\repositories.py", "Python", 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 26, 123
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\__init__.py", "Python", 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 28
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\category_weights.py", "Python", 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 23
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\deterministic_engine.py", "Python", 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 30, 236
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\entities.py", "Python", 0, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 23, 117
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\enums.py", "Python", 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 13
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\__init__.py", "Python", 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 28
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\base.py", "Python", 0, 37, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 13, 55
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\education_evaluator.py", "Python", 0, 183, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 21, 213
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\experience_evaluator.py", "Python", 0, 177, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 23, 211
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\location_evaluator.py", "Python", 0, 155, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 18, 181
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\other_evaluator.py", "Python", 0, 162, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 17, 184
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\role_evaluator.py", "Python", 0, 112, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 16, 135
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\evaluators\skill_evaluator.py", "Python", 0, 170, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 27, 216
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\normalization.py", "Python", 0, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 16, 123
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\matching\repositories.py", "Python", 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 9, 30
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\profile\__init__.py", "Python", 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 30
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\profile\entities.py", "Python", 0, 61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 18, 88
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\profile\repositories.py", "Python", 0, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 33, 134
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\search_profile\__init__.py", "Python", 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 7
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\search_profile\entities.py", "Python", 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 6, 32
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\search_profile\repositories.py", "Python", 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 11, 40
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\source\__init__.py", "Python", 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 15
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\source\entities.py", "Python", 0, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 6, 32
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\source\enums.py", "Python", 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 33
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\source\normalization.py", "Python", 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 13, 76
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\source\repositories.py", "Python", 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 14, 64
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\user\__init__.py", "Python", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 6
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\domain\user\entities.py", "Python", 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 6, 20
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\ashby\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\factory.py", "Python", 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 5, 23
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\greenhouse\__init__.py", "Python", 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 9
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\greenhouse\adapter.py", "Python", 0, 281, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 52, 362
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\lever\__init__.py", "Python", 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 9
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\lever\adapter.py", "Python", 0, 249, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 46, 316
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\ats\workday\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\config\__init__.py", "Python", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 6
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\config\settings.py", "Python", 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 15, 73
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\__init__.py", "Python", 0, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 3, 92
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\base.py", "Python", 0, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 18, 62
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\crawl_persistence.py", "Python", 0, 109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 12, 134
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\engine.py", "Python", 0, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 11, 36
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\health.py", "Python", 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 7, 35
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\env.py", "Python", 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 24, 95
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\versions\20260919_0001_users_create_users_table.py", "Python", 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 8, 51
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\versions\20260919_0002_profiles_create_profile_tables.py", "Python", 0, 357, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 18, 391
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\versions\20260919_0003_jobs_and_sources_create_tables.py", "Python", 0, 244, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 12, 269
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\versions\20260919_0004_matching_and_applications_create_tables.py", "Python", 0, 442, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 20, 479
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\versions\20260919_0005_crawl_runs_create_tables.py", "Python", 0, 134, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 10, 156
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\migrations\versions\20260919_0006_cvs_create_table.py", "Python", 0, 79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 8, 97
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\__init__.py", "Python", 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 56
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\application.py", "Python", 0, 152, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 23, 184
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\base_profile.py", "Python", 0, 324, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 50, 395
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\crawl_run.py", "Python", 0, 208, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 24, 241
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\cv.py", "Python", 0, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 14, 116
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\job.py", "Python", 0, 343, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 33, 389
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\matching.py", "Python", 0, 318, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 40, 375
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\search_profile.py", "Python", 0, 111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 14, 130
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\source.py", "Python", 0, 110, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 14, 129
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\models\user.py", "Python", 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 13, 57
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\__init__.py", "Python", 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 46
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\base_profile_repository.py", "Python", 0, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 16, 85
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\crawl_run_repository.py", "Python", 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 31, 204
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\job_repository.py", "Python", 0, 192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 40, 248
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\job_requirement_repository.py", "Python", 0, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 13, 93
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\matching_repository.py", "Python", 0, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 17, 146
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\profile_child_repositories.py", "Python", 0, 177, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 33, 231
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\search_profile_repository.py", "Python", 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 13, 70
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\repositories\source_repository.py", "Python", 0, 112, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 24, 146
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\database\session.py", "Python", 0, 51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 14, 74
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\extraction\__init__.py", "Python", 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 18
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\extraction\deterministic_extractor.py", "Python", 0, 182, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 32, 251
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\extraction\taxonomy.py", "Python", 0, 142, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 21, 181
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\http\__init__.py", "Python", 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 8
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\http\safe_client.py", "Python", 0, 199, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 29, 250
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\http\source_probe.py", "Python", 0, 313, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 34, 355
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\http\ssrf.py", "Python", 0, 94, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 16, 121
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\llm\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\logging\__init__.py", "Python", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 6
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\logging\logger.py", "Python", 0, 43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 12, 62
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\parsers\__init__.py", "Python", 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 8
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\infrastructure\parsers\markdown_source_parser.py", "Python", 0, 186, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 37, 241
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\__init__.py", "Python", 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 6
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\__init__.py", "Python", 0, 151, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 155
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\auth.py", "Python", 0, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 16, 75
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\crawler.py", "Python", 0, 75, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 26, 110
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\database.py", "Python", 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 6, 14
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\job_processing.py", "Python", 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 46, 180
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\matching.py", "Python", 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 21, 76
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\profile.py", "Python", 0, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26, 55, 197
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\dependencies\sources.py", "Python", 0, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 21, 80
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\errors.py", "Python", 0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 11, 56
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\main.py", "Python", 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 28, 113
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\__init__.py", "Python", 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 7
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\crawl.py", "Python", 0, 278, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 22, 309
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\health.py", "Python", 0, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 19, 82
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\jobs.py", "Python", 0, 106, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 10, 119
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\matching.py", "Python", 0, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 12, 123
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\profile.py", "Python", 0, 433, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 53, 520
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\search_profile.py", "Python", 0, 140, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 16, 162
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\routes\sources.py", "Python", 0, 247, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 23, 279
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\__init__.py", "Python", 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 46
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\crawl.py", "Python", 0, 137, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 32, 184
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\job.py", "Python", 0, 112, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 16, 132
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\matching.py", "Python", 0, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 25, 105
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\profile.py", "Python", 0, 204, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 72, 305
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\search_profile.py", "Python", 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 20, 185
+"c:\Users\aharu\Documents\GitHub\jobscope\backend\interfaces\api\schemas\source.py", "Python", 0, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 34, 173
+"c:\Users\aharu\Documents\GitHub\jobscope\data\turkish-job-sources.md", "Markdown", 0, 0, 0, 0, 2120, 0, 0, 0, 0, 0, 0, 0, 248, 2368
+"c:\Users\aharu\Documents\GitHub\jobscope\design_vs_implementation_report.md", "Markdown", 0, 0, 0, 0, 334, 0, 0, 0, 0, 0, 0, 0, 85, 419
+"c:\Users\aharu\Documents\GitHub\jobscope\docker-compose.yml", "YAML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0, 2, 22
+"c:\Users\aharu\Documents\GitHub\jobscope\docs\design\01_mvp_technical_design.md", "Markdown", 0, 0, 0, 0, 637, 0, 0, 0, 0, 0, 0, 0, 183, 820
+"c:\Users\aharu\Documents\GitHub\jobscope\docs\design\02_database_and_api_design.md", "Markdown", 0, 0, 0, 0, 383, 0, 0, 0, 0, 0, 0, 0, 77, 460
+"c:\Users\aharu\Documents\GitHub\jobscope\docs\design\03_data_model_and_architecture.md", "Markdown", 0, 0, 0, 0, 421, 0, 0, 0, 0, 0, 0, 0, 102, 523
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\next.config.mjs", "JavaScript", 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 1, 2, 15
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\package-lock.json", "JSON", 0, 0, 0, 0, 0, 0, 0, 0, 4000, 0, 0, 0, 1, 4001
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\package.json", "JSON", 0, 0, 0, 0, 0, 0, 0, 0, 27, 0, 0, 0, 1, 28
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\jobs\[id]\JobDetailClient.tsx", "TypeScript JSX", 0, 0, 0, 279, 0, 0, 0, 0, 0, 0, 0, 21, 29, 329
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\jobs\[id]\page.tsx", "TypeScript JSX", 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 4, 28
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\jobs\page.tsx", "TypeScript JSX", 0, 0, 0, 244, 0, 0, 0, 0, 0, 0, 0, 12, 25, 281
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\layout.tsx", "TypeScript JSX", 0, 0, 0, 95, 0, 0, 0, 0, 0, 0, 0, 3, 6, 104
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\page.tsx", "TypeScript JSX", 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 2, 6
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\search-profiles\SearchProfilesClient.tsx", "TypeScript JSX", 0, 0, 0, 451, 0, 0, 0, 0, 0, 0, 0, 11, 23, 485
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\search-profiles\new\CreateSearchProfileClient.tsx", "TypeScript JSX", 0, 0, 0, 472, 0, 0, 0, 0, 0, 0, 0, 20, 43, 535
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\search-profiles\new\page.tsx", "TypeScript JSX", 0, 0, 0, 21, 0, 0, 0, 0, 0, 0, 0, 0, 3, 24
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\app\search-profiles\page.tsx", "TypeScript JSX", 0, 0, 0, 21, 0, 0, 0, 0, 0, 0, 0, 0, 3, 24
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobCard.tsx", "TypeScript JSX", 0, 0, 0, 174, 0, 0, 0, 0, 0, 0, 0, 4, 15, 193
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobDetailBody.tsx", "TypeScript JSX", 0, 0, 0, 191, 0, 0, 0, 0, 0, 0, 0, 4, 8, 203
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobDetailHeader.tsx", "TypeScript JSX", 0, 0, 0, 155, 0, 0, 0, 0, 0, 0, 0, 3, 13, 171
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobFilters.tsx", "TypeScript JSX", 0, 0, 0, 115, 0, 0, 0, 0, 0, 0, 0, 0, 11, 126
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobList.tsx", "TypeScript JSX", 0, 0, 0, 155, 0, 0, 0, 0, 0, 0, 0, 4, 10, 169
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobPagination.tsx", "TypeScript JSX", 0, 0, 0, 104, 0, 0, 0, 0, 0, 0, 0, 2, 13, 119
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\jobs\JobSearchInput.tsx", "TypeScript JSX", 0, 0, 0, 105, 0, 0, 0, 0, 0, 0, 0, 2, 8, 115
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\matching\BlockerAlert.tsx", "TypeScript JSX", 0, 0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 5, 35
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\matching\CategoryScoresBreakdown.tsx", "TypeScript JSX", 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0, 1, 8, 57
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\matching\MatchPanel.tsx", "TypeScript JSX", 0, 0, 0, 265, 0, 0, 0, 0, 0, 0, 0, 4, 29, 298
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\matching\RequirementMatchesList.tsx", "TypeScript JSX", 0, 0, 0, 116, 0, 0, 0, 0, 0, 0, 0, 0, 10, 126
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\matching\ScoreGauge.tsx", "TypeScript JSX", 0, 0, 0, 67, 0, 0, 0, 0, 0, 0, 0, 0, 8, 75
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\matching\SkillsEvidenceList.tsx", "TypeScript JSX", 0, 0, 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 9, 79
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\search_profile\SearchProfileSelector.tsx", "TypeScript JSX", 0, 0, 0, 99, 0, 0, 0, 0, 0, 0, 0, 0, 8, 107
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Alert.tsx", "TypeScript JSX", 0, 0, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 5, 63
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Badge.tsx", "TypeScript JSX", 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 3, 19
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Button.tsx", "TypeScript JSX", 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 3, 44
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Card.tsx", "TypeScript JSX", 0, 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 3, 22
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Input.tsx", "TypeScript JSX", 0, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 4, 42
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\ProgressBar.tsx", "TypeScript JSX", 0, 0, 0, 45, 0, 0, 0, 0, 0, 0, 0, 0, 5, 50
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Select.tsx", "TypeScript JSX", 0, 0, 0, 49, 0, 0, 0, 0, 0, 0, 0, 0, 5, 54
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\components\ui\Spinner.tsx", "TypeScript JSX", 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, 0, 4, 48
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\api\client.ts", "TypeScript", 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 14, 87
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\api\jobs.ts", "TypeScript", 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4, 39
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\api\matching.ts", "TypeScript", 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 18
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\api\search_profiles.ts", "TypeScript", 29, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 5, 37
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\api\types.ts", "TypeScript", 153, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 19, 180
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\constants.ts", "TypeScript", 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 34
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\formatters.ts", "TypeScript", 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 9, 51
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\lib\jobContent.ts", "TypeScript", 122, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 23, 179
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\styles\globals.css", "PostCSS", 0, 0, 0, 0, 0, 430, 0, 0, 0, 0, 0, 35, 84, 549
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\HardeningEdgeCases.test.tsx", "TypeScript JSX", 0, 0, 0, 195, 0, 0, 0, 0, 0, 0, 0, 7, 35, 237
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\JobCard.test.tsx", "TypeScript JSX", 0, 0, 0, 57, 0, 0, 0, 0, 0, 0, 0, 1, 9, 67
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\JobDetail.test.tsx", "TypeScript JSX", 0, 0, 0, 284, 0, 0, 0, 0, 0, 0, 0, 12, 44, 340
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\JobFilters.test.tsx", "TypeScript JSX", 0, 0, 0, 52, 0, 0, 0, 0, 0, 0, 0, 0, 12, 64
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\JobPagination.test.tsx", "TypeScript JSX", 0, 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 9, 49
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\MatchExperience.test.tsx", "TypeScript JSX", 0, 0, 0, 193, 0, 0, 0, 0, 0, 0, 0, 0, 29, 222
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\SearchProfileManagement.test.tsx", "TypeScript JSX", 0, 0, 0, 299, 0, 0, 0, 0, 0, 0, 0, 28, 82, 409
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\SearchProfileSelector.test.tsx", "TypeScript JSX", 0, 0, 0, 93, 0, 0, 0, 0, 0, 0, 0, 0, 11, 104
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\UserFlows.test.tsx", "TypeScript JSX", 0, 0, 0, 269, 0, 0, 0, 0, 0, 0, 0, 14, 38, 321
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\client.test.ts", "TypeScript", 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 106
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\formatters.test.ts", "TypeScript", 44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 53
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\jobContent.test.ts", "TypeScript", 103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 117
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\src\tests\setup.ts", "TypeScript", 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 13, 56
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\tsconfig.json", "JSON with Comments", 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 28
+"c:\Users\aharu\Documents\GitHub\jobscope\frontend\vitest.config.ts", "TypeScript", 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 18
+"c:\Users\aharu\Documents\GitHub\jobscope\pyproject.toml", "TOML", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 52, 0, 9, 61
+"c:\Users\aharu\Documents\GitHub\jobscope\repository_audit_report.md", "Markdown", 0, 0, 0, 0, 817, 0, 0, 0, 0, 0, 0, 0, 252, 1069
+"c:\Users\aharu\Documents\GitHub\jobscope\scripts\dev.py", "Python", 0, 86, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 33, 140
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\__init__.py", "Python", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\conftest.py", "Python", 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 9, 36
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_base_profile_api.py", "Python", 0, 222, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 65, 318
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_base_profile_service.py", "Python", 0, 125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 38, 174
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_config.py", "Python", 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 9, 32
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_api.py", "Python", 0, 254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 57, 325
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_history_api.py", "Python", 0, 406, 0, 0, 0, 0, 0, 0, 0, 0, 0, 49, 106, 561
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_history_repository.py", "Python", 0, 182, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 34, 224
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_history_service.py", "Python", 0, 278, 0, 0, 0, 0, 0, 0, 0, 0, 0, 27, 58, 363
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_pipeline_hardening.py", "Python", 0, 602, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 105, 779
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_run_models.py", "Python", 0, 229, 0, 0, 0, 0, 0, 0, 0, 0, 0, 60, 72, 361
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawl_run_repository.py", "Python", 0, 139, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 38, 187
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawler_architecture.py", "Python", 0, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 51, 100, 551
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_crawler_integration.py", "Python", 0, 149, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 33, 194
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_cv_models.py", "Python", 0, 199, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 68, 326
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_database.py", "Python", 0, 159, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 59, 237
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_deterministic_match_engine.py", "Python", 0, 535, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38, 113, 686
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_existing_job_ingestion_regression.py", "Python", 0, 264, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 41, 346
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_greenhouse_adapter.py", "Python", 0, 623, 0, 0, 0, 0, 0, 0, 0, 0, 0, 71, 137, 831
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_greenhouse_crawler_integration.py", "Python", 0, 623, 0, 0, 0, 0, 0, 0, 0, 0, 0, 71, 126, 820
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_health.py", "Python", 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 25
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_http_safe_client.py", "Python", 0, 202, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 64, 279
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_integration.py", "Python", 0, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 33, 109
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_and_source_models.py", "Python", 0, 542, 0, 0, 0, 0, 0, 0, 0, 0, 0, 82, 130, 754
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_api.py", "Python", 0, 528, 0, 0, 0, 0, 0, 0, 0, 0, 0, 51, 103, 682
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_company_location_filter_regression.py", "Python", 0, 323, 0, 0, 0, 0, 0, 0, 0, 0, 0, 55, 54, 432
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_description_cleaning_regression.py", "Python", 0, 177, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 38, 251
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_detail_requirements_regression.py", "Python", 0, 305, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 49, 389
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_ingestion_service.py", "Python", 0, 424, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 73, 532
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_lifecycle_closure.py", "Python", 0, 525, 0, 0, 0, 0, 0, 0, 0, 0, 0, 56, 116, 697
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_normalizer.py", "Python", 0, 161, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 33, 208
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_processing_dependencies.py", "Python", 0, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 16, 96
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_query_repository.py", "Python", 0, 197, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 38, 246
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_query_service.py", "Python", 0, 140, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 31, 179
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_repository.py", "Python", 0, 214, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 55, 284
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_requirement_repository.py", "Python", 0, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 41, 182
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_job_work_mode_filter_regression.py", "Python", 0, 216, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 38, 295
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_lever_adapter.py", "Python", 0, 319, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 77, 426
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_markdown_source_parser.py", "Python", 0, 132, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 32, 175
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_matching_and_application_models.py", "Python", 0, 732, 0, 0, 0, 0, 0, 0, 0, 0, 0, 116, 176, 1024
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_matching_api.py", "Python", 0, 313, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 84, 422
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_matching_ownership_integration.py", "Python", 0, 434, 0, 0, 0, 0, 0, 0, 0, 0, 0, 52, 94, 580
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_matching_persistence.py", "Python", 0, 222, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 34, 287
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_phase_6_hardening.py", "Python", 0, 469, 0, 0, 0, 0, 0, 0, 0, 0, 0, 56, 106, 631
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_production_requirement_extraction_regression.py", "Python", 0, 336, 0, 0, 0, 0, 0, 0, 0, 0, 0, 43, 49, 428
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_profile_child_api.py", "Python", 0, 526, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 125, 728
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_profile_child_persistence.py", "Python", 0, 138, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 29, 187
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_profile_child_services.py", "Python", 0, 349, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 92, 500
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_profile_models.py", "Python", 0, 404, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 88, 528
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_quality_and_errors.py", "Python", 0, 95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 29, 139
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_requirement_extraction_integration.py", "Python", 0, 398, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 69, 482
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_requirement_extractor.py", "Python", 0, 253, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 60, 333
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_safe_http_client_retries.py", "Python", 0, 178, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 57, 254
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_search_profile_api.py", "Python", 0, 221, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 68, 339
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_search_profile_persistence.py", "Python", 0, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 35, 186
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_search_profile_service.py", "Python", 0, 322, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 87, 443
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_api.py", "Python", 0, 363, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 82, 467
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_health_probe.py", "Python", 0, 266, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 90, 377
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_probe_api.py", "Python", 0, 154, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 32, 194
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_probe_service.py", "Python", 0, 205, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 36, 251
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_repository.py", "Python", 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 52, 256
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_runtime_readiness.py", "Python", 0, 280, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 79, 401
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_service.py", "Python", 0, 306, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 80, 410
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_sync_api.py", "Python", 0, 119, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 29, 156
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_source_sync_service.py", "Python", 0, 193, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 44, 249
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_structure.py", "Python", 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 5, 53
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_url_normalization.py", "Python", 0, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 24, 96
+"c:\Users\aharu\Documents\GitHub\jobscope\tests\test_user_model.py", "Python", 0, 106, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 31, 155
+"Total", "-", 767, 32455, 27, 5097, 4896, 430, 12, 39, 4027, 20, 52, 3829, 8602, 60253

@@ -34,7 +34,7 @@ export interface JobDetailResponse extends JobSummaryResponse {
   description: string;
   content_hash: string;
   responsibilities: string | null;
-  requirements: Record<string, any>[];
+  requirements?: Record<string, any>[];
 }
 
 export interface JobListResponse {
@@ -71,6 +71,18 @@ export interface SearchProfileResponse {
   salary_max: number | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+export interface SearchProfileCreateRequest {
+  name: string;
+  target_roles?: string[];
+  seniority?: string | null;
+  target_skills?: string[];
+  locations?: string[];
+  work_modes?: string[];
+  industries?: string[];
+  salary_min?: number | null;
+  salary_max?: number | null;
 }
 
 export interface MatchRequest {

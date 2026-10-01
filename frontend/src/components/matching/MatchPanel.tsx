@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import type { SearchProfileResponse, MatchResultResponse } from '@/lib/api/types';
 import { evaluateMatch } from '@/lib/api/matching';
 import { SearchProfileSelector } from '@/components/search_profile/SearchProfileSelector';
@@ -169,6 +170,7 @@ export function MatchPanel({
           selectedProfileId={selectedProfileId}
           onSelectProfile={onSelectProfile}
           disabled={loading}
+          jobId={jobId}
         />
       </div>
 
@@ -223,8 +225,37 @@ export function MatchPanel({
       )}
 
       {!loading && !currentMatch && !error && searchProfiles.length === 0 && (
-        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', padding: '1rem 0' }} role="status">
-          No candidate search profiles found. Create a profile to evaluate match suitability.
+        <div
+          style={{
+            color: 'var(--color-text-muted)',
+            fontSize: '0.875rem',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem',
+            alignItems: 'flex-start',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--color-border)',
+          }}
+          role="status"
+          data-testid="match-panel-empty-profiles"
+        >
+          <p>No candidate search profiles found. Create a profile to evaluate match suitability.</p>
+          <Link
+            href={`/search-profiles/new?returnUrl=/jobs/${encodeURIComponent(jobId)}`}
+            className="btn btn-secondary"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.8125rem',
+            }}
+            data-testid="match-empty-create-profile-btn"
+          >
+            Create Search Profile
+          </Link>
         </div>
       )}
 

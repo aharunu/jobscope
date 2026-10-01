@@ -12,6 +12,9 @@ from backend.infrastructure.database.engine import dispose_engine, get_engine
 from backend.infrastructure.http.safe_client import HttpSafeClient
 from backend.infrastructure.logging.logger import setup_logging
 from backend.interfaces.api.errors import register_exception_handlers
+from backend.interfaces.api.routes.applications import (
+    router as applications_router,
+)
 from backend.interfaces.api.routes.crawl import router as crawl_router
 from backend.interfaces.api.routes.health import router as health_router
 from backend.interfaces.api.routes.jobs import router as jobs_router
@@ -27,7 +30,7 @@ from backend.interfaces.api.routes.sources import router as sources_router
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan manager handling startup and shutdown events."""
     settings = getattr(app.state, "settings", None) or get_settings()
-    setup_logging(log_level=settings.log_level)
+    setup_logging(log_level=settings.log_level, log_format=settings.log_format)
 
     # Startup: ensure database engine is initialized
     if getattr(app.state, "db_engine", None) is None:
@@ -101,6 +104,9 @@ def create_app(
 
     # Search profile endpoint
     app.include_router(search_profile_router, prefix="/api")
+
+    # Application tracking endpoint
+    app.include_router(applications_router, prefix="/api")
 
     # Centralized exception handlers for safe, standardized error responses
 

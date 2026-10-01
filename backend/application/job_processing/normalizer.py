@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -12,6 +13,8 @@ from backend.application.job_discovery.dtos import DiscoveredJobDTO, RuntimeSour
 from backend.domain.job.entities import Job
 from backend.domain.job.enums import JobStatus
 from backend.domain.source.normalization import normalize_source_url
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -87,6 +90,12 @@ class JobNormalizer:
         responsibilities = discovered.metadata.get("responsibilities")
         if responsibilities is not None:
             responsibilities = str(responsibilities).strip() or None
+            if responsibilities and "<" in responsibilities:
+                from backend.application.job_processing.content_cleaning import (
+                    clean_html_to_bullets,
+                )
+
+                responsibilities = clean_html_to_bullets(responsibilities) or None
 
         raw_pub_date = (
             discovered.metadata.get("published_at")
@@ -174,7 +183,11 @@ class JobNormalizer:
             try:
                 dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
                 return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
-            except ValueError:
-                pass
+            except ValueError as exc:
+                logger.debug(
+                    "Could not parse datetime string '%s' as ISO 8601: %s",
+                    cleaned,
+                    exc,
+                )
 
         return None

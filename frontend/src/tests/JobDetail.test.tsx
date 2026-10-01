@@ -136,6 +136,96 @@ describe('JobDetail Components', () => {
       expect(screen.getByText('Canonical Metadata')).toBeInTheDocument();
       expect(screen.getByText('G-12345')).toBeInTheDocument();
     });
+
+    it('does not display raw JSON payload in UI and extracts clean description, responsibilities, and requirements', () => {
+      const rawJsonJob: JobDetailResponse = {
+        ...mockJobDetail,
+        description: JSON.stringify({
+          descriptionPlain: 'We are seeking an experienced Backend Engineer to scale our services.',
+          descriptionBody: '<div>We are seeking an experienced Backend Engineer</div>',
+          descriptionBodyPlain: 'We are seeking an experienced Backend Engineer to scale our services.',
+          lists: [
+            {
+              text: 'Responsibilities',
+              content: '<li>Design scalable distributed systems</li><li>Optimize PostgreSQL database queries</li>',
+            },
+            {
+              text: 'Requirements',
+              content: '<li>5+ years Python or Go experience</li><li>Deep understanding of Clean Architecture</li>',
+            },
+          ],
+          hostedUrl: 'https://jobs.lever.co/example/123',
+          applyUrl: 'https://jobs.lever.co/example/123/apply',
+          id: 'lever-ext-id-999',
+        }),
+        responsibilities: null,
+      };
+
+      render(<JobDetailBody job={rawJsonJob} />);
+
+      // Verify raw JSON keys are NEVER visible in the DOM
+      expect(screen.queryByText(/descriptionPlain/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/descriptionBody/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/hostedUrl/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/applyUrl/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/lever-ext-id-999/i)).not.toBeInTheDocument();
+
+      // Verify clean description text is rendered
+      expect(
+        screen.getByText(/We are seeking an experienced Backend Engineer to scale our services/i)
+      ).toBeInTheDocument();
+
+      // Verify extracted Responsibilities section
+      expect(screen.getByText('Responsibilities')).toBeInTheDocument();
+      expect(screen.getByText(/Design scalable distributed systems/i)).toBeInTheDocument();
+      expect(screen.getByText(/Optimize PostgreSQL database queries/i)).toBeInTheDocument();
+
+      // Verify extracted Requirements section
+      expect(screen.getByText('Requirements')).toBeInTheDocument();
+      expect(screen.getByText(/5\+ years Python or Go experience/i)).toBeInTheDocument();
+
+      // Verify Canonical Metadata is still present and untampered
+      expect(screen.getByText('Canonical Metadata')).toBeInTheDocument();
+      expect(screen.getByText('G-12345')).toBeInTheDocument();
+    });
+
+    it('renders HTML content without displaying raw HTML tags, unescapes entities and formats links safely', () => {
+      const htmlJob: JobDetailResponse = {
+        ...mockJobDetail,
+        description:
+          '<p><strong class="highlight">About Us:</strong></p><p>We build disruptive gaming experiences.<br>&nbsp;Learn more on our <a href="https://example.com/team">team page</a>.</p>',
+      };
+
+      render(<JobDetailBody job={htmlJob} />);
+
+      // Verify text content is visible
+      expect(screen.getByText(/About Us:/i)).toBeInTheDocument();
+      expect(screen.getByText(/We build disruptive gaming experiences/i)).toBeInTheDocument();
+
+      // Verify raw tags and escaped entities are NOT displayed as literal text
+      expect(screen.queryByText(/<p>/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/<\/p>/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/<strong>/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/&nbsp;/i)).not.toBeInTheDocument();
+
+      // Verify link has safe security attributes
+      const teamLink = screen.getByRole('link', { name: /team page/i });
+      expect(teamLink).toHaveAttribute('href', 'https://example.com/team');
+      expect(teamLink).toHaveAttribute('target', '_blank');
+      expect(teamLink).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('handles null, empty, and whitespace description with graceful fallback', () => {
+      const emptyJob: JobDetailResponse = {
+        ...mockJobDetail,
+        description: '   ',
+        responsibilities: null,
+      };
+
+      render(<JobDetailBody job={emptyJob} />);
+      expect(screen.getByText('No detailed description provided.')).toBeInTheDocument();
+      expect(screen.queryByText('Responsibilities')).not.toBeInTheDocument();
+    });
   });
 
   describe('JobDetailClient & Precedence', () => {

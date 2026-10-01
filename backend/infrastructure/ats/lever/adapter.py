@@ -236,6 +236,23 @@ class LeverAdapter(ATSAdapter):
                 )
                 location = categories.get("location") or item.get("country")
 
+                responsibilities = None
+                lists = item.get("lists")
+                if isinstance(lists, list):
+                    for lst in lists:
+                        if not isinstance(lst, dict):
+                            continue
+                        section_text = str(lst.get("text") or "").lower()
+                        if "responsibilit" in section_text:
+                            content_val = str(lst.get("content") or "").strip()
+                            responsibilities = content_val or None
+                            break
+
+                desc_plain = item.get("descriptionPlain") or item.get(
+                    "descriptionBodyPlain"
+                )
+                desc_html = item.get("description") or item.get("descriptionBody")
+
                 metadata: dict[str, Any] = {
                     "company": source.company or source.name,
                     "location": location,
@@ -244,6 +261,9 @@ class LeverAdapter(ATSAdapter):
                     "created_at_upstream": item.get("createdAt"),
                     "payload_hash": payload_hash,
                     "site_token": site_token,
+                    "description_plain": desc_plain,
+                    "description": desc_html,
+                    "responsibilities": responsibilities,
                 }
 
                 jobs.append(

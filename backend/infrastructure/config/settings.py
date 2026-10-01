@@ -38,6 +38,10 @@ class Settings(BaseSettings):
 
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Log verbosity level")
+    log_format: str = Field(
+        default="console",
+        description="Log output format ('console' or 'json')",
+    )
 
     # Source Catalog Configuration
     source_catalog_path: str = Field(

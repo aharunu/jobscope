@@ -1,5 +1,11 @@
 """API dependencies package."""
 
+from backend.interfaces.api.dependencies.application import (
+    ApplicationRepositoryDep,
+    ApplicationTrackingServiceDep,
+    get_application_repository,
+    get_application_tracking_service,
+)
 from backend.interfaces.api.dependencies.auth import (
     CurrentUserDep,
     get_current_user_id,
@@ -83,6 +89,8 @@ from backend.interfaces.api.dependencies.sources import (
 
 __all__ = [
     "ATSAdapterRegistryDep",
+    "ApplicationRepositoryDep",
+    "ApplicationTrackingServiceDep",
     "BaseProfileRepositoryDep",
     "BaseProfileServiceDep",
     "CatalogParserDep",
@@ -117,6 +125,8 @@ __all__ = [
     "SourceHealthProbeDep",
     "SourceRegistryDep",
     "get_adapter_registry",
+    "get_application_repository",
+    "get_application_tracking_service",
     "get_base_profile_repository",
     "get_base_profile_service",
     "get_catalog_parser",

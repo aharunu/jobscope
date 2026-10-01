@@ -91,12 +91,28 @@ class InMemoryJobRepository(JobRepository):
             matching = [j for j in matching if j.source_id == source_id]
         if ats_type is not None:
             matching = [j for j in matching if j.ats_type == ats_type]
-        if company is not None:
-            matching = [j for j in matching if j.company == company]
-        if location is not None:
-            matching = [j for j in matching if j.location == location]
-        if work_mode is not None:
-            matching = [j for j in matching if j.work_mode == work_mode]
+        if company is not None and company.strip():
+            c_clean = company.strip().lower()
+            matching = [
+                j
+                for j in matching
+                if j.company is not None and c_clean in j.company.lower()
+            ]
+        if location is not None and location.strip():
+            loc_clean = location.strip().lower()
+            matching = [
+                j
+                for j in matching
+                if j.location is not None and loc_clean in j.location.lower()
+            ]
+        if work_mode is not None and work_mode.strip():
+            clean_mode = work_mode.strip().lower().replace("-", "")
+            matching = [
+                j
+                for j in matching
+                if j.work_mode is not None
+                and j.work_mode.strip().lower().replace("-", "") == clean_mode
+            ]
         if employment_type is not None:
             matching = [j for j in matching if j.employment_type == employment_type]
         if search_query is not None:
@@ -330,6 +346,107 @@ def test_list_jobs_location_filter(client: TestClient) -> None:
     assert data["jobs"][0]["location"] == "Berlin, Germany"
 
 
+def test_list_jobs_company_substring_and_case_insensitive(
+    client: TestClient, repo: InMemoryJobRepository
+) -> None:
+    """Verify company filter supports substring and case-insensitive matching."""
+    dream_job = Job(
+        id=uuid.uuid4(),
+        source_id=uuid.uuid4(),
+        canonical_url="https://jobs.example.com/dream/001",
+        company="Dream Games",
+        title="Senior Game Developer",
+        description="Building mobile puzzle games.",
+        location="Sarıyer, Istanbul",
+        work_mode="On-site",
+        status=JobStatus.ACTIVE,
+        content_hash="dream_hash_001",
+    )
+    repo.jobs[dream_job.id] = dream_job
+
+    # GET /api/jobs?company=Dream
+    resp1 = client.get("/api/jobs?company=Dream")
+    assert resp1.status_code == status.HTTP_200_OK
+    data1 = resp1.json()
+    assert data1["total"] == 1
+    assert data1["jobs"][0]["company"] == "Dream Games"
+
+    # GET /api/jobs?company=dream
+    resp2 = client.get("/api/jobs?company=dream")
+    assert resp2.status_code == status.HTTP_200_OK
+    data2 = resp2.json()
+    assert data2["total"] == 1
+    assert data2["jobs"][0]["company"] == "Dream Games"
+
+
+def test_list_jobs_location_substring_and_case_insensitive(
+    client: TestClient, repo: InMemoryJobRepository
+) -> None:
+    """Verify location filter supports substring, partial, case-insensitive matching."""
+    dream_job = Job(
+        id=uuid.uuid4(),
+        source_id=uuid.uuid4(),
+        canonical_url="https://jobs.example.com/dream/001",
+        company="Dream Games",
+        title="Senior Game Developer",
+        description="Building mobile puzzle games.",
+        location="Sarıyer, Istanbul",
+        work_mode="On-site",
+        status=JobStatus.ACTIVE,
+        content_hash="dream_hash_001",
+    )
+    repo.jobs[dream_job.id] = dream_job
+
+    # GET /api/jobs?location=istanbul
+    resp1 = client.get("/api/jobs?location=istanbul")
+    assert resp1.status_code == status.HTTP_200_OK
+    data1 = resp1.json()
+    assert data1["total"] == 1
+    assert data1["jobs"][0]["location"] == "Sarıyer, Istanbul"
+
+    # GET /api/jobs?location=Sarıyer
+    resp2 = client.get("/api/jobs?location=Sarıyer")
+    assert resp2.status_code == status.HTTP_200_OK
+    data2 = resp2.json()
+    assert data2["total"] == 1
+    assert data2["jobs"][0]["location"] == "Sarıyer, Istanbul"
+
+    # GET /api/jobs?location=Germany (matches Berlin, Germany from fixtures)
+    resp3 = client.get("/api/jobs?location=Germany")
+    assert resp3.status_code == status.HTTP_200_OK
+    data3 = resp3.json()
+    assert data3["total"] == 1
+    assert data3["jobs"][0]["location"] == "Berlin, Germany"
+
+
+def test_list_jobs_combined_company_location_work_mode_filter(
+    client: TestClient, repo: InMemoryJobRepository
+) -> None:
+    """Verify combined company + location + work_mode filters intersect."""
+    dream_job = Job(
+        id=uuid.uuid4(),
+        source_id=uuid.uuid4(),
+        canonical_url="https://jobs.example.com/dream/001",
+        company="Dream Games",
+        title="Senior Game Developer",
+        description="Building mobile puzzle games.",
+        location="Sarıyer, Istanbul",
+        work_mode="On-site",
+        status=JobStatus.ACTIVE,
+        content_hash="dream_hash_001",
+    )
+    repo.jobs[dream_job.id] = dream_job
+
+    # GET /api/jobs?company=Dream&location=Istanbul&work_mode=On-site
+    resp = client.get("/api/jobs?company=Dream&location=Istanbul&work_mode=On-site")
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["jobs"][0]["company"] == "Dream Games"
+    assert data["jobs"][0]["location"] == "Sarıyer, Istanbul"
+    assert data["jobs"][0]["work_mode"] == "On-site"
+
+
 def test_list_jobs_work_mode_filter(client: TestClient) -> None:
     """Verify filtering by work_mode."""
     resp = client.get("/api/jobs?work_mode=Remote")
@@ -337,6 +454,78 @@ def test_list_jobs_work_mode_filter(client: TestClient) -> None:
     data = resp.json()
     assert data["total"] == 1
     assert data["jobs"][0]["work_mode"] == "Remote"
+
+
+def test_list_jobs_work_mode_filter_case_and_hyphen_insensitive(
+    client: TestClient,
+) -> None:
+    """Verify work_mode filter handles On-site, on-site, ONSITE, and onsite."""
+    for variant in ["On-site", "on-site", "ONSITE", "onsite", " onsite "]:
+        resp = client.get(f"/api/jobs?work_mode={variant}")
+        assert resp.status_code == status.HTTP_200_OK
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["jobs"][0]["work_mode"] == "On-site"
+
+
+def test_list_jobs_work_mode_filter_hybrid_variants(client: TestClient) -> None:
+    """Verify work_mode filter matches Hybrid, hybrid, and HYBRID."""
+    for variant in ["Hybrid", "hybrid", "HYBRID", " Hybrid "]:
+        resp = client.get(f"/api/jobs?work_mode={variant}")
+        assert resp.status_code == status.HTTP_200_OK
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["jobs"][0]["work_mode"] == "Hybrid"
+
+
+def test_list_jobs_work_mode_filter_remote_variants(client: TestClient) -> None:
+    """Verify work_mode filter matches Remote, remote, and REMOTE."""
+    for variant in ["Remote", "remote", "REMOTE", " Remote "]:
+        resp = client.get(f"/api/jobs?work_mode={variant}")
+        assert resp.status_code == status.HTTP_200_OK
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["jobs"][0]["work_mode"] == "Remote"
+
+
+def test_list_jobs_work_mode_filter_nonexistent_returns_empty(
+    client: TestClient,
+) -> None:
+    """Verify nonexistent work_mode returns 200 with total=0 and empty list."""
+    resp = client.get("/api/jobs?work_mode=NonexistentMode")
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.json()
+    assert data["total"] == 0
+    assert data["jobs"] == []
+
+
+def test_list_jobs_work_mode_null_records_excluded_from_filter(
+    client: TestClient, repo: InMemoryJobRepository
+) -> None:
+    """Verify jobs with work_mode=None are never returned by work_mode filter."""
+    null_job = Job(
+        id=uuid.uuid4(),
+        source_id=uuid.uuid4(),
+        canonical_url="https://example.com/jobs/null-mode",
+        company="NullCorp",
+        title="Null Mode Engineer",
+        description="Testing null work mode.",
+        content_hash="null_hash_999",
+        work_mode=None,
+    )
+    repo.jobs[null_job.id] = null_job
+
+    # Verify null job is present when no work_mode filter is specified
+    resp_all = client.get("/api/jobs")
+    assert resp_all.status_code == status.HTTP_200_OK
+    assert resp_all.json()["total"] == 4
+
+    # Verify null job is NEVER returned by any explicit work_mode filter
+    for mode in ["Remote", "Hybrid", "On-site", "onsite"]:
+        resp = client.get(f"/api/jobs?work_mode={mode}")
+        assert resp.status_code == status.HTTP_200_OK
+        returned_ids = [j["id"] for j in resp.json()["jobs"]]
+        assert str(null_job.id) not in returned_ids
 
 
 def test_list_jobs_employment_type_filter(client: TestClient) -> None:
