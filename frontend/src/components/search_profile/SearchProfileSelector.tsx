@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { SearchProfileResponse } from '../../lib/api/types';
 import { Select } from '../ui/Select';
 import { Alert } from '../ui/Alert';
@@ -11,6 +12,8 @@ export interface SearchProfileSelectorProps {
   onSelectProfile: (profileId: string) => void;
   isLoading?: boolean;
   disabled?: boolean;
+  jobId?: string;
+  createProfileHref?: string;
 }
 
 export const SearchProfileSelector: React.FC<SearchProfileSelectorProps> = ({
@@ -19,6 +22,8 @@ export const SearchProfileSelector: React.FC<SearchProfileSelectorProps> = ({
   onSelectProfile,
   isLoading = false,
   disabled = false,
+  jobId,
+  createProfileHref,
 }) => {
   if (isLoading) {
     return (
@@ -32,6 +37,10 @@ export const SearchProfileSelector: React.FC<SearchProfileSelectorProps> = ({
   }
 
   if (profiles.length === 0) {
+    const targetUrl =
+      createProfileHref ||
+      (jobId ? `/search-profiles/new?returnUrl=/jobs/${encodeURIComponent(jobId)}` : '/search-profiles/new');
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <Select
@@ -45,6 +54,35 @@ export const SearchProfileSelector: React.FC<SearchProfileSelectorProps> = ({
         <Alert variant="warning" title="No Search Profiles">
           Matching requires at least one candidate Search Profile. Configure a profile to run evaluations.
         </Alert>
+        <div>
+          <Link
+            href={targetUrl}
+            className="btn btn-primary"
+            style={{
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.875rem',
+            }}
+            data-testid="create-search-profile-btn"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create Search Profile
+          </Link>
+        </div>
       </div>
     );
   }

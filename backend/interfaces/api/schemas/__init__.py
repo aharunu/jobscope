@@ -1,3 +1,12 @@
+from backend.interfaces.api.schemas.application import (
+    ApplicationCreateRequest,
+    ApplicationJobSummaryResponse,
+    ApplicationListResponse,
+    ApplicationNotesUpdateRequest,
+    ApplicationResponse,
+    ApplicationStatusHistoryResponse,
+    ApplicationStatusUpdateRequest,
+)
 from backend.interfaces.api.schemas.crawl import (
     CrawlRunJobItemResponse,
     CrawlRunJobListResponse,
@@ -24,6 +33,13 @@ from backend.interfaces.api.schemas.source import (
 )
 
 __all__ = [
+    "ApplicationCreateRequest",
+    "ApplicationJobSummaryResponse",
+    "ApplicationListResponse",
+    "ApplicationNotesUpdateRequest",
+    "ApplicationResponse",
+    "ApplicationStatusHistoryResponse",
+    "ApplicationStatusUpdateRequest",
     "CrawlRunJobItemResponse",
     "CrawlRunJobListResponse",
     "CrawlRunListResponse",

@@ -81,8 +81,16 @@ class JobModel(BaseModel):
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
     responsibilities: Mapped[str | None] = mapped_column(Text, nullable=True)
-    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    work_mode: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    location: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
+    )
+    work_mode: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        index=True,
+    )
     employment_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,

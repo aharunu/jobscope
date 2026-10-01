@@ -84,6 +84,14 @@ class ApplicationModel(BaseModel):
 
     def to_domain(self) -> Application:
         """Convert ORM model to domain entity."""
+        job = None
+        if "job" in self.__dict__ and self.job is not None:
+            job = self.job.to_domain()
+
+        status_history = []
+        if "status_history" in self.__dict__ and self.status_history is not None:
+            status_history = [h.to_domain() for h in self.status_history]
+
         return Application(
             id=self.id,
             job_id=self.job_id,
@@ -92,6 +100,8 @@ class ApplicationModel(BaseModel):
             notes=self.notes,
             created_at=self.created_at,
             updated_at=self.updated_at,
+            job=job,
+            status_history=status_history,
         )
 
     @classmethod

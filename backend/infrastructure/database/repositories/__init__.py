@@ -1,5 +1,8 @@
 """Database repositories package."""
 
+from backend.infrastructure.database.repositories.application_repository import (
+    SQLAlchemyApplicationRepository,
+)
 from backend.infrastructure.database.repositories.base_profile_repository import (
     SQLAlchemyBaseProfileRepository,
 )
@@ -30,6 +33,7 @@ from backend.infrastructure.database.repositories.source_repository import (
 )
 
 __all__ = [
+    "SQLAlchemyApplicationRepository",
     "SQLAlchemyBaseProfileRepository",
     "SQLAlchemyCrawlRunRepository",
     "SQLAlchemyJobRepository",

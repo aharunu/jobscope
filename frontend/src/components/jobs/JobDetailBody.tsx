@@ -4,16 +4,19 @@ import React from 'react';
 import { JobDetailResponse } from '../../lib/api/types';
 import { Card } from '../ui/Card';
 import { formatDate } from '../../lib/formatters';
+import { parseJobContent, sanitizeJobHtml, hasHtmlTags } from '../../lib/jobContent';
 
 export interface JobDetailBodyProps {
   job: JobDetailResponse;
 }
 
 export const JobDetailBody: React.FC<JobDetailBodyProps> = ({ job }) => {
+  const content = parseJobContent(job.description, job.responsibilities);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Responsibilities Section — Rendered only if backend provides the field */}
-      {job.responsibilities && job.responsibilities.trim() && (
+      {/* Responsibilities Section */}
+      {content.responsibilities && content.responsibilities.trim() && (
         <Card>
           <h2
             style={{
@@ -25,16 +28,74 @@ export const JobDetailBody: React.FC<JobDetailBodyProps> = ({ job }) => {
           >
             Responsibilities
           </h2>
-          <div
+          {hasHtmlTags(content.responsibilities) ? (
+            <div
+              className="job-content-html"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeJobHtml(
+                  content.responsibilities.includes('<li') &&
+                    !content.responsibilities.includes('<ul')
+                    ? `<ul>${content.responsibilities}</ul>`
+                    : content.responsibilities
+                ),
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                color: 'var(--text-secondary)',
+                lineHeight: 1.65,
+                fontSize: '0.9375rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+              }}
+            >
+              {content.responsibilities}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Structured Requirements Section (if extracted from structured job posting lists) */}
+      {content.requirements && content.requirements.trim() && (
+        <Card>
+          <h2
             style={{
-              color: 'var(--text-secondary)',
-              lineHeight: 1.65,
-              fontSize: '0.9375rem',
-              whiteSpace: 'pre-wrap',
+              fontSize: '1.1875rem',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: '0.75rem',
             }}
           >
-            {job.responsibilities}
-          </div>
+            Requirements
+          </h2>
+          {hasHtmlTags(content.requirements) ? (
+            <div
+              className="job-content-html"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeJobHtml(
+                  content.requirements.includes('<li') &&
+                    !content.requirements.includes('<ul')
+                    ? `<ul>${content.requirements}</ul>`
+                    : content.requirements
+                ),
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                color: 'var(--text-secondary)',
+                lineHeight: 1.65,
+                fontSize: '0.9375rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+              }}
+            >
+              {content.requirements}
+            </div>
+          )}
         </Card>
       )}
 
@@ -50,20 +111,39 @@ export const JobDetailBody: React.FC<JobDetailBodyProps> = ({ job }) => {
         >
           Job Description
         </h2>
-        <div
-          style={{
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            fontSize: '0.9375rem',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-          }}
-        >
-          {job.description && job.description.trim()
-            ? job.description
-            : 'No detailed description provided.'}
-        </div>
+        {content.description && content.description.trim() ? (
+          content.isHtml ? (
+            <div
+              className="job-content-html"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeJobHtml(content.description),
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                color: 'var(--text-secondary)',
+                lineHeight: 1.7,
+                fontSize: '0.9375rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+              }}
+            >
+              {content.description}
+            </div>
+          )
+        ) : (
+          <div
+            style={{
+              color: 'var(--text-secondary)',
+              lineHeight: 1.7,
+              fontSize: '0.9375rem',
+            }}
+          >
+            No detailed description provided.
+          </div>
+        )}
       </Card>
 
       {/* Technical Metadata Footer */}

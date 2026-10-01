@@ -182,9 +182,15 @@ async def test_list_jobs_with_all_filters() -> None:
     assert "sources.ats_type =" in compiled
     assert "jobs.status =" in compiled
     assert "jobs.source_id =" in compiled
-    assert "jobs.company =" in compiled
-    assert "jobs.location =" in compiled
-    assert "jobs.work_mode =" in compiled
+    assert any(
+        pattern in compiled
+        for pattern in ("lower(jobs.company) LIKE lower(", "jobs.company ILIKE")
+    )
+    assert any(
+        pattern in compiled
+        for pattern in ("lower(jobs.location) LIKE lower(", "jobs.location ILIKE")
+    )
+    assert "replace(lower(jobs.work_mode)" in compiled.lower()
     assert "jobs.employment_type =" in compiled
     # Verify q substring matching using ILIKE
     assert any(
@@ -227,7 +233,13 @@ async def test_count_jobs_with_identical_filters() -> None:
     assert "sources.ats_type =" in compiled
     assert "jobs.status =" in compiled
     assert "jobs.source_id =" in compiled
-    assert "jobs.company =" in compiled
-    assert "jobs.location =" in compiled
-    assert "jobs.work_mode =" in compiled
+    assert any(
+        pattern in compiled
+        for pattern in ("lower(jobs.company) LIKE lower(", "jobs.company ILIKE")
+    )
+    assert any(
+        pattern in compiled
+        for pattern in ("lower(jobs.location) LIKE lower(", "jobs.location ILIKE")
+    )
+    assert "replace(lower(jobs.work_mode)" in compiled.lower()
     assert "jobs.employment_type =" in compiled

@@ -4,15 +4,15 @@ services:
     container_name: jobscope_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: jobscope
-      POSTGRES_USER: jobscope
-      POSTGRES_PASSWORD: jobscope
+      POSTGRES_DB: ${POSTGRES_DB:-jobscope}
+      POSTGRES_USER: ${POSTGRES_USER:-jobscope}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobscope}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobscope -d jobscope"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobscope} -d ${POSTGRES_DB:-jobscope}"]
       interval: 5s
       timeout: 5s
       retries: 5

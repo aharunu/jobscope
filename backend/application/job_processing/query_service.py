@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import uuid
 
+from backend.application.job_processing.content_cleaning import (
+    normalize_job_description_and_responsibilities,
+)
 from backend.application.job_processing.dtos import (
     JobDetailDTO,
     JobFilterDTO,
@@ -149,17 +152,21 @@ class JobQueryService:
             }
             for r in job.requirements
         ]
+        desc, resp = normalize_job_description_and_responsibilities(
+            raw_desc=job.description,
+            raw_resp=job.responsibilities,
+        )
         return JobDetailDTO(
             id=job.id,
             source_id=job.source_id,
             canonical_url=job.canonical_url,
             company=job.company,
             title=job.title,
-            description=job.description,
+            description=desc,
             status=job.status,
             content_hash=job.content_hash,
             external_job_id=job.external_job_id,
-            responsibilities=job.responsibilities,
+            responsibilities=resp,
             location=job.location,
             work_mode=job.work_mode,
             employment_type=job.employment_type,

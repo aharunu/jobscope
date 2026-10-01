@@ -120,13 +120,17 @@ class SQLAlchemyJobRepository(JobRepository):
             stmt = stmt.where(JobModel.source_id == source_id)
 
         if company is not None and company.strip():
-            stmt = stmt.where(JobModel.company == company.strip())
+            c_pat = f"%{company.strip()}%"
+            stmt = stmt.where(JobModel.company.ilike(c_pat))
 
         if location is not None and location.strip():
-            stmt = stmt.where(JobModel.location == location.strip())
+            loc_pat = f"%{location.strip()}%"
+            stmt = stmt.where(JobModel.location.ilike(loc_pat))
 
         if work_mode is not None and work_mode.strip():
-            stmt = stmt.where(JobModel.work_mode == work_mode.strip())
+            clean_mode = work_mode.strip().lower().replace("-", "")
+            norm_mode = sa.func.replace(sa.func.lower(JobModel.work_mode), "-", "")
+            stmt = stmt.where(norm_mode == clean_mode)
 
         if employment_type is not None and employment_type.strip():
             stmt = stmt.where(JobModel.employment_type == employment_type.strip())
@@ -172,13 +176,17 @@ class SQLAlchemyJobRepository(JobRepository):
             stmt = stmt.where(JobModel.source_id == source_id)
 
         if company is not None and company.strip():
-            stmt = stmt.where(JobModel.company == company.strip())
+            c_pat = f"%{company.strip()}%"
+            stmt = stmt.where(JobModel.company.ilike(c_pat))
 
         if location is not None and location.strip():
-            stmt = stmt.where(JobModel.location == location.strip())
+            loc_pat = f"%{location.strip()}%"
+            stmt = stmt.where(JobModel.location.ilike(loc_pat))
 
         if work_mode is not None and work_mode.strip():
-            stmt = stmt.where(JobModel.work_mode == work_mode.strip())
+            clean_mode = work_mode.strip().lower().replace("-", "")
+            norm_mode = sa.func.replace(sa.func.lower(JobModel.work_mode), "-", "")
+            stmt = stmt.where(norm_mode == clean_mode)
 
         if employment_type is not None and employment_type.strip():
             stmt = stmt.where(JobModel.employment_type == employment_type.strip())
