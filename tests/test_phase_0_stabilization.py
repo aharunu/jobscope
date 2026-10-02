@@ -22,6 +22,7 @@ from backend.infrastructure.database.models.job import JobModel
 from backend.infrastructure.logging.logger import (
     JSONFormatter,
     SecretMaskingFilter,
+    SecretMaskingFormatter,
     setup_logging,
 )
 from backend.interfaces.api.errors import register_exception_handlers
@@ -63,7 +64,8 @@ def test_env_example_matches_settings_fields() -> None:
 
 def test_settings_log_format_configuration(monkeypatch) -> None:
     """Verify log_format default value and environment override."""
-    default_settings = Settings()
+    monkeypatch.delenv("LOG_FORMAT", raising=False)
+    default_settings = Settings(_env_file=None)
     assert default_settings.log_format == "console"
 
     monkeypatch.setenv("LOG_FORMAT", "json")
@@ -257,6 +259,40 @@ def test_setup_logging_json_mode(tmp_path: Path) -> None:
     setup_logging(log_level="INFO", log_format="console")
 
 
+@pytest.mark.parametrize("formatter", [JSONFormatter(), SecretMaskingFormatter()])
+def test_exception_tracebacks_mask_credentials(formatter) -> None:
+    """Unhandled failures must not reveal secrets through traceback text."""
+    import sys
+
+    try:
+        raise ValueError("postgresql://user:private_test_password@host/db token=abc123")
+    except ValueError:
+        record = logging.LogRecord(
+            "test", logging.ERROR, __file__, 1, "Failed", (), sys.exc_info()
+        )
+    result = formatter.format(record)
+    assert "private_test_password" not in result
+    assert "abc123" not in result
+    assert "ValueError" in result
+
+
+def test_recoverable_parsing_logs_without_raw_content(caplog) -> None:
+    """Malformed dates and JSON retain fallbacks without logging raw input."""
+    from backend.application.job_processing.content_cleaning import (
+        normalize_job_description_and_responsibilities,
+    )
+    from backend.application.job_processing.normalizer import JobNormalizer
+
+    with caplog.at_level(logging.WARNING):
+        assert JobNormalizer._parse_datetime(float("inf")) is None
+        assert JobNormalizer._parse_datetime("9" * 100) is None
+        assert JobNormalizer._parse_datetime("private invalid date") is None
+        raw = "{private invalid payload}"
+        assert normalize_job_description_and_responsibilities(raw) == (raw, None)
+    assert len(caplog.records) == 4
+    assert "private invalid" not in caplog.text
+
+
 # ==============================================================================
 # 4. Database Model Index Tests
 # ==============================================================================
@@ -270,3 +306,13 @@ def test_job_model_location_and_work_mode_indexed() -> None:
 
     assert "work_mode" in columns
     assert columns["work_mode"].index is True
+
+
+def test_migration_revisions_fit_alembic_version_column() -> None:
+    """Every revision must be persistable in Alembic's default version table."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    scripts = ScriptDirectory.from_config(Config("alembic.ini"))
+    assert len(scripts.get_heads()) == 1
+    assert all(len(script.revision) <= 32 for script in scripts.walk_revisions())

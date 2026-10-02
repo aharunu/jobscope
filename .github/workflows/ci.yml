@@ -2,14 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   backend:
     name: Backend CI (Python / Ruff / Pytest)
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+asyncpg://jobscope:jobscope_ci_password@localhost:5432/jobscope
+      JOBSCOPE_REQUIRE_DATABASE: "1"
 
     services:
       postgres:
@@ -43,15 +47,16 @@ jobs:
 
       - name: Lint with Ruff
         run: |
-          ruff check backend tests
+          ruff check .
 
       - name: Check formatting with Ruff
         run: |
-          ruff format --check backend tests
+          ruff format --check .
+
+      - name: Apply database migrations
+        run: alembic upgrade head
 
       - name: Run backend tests
-        env:
-          DATABASE_URL: postgresql+asyncpg://jobscope:jobscope_ci_password@localhost:5432/jobscope
         run: |
           pytest -v
 

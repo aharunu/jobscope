@@ -21,7 +21,7 @@ def test_package_structure_imports() -> None:
         "backend.application.common",
         "backend.application.job_discovery",
         "backend.application.job_processing",
-        "backend.application.job_matching",
+        "backend.application.matching",
         "backend.application.profile_management",
         "backend.application.application_tracking",
         "backend.application.system",

@@ -22,7 +22,7 @@
 - **648 backend tests** and **55 frontend tests**
 
 ### Most Important Problems
-1. **`.env` file committed to Git** with real database password (`147147`)
+1. **`.env` file committed to Git** with real database password (`[REDACTED]`)
 2. **No `.env.example`** file — setup instructions in README reference a missing file
 3. **No CI/CD pipeline** — no GitHub Actions, no automated quality gate
 4. **Application Tracking** domain is fully modeled (domain entities, ORM models, migrations) but has zero application services, zero API endpoints, and zero tests
@@ -535,7 +535,7 @@ The test suite is extensive with 68 backend test files covering:
 | Aspect | Detail |
 |--------|--------|
 | **Location** | [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16) |
-| **Evidence** | `DATABASE_URL=postgresql+asyncpg://jobscope:147147@localhost:5432/jobscope` — password `147147` committed |
+| **Evidence** | `DATABASE_URL=postgresql+asyncpg://jobscope:[REDACTED]@localhost:5432/jobscope` — password `[REDACTED]` committed |
 | **Severity** | MEDIUM (local dev password, but `.env` should never be committed) |
 | **Mitigation** | `.gitignore` includes `.env` but the file is already tracked |
 
@@ -604,7 +604,7 @@ The test suite is extensive with 68 backend test files covering:
 2. **Hardcoded Alembic URL** in [`alembic.ini:17`](file:///c:/Users/aharu/Documents/GitHub/jobscope/alembic.ini#L17): `sqlalchemy.url = postgresql+asyncpg://jobscope:jobscope@localhost:5432/jobscope` — though it's noted as "overridden dynamically by env.py"
 3. **`DEBUG=true` default**: Default `debug=True` in Settings means debug mode is on by default
 4. **No environment validation**: No check that `ENVIRONMENT` is one of `development|test|production`
-5. **`.env` password mismatch**: `.env` has `147147` but `docker-compose.yml` has `jobscope` as password
+5. **`.env` password mismatch**: `.env` has `[REDACTED]` but `docker-compose.yml` has `jobscope` as password
 
 ---
 
@@ -791,7 +791,7 @@ The `pass` statements found are all legitimate:
 
 2. **API prefix inconsistency**: README documents `/api/v1/` but code uses `/api/`. No versioning strategy is implemented despite documentation suggesting one.
 
-3. **Password mismatch between `.env` and `docker-compose.yml`**: `.env` has `147147` as database password, `docker-compose.yml` has `jobscope`. One of them is wrong, or both need to be aligned.
+3. **Password mismatch between `.env` and `docker-compose.yml`**: `.env` has `[REDACTED]` as database password, `docker-compose.yml` has `jobscope`. One of them is wrong, or both need to be aligned.
 
 4. **Crawl endpoint naming**: README says `POST /api/v1/crawl/trigger`, implementation is `POST /api/crawl/run`. Different verb and path.
 
@@ -823,7 +823,7 @@ The `pass` statements found are all legitimate:
 
 | Risk | Evidence | Probability | Impact | Severity | Mitigation |
 |------|----------|-------------|--------|----------|------------|
-| Committed credentials rotated or used maliciously | `.env` file with password `147147` in Git history | LOW | MEDIUM | MEDIUM | Rotate password, use `.env.example`, clean Git history |
+| Committed credentials rotated or used maliciously | `.env` file with password `[REDACTED]` in Git history | LOW | MEDIUM | MEDIUM | Rotate password, use `.env.example`, clean Git history |
 | Broken code pushed to main branch | No CI/CD pipeline | HIGH | MEDIUM | HIGH | Add GitHub Actions with lint+test gates |
 | Crawl endpoint abuse (DoS/resource exhaustion) | `POST /api/crawl/run` is unauthenticated | LOW | MEDIUM | LOW | Add authentication or rate limiting |
 | Data integrity issues from unaligned passwords | `.env` password differs from `docker-compose.yml` | MEDIUM | HIGH | MEDIUM | Align configuration files |
@@ -936,7 +936,7 @@ Phase 4: Scale & Enhancement (Long-term)
 
 ### [CRITICAL-001] Database Password Committed to Version Control
 
-**Problem:** `.env` file containing `DATABASE_URL=postgresql+asyncpg://jobscope:147147@localhost:5432/jobscope` is committed to Git.
+**Problem:** `.env` file containing `DATABASE_URL=postgresql+asyncpg://jobscope:[REDACTED]@localhost:5432/jobscope` is committed to Git.
 
 **Location:** [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16)
 
@@ -970,7 +970,7 @@ git rm --cached .env
 
 **[HIGH-001]** README API documentation mismatch — `/api/v1/` paths, wrong endpoint names. Location: [`README.md:216-229`](file:///c:/Users/aharu/Documents/GitHub/jobscope/README.md#L216-L229)
 
-**[HIGH-002]** Password mismatch between [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16) (`147147`) and [`docker-compose.yml:9`](file:///c:/Users/aharu/Documents/GitHub/jobscope/docker-compose.yml#L9) (`jobscope`). Application will fail to connect if using wrong config.
+**[HIGH-002]** Password mismatch between [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16) (`[REDACTED]`) and [`docker-compose.yml:9`](file:///c:/Users/aharu/Documents/GitHub/jobscope/docker-compose.yml#L9) (`jobscope`). Application will fail to connect if using wrong config.
 
 **[HIGH-003]** Missing `.env.example` — setup instructions reference non-existent file. Location: [`README.md:122`](file:///c:/Users/aharu/Documents/GitHub/jobscope/README.md#L122)
 
