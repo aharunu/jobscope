@@ -70,6 +70,16 @@ describe('API Client & Query Serializer', () => {
       await expect(apiClient('/api/jobs/unknown-id')).rejects.toThrow('Job not found');
     });
 
+    it('preserves central error codes so missing saved matches are distinct from resource failures', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false, status: 404,
+        json: async () => ({error: {code: 'MATCH_RESULT_NOT_FOUND', message: 'No saved match result yet'}}),
+      });
+      await expect(apiClient('/api/matches/job/job')).rejects.toMatchObject({
+        status: 404, code: 'MATCH_RESULT_NOT_FOUND', message: 'No saved match result yet',
+      });
+    });
+
     it('does not send X-User-Id header if NEXT_PUBLIC_USER_ID is not configured', async () => {
       delete process.env.NEXT_PUBLIC_USER_ID;
 

@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 import sqlalchemy as sa
+from pydantic import TypeAdapter
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -21,11 +22,13 @@ from sqlalchemy import (
 from sqlalchemy import (
     Enum as SQLEnum,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.domain.matching.entities import (
     AIAnalysis,
     AIEvidence,
+    MatchExplanation,
     MatchResult,
     RequirementMatch,
 )
@@ -91,6 +94,10 @@ class MatchResultModel(BaseModel):
         Numeric(5, 2),
         nullable=False,
     )
+    category_scores: Mapped[dict[str, str]] = mapped_column(
+        JSONB, default=dict, server_default=sa.text("'{}'"), nullable=False
+    )
+    explanation: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
@@ -148,6 +155,18 @@ class MatchResultModel(BaseModel):
             created_at=self.created_at,
             updated_at=self.updated_at,
             requirement_matches=req_matches,
+            category_scores={
+                key: Decimal(value)
+                for key, value in (self.category_scores or {}).items()
+            },
+            explanation=(
+                TypeAdapter(MatchExplanation).validate_python(self.explanation)
+                if self.explanation is not None
+                else None
+            ),
+            ai_analysis=self.ai_analysis.to_domain()
+            if "ai_analysis" in self.__dict__ and self.ai_analysis
+            else None,
         )
 
     @classmethod
@@ -163,6 +182,14 @@ class MatchResultModel(BaseModel):
             "ai_adjustment": res.ai_adjustment,
             "final_score": res.final_score,
             "confidence": res.confidence,
+            "category_scores": {
+                key: str(value) for key, value in res.category_scores.items()
+            },
+            "explanation": (
+                TypeAdapter(MatchExplanation).dump_python(res.explanation, mode="json")
+                if res.explanation is not None
+                else None
+            ),
         }
         if res.created_at is not None:
             kwargs["created_at"] = res.created_at
@@ -270,6 +297,18 @@ class AIAnalysisModel(Base, UUIDPrimaryKeyMixin):
     assessment: Mapped[str] = mapped_column(String(50), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    strengths: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=sa.text("'[]'"), nullable=False
+    )
+    gaps: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=sa.text("'[]'"), nullable=False
+    )
+    risks: Mapped[list[str]] = mapped_column(
+        JSONB, default=list, server_default=sa.text("'[]'"), nullable=False
+    )
+    deterministic_confidence: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=func.now(),
@@ -300,6 +339,13 @@ class AIAnalysisModel(Base, UUIDPrimaryKeyMixin):
             summary=self.summary,
             fingerprint=self.fingerprint,
             created_at=self.created_at,
+            strengths=self.strengths or [],
+            gaps=self.gaps or [],
+            risks=self.risks or [],
+            deterministic_confidence=self.deterministic_confidence,
+            evidence=[item.to_domain() for item in self.evidence_list]
+            if "evidence_list" in self.__dict__
+            else [],
         )
 
     @classmethod
@@ -314,6 +360,10 @@ class AIAnalysisModel(Base, UUIDPrimaryKeyMixin):
             "assessment": analysis.assessment,
             "summary": analysis.summary,
             "fingerprint": analysis.fingerprint,
+            "strengths": analysis.strengths,
+            "gaps": analysis.gaps,
+            "risks": analysis.risks,
+            "deterministic_confidence": analysis.deterministic_confidence,
         }
         if analysis.created_at is not None:
             kwargs["created_at"] = analysis.created_at
@@ -340,6 +390,7 @@ class AIEvidenceModel(Base, UUIDPrimaryKeyMixin):
     evidence_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_reference: Mapped[str] = mapped_column(Text, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    source_quote: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     ai_analysis: Mapped[AIAnalysisModel] = relationship(
@@ -356,6 +407,7 @@ class AIEvidenceModel(Base, UUIDPrimaryKeyMixin):
             evidence_type=self.evidence_type,
             source_reference=self.source_reference,
             reason=self.reason,
+            source_quote=self.source_quote,
         )
 
     @classmethod
@@ -368,6 +420,7 @@ class AIEvidenceModel(Base, UUIDPrimaryKeyMixin):
             evidence_type=ev.evidence_type,
             source_reference=ev.source_reference,
             reason=ev.reason,
+            source_quote=ev.source_quote,
         )
 
     def __repr__(self) -> str:

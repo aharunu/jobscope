@@ -95,6 +95,9 @@ async def list_applications(
         ge=0,
         description="Pagination offset",
     ),
+    job_id: uuid.UUID | None = Query(
+        default=None, description="Filter by canonical job"
+    ),
 ) -> ApplicationListResponse:
     """List tracked applications for authenticated user."""
     items, total = await tracking_service.list_applications(
@@ -102,6 +105,7 @@ async def list_applications(
         status=status_filter,
         limit=limit,
         offset=offset,
+        job_id=job_id,
     )
     return ApplicationListResponse(
         items=[_to_application_response(app) for app in items],

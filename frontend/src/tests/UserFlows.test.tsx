@@ -25,6 +25,7 @@ const mockListJobs = vi.fn();
 const mockGetJobById = vi.fn();
 const mockListSearchProfiles = vi.fn();
 const mockEvaluateMatch = vi.fn();
+const mockGetSavedMatch = vi.fn();
 
 vi.mock('../lib/api/jobs', () => ({
   listJobs: (...args: any[]) => mockListJobs(...args),
@@ -37,6 +38,7 @@ vi.mock('../lib/api/search_profiles', () => ({
 
 vi.mock('../lib/api/matching', () => ({
   evaluateMatch: (...args: any[]) => mockEvaluateMatch(...args),
+  getSavedMatch: (...args: any[]) => mockGetSavedMatch(...args),
 }));
 
 const mockJobs: JobSummaryResponse[] = [
@@ -225,10 +227,10 @@ describe('Comprehensive User Flows (Phase 8.3)', () => {
     expect(mockPush).toHaveBeenCalledWith('/jobs/job-101');
   });
 
-  it('FLOW 2: Open job detail -> select Search Profile -> Evaluate Match -> inspect result', async () => {
+  it('FLOW 2: Open job detail -> select Search Profile -> retrieve saved Match -> inspect result', async () => {
     mockGetJobById.mockResolvedValue(mockJobDetail);
     mockListSearchProfiles.mockResolvedValue(mockProfiles);
-    mockEvaluateMatch.mockResolvedValue(matchResultA);
+    mockGetSavedMatch.mockResolvedValue(matchResultA);
 
     render(<JobDetailClient jobId="job-101" />);
 
@@ -251,6 +253,7 @@ describe('Comprehensive User Flows (Phase 8.3)', () => {
   });
 
   it('FLOW 3: Open job detail -> evaluate Profile A -> switch to Profile B -> verify isolation -> evaluate Profile B', async () => {
+    mockGetSavedMatch.mockImplementation(async (_job, profile) => profile === 'profile-a' ? matchResultA : matchResultB);
     mockEvaluateMatch.mockImplementation(async (payload) => {
       if (payload.search_profile_id === 'profile-a') return matchResultA;
       if (payload.search_profile_id === 'profile-b') return matchResultB;

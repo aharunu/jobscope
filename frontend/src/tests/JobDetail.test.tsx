@@ -18,6 +18,7 @@ vi.mock('next/navigation', () => ({
 const mockGetJobById = vi.fn();
 const mockListSearchProfiles = vi.fn();
 const mockEvaluateMatch = vi.fn();
+const mockGetSavedMatch = vi.fn();
 
 vi.mock('../lib/api/jobs', () => ({
   getJobById: (...args: any[]) => mockGetJobById(...args),
@@ -29,6 +30,7 @@ vi.mock('../lib/api/search_profiles', () => ({
 
 vi.mock('../lib/api/matching', () => ({
   evaluateMatch: (...args: any[]) => mockEvaluateMatch(...args),
+  getSavedMatch: (...args: any[]) => mockGetSavedMatch(...args),
 }));
 
 const mockJobDetail: JobDetailResponse = {
@@ -232,7 +234,7 @@ describe('JobDetail Components', () => {
     it('selects profile according to precedence: URL query -> localStorage -> first profile', async () => {
       mockGetJobById.mockResolvedValue(mockJobDetail);
       mockListSearchProfiles.mockResolvedValue(mockProfiles);
-      mockEvaluateMatch.mockResolvedValue({
+      mockGetSavedMatch.mockResolvedValue({
         id: 'match-1',
         job_id: 'job-123',
         base_profile_id: 'bp-1',
@@ -272,7 +274,7 @@ describe('JobDetail Components', () => {
       localStorage.setItem('jobscope_selected_profile_id', 'profile-beta');
       mockGetJobById.mockResolvedValue(mockJobDetail);
       mockListSearchProfiles.mockResolvedValue(mockProfiles);
-      mockEvaluateMatch.mockResolvedValue({
+      mockGetSavedMatch.mockResolvedValue({
         id: 'match-1',
         job_id: 'job-123',
         base_profile_id: 'bp-1',
@@ -298,7 +300,7 @@ describe('JobDetail Components', () => {
     it('falls back to first profile when neither URL nor localStorage has valid profile', async () => {
       mockGetJobById.mockResolvedValue(mockJobDetail);
       mockListSearchProfiles.mockResolvedValue(mockProfiles);
-      mockEvaluateMatch.mockResolvedValue({
+      mockGetSavedMatch.mockResolvedValue({
         id: 'match-1',
         job_id: 'job-123',
         base_profile_id: 'bp-1',

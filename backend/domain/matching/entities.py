@@ -59,6 +59,7 @@ class MatchResult:
     category_scores: dict[str, Decimal] = field(default_factory=dict)
     requirement_matches: list[RequirementMatch] = field(default_factory=list)
     explanation: MatchExplanation | None = None
+    ai_analysis: AIAnalysis | None = None
 
     @property
     def overall_score(self) -> Decimal:
@@ -99,6 +100,11 @@ class AIAnalysis:
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     fingerprint: str | None = None
     created_at: datetime | None = None
+    strengths: list[str] = field(default_factory=list)
+    gaps: list[str] = field(default_factory=list)
+    risks: list[str] = field(default_factory=list)
+    deterministic_confidence: Decimal | None = None
+    evidence: list[AIEvidence] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -114,3 +120,4 @@ class AIEvidence:
     source_reference: str
     reason: str
     id: uuid.UUID = field(default_factory=uuid.uuid4)
+    source_quote: str | None = None

@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     )
 
     # Logging Configuration
+    ai_enabled: bool = False
+    openai_api_key: SecretStr = Field(default=SecretStr(""), repr=False)
+    ai_model: str = Field(
+        default="gpt-4.1-mini-2025-04-14", min_length=1, max_length=100
+    )
+    ai_timeout_seconds: float = Field(default=30, ge=1, le=120)
+
     log_level: str = Field(default="INFO", description="Log verbosity level")
     log_format: str = Field(
         default="console",

@@ -18,6 +18,7 @@ vi.mock('next/navigation', () => ({
 const mockGetJobById = vi.fn();
 const mockListSearchProfiles = vi.fn();
 const mockEvaluateMatch = vi.fn();
+const mockGetSavedMatch = vi.fn();
 
 vi.mock('../lib/api/jobs', () => ({
   getJobById: (...args: any[]) => mockGetJobById(...args),
@@ -29,6 +30,7 @@ vi.mock('../lib/api/search_profiles', () => ({
 
 vi.mock('../lib/api/matching', () => ({
   evaluateMatch: (...args: any[]) => mockEvaluateMatch(...args),
+  getSavedMatch: (...args: any[]) => mockGetSavedMatch(...args),
 }));
 
 const mockProfiles: SearchProfileResponse[] = [
@@ -169,6 +171,7 @@ describe('Hardening Edge Cases (Phase 8.3)', () => {
 
   describe('MatchPanel Error Handling & Retry', () => {
     it('displays error and allows user to retry match evaluation', async () => {
+      mockGetSavedMatch.mockRejectedValue(new ApiError(404, 'No saved match', 'MATCH_RESULT_NOT_FOUND'));
       mockEvaluateMatch
         .mockRejectedValueOnce(new ApiError(500, 'Match Engine timeout'))
         .mockResolvedValueOnce({
@@ -196,6 +199,8 @@ describe('Hardening Edge Cases (Phase 8.3)', () => {
         />
       );
 
+      await waitFor(() => expect(screen.getByText('Calculate Match')).not.toBeDisabled());
+      fireEvent.click(screen.getByText('Calculate Match'));
       // Error shown
       await waitFor(() => {
         expect(screen.getByTestId('match-error-container')).toBeInTheDocument();

@@ -38,7 +38,9 @@ export default function RootLayout({
               <span className="logo-badge">Discovery</span>
             </Link>
 
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <Link href="/applications" style={{fontSize: '0.875rem', fontWeight: 600}}>Applications</Link>
+              <Link href="/profile" style={{fontSize: '0.875rem', fontWeight: 600}}>Profile</Link>
               <Link
                 href="/jobs"
                 style={{
