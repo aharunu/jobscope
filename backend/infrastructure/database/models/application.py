@@ -80,6 +80,10 @@ class ApplicationModel(BaseModel):
         "ApplicationStatusHistoryModel",
         back_populates="application",
         cascade="all, delete-orphan",
+        order_by=(
+            "(ApplicationStatusHistoryModel.changed_at, "
+            "ApplicationStatusHistoryModel.id)"
+        ),
     )
 
     def to_domain(self) -> Application:

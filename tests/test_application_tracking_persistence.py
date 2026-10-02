@@ -52,15 +52,17 @@ async def pg_session():
         autocommit=False,
         autoflush=False,
     )
-    try:
-        async with factory() as session:
+    async with factory() as session:
+        try:
             await session.execute(select(1))
+        except Exception:
+            await engine.dispose()
+            pytest.skip("PostgreSQL integration database unavailable")
+        try:
             yield session
+        finally:
             await session.rollback()
-    except Exception as exc:
-        pytest.skip(f"PostgreSQL integration database unavailable: {exc}")
-    finally:
-        await engine.dispose()
+            await engine.dispose()
 
 
 @pytest.mark.asyncio
