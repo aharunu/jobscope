@@ -27,6 +27,13 @@ class SecretMaskingFilter(logging.Filter):
         ),
     ]
 
+    @classmethod
+    def redact(cls, value: str) -> str:
+        """Mask supported secret patterns in messages and rendered tracebacks."""
+        for pattern, replacement in cls.PATTERNS:
+            value = pattern.sub(replacement, value)
+        return value
+
     def filter(self, record: logging.LogRecord) -> bool:
         """Filter and redact sensitive patterns in log messages."""
         try:
@@ -34,13 +41,21 @@ class SecretMaskingFilter(logging.Filter):
                 record.msg = record.getMessage()
                 record.args = ()
         except Exception:
-            pass
+            # Do not emit unformatted arguments that may contain credentials.
+            record.msg = "Log message formatting failed; arguments suppressed"
+            record.args = ()
 
         if isinstance(record.msg, str):
-            for pattern, replacement in self.PATTERNS:
-                record.msg = pattern.sub(replacement, record.msg)
+            record.msg = self.redact(record.msg)
 
         return True
+
+
+class SecretMaskingFormatter(logging.Formatter):
+    """Mask the complete console output, including exception tracebacks."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return SecretMaskingFilter.redact(super().format(record))
 
 
 class JSONFormatter(logging.Formatter):
@@ -49,7 +64,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format a LogRecord into a single-line JSON string."""
         timestamp = datetime.fromtimestamp(record.created, tz=UTC).isoformat()
-        message = record.getMessage()
+        message = SecretMaskingFilter.redact(record.getMessage())
 
         payload: dict[str, Any] = {
             "timestamp": timestamp,
@@ -59,9 +74,11 @@ class JSONFormatter(logging.Formatter):
         }
 
         if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
+            payload["exception"] = SecretMaskingFilter.redact(
+                self.formatException(record.exc_info)
+            )
         elif record.exc_text:
-            payload["exception"] = record.exc_text
+            payload["exception"] = SecretMaskingFilter.redact(record.exc_text)
 
         return json.dumps(payload, ensure_ascii=False)
 
@@ -92,7 +109,7 @@ def setup_logging(
         formatter = JSONFormatter()
     else:
         fmt_str = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-        formatter = logging.Formatter(fmt_str)
+        formatter = SecretMaskingFormatter(fmt_str)
 
     for handler in handlers:
         handler.addFilter(masking_filter)

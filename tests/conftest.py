@@ -1,10 +1,22 @@
 """Pytest fixtures and test configuration."""
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.infrastructure.config.settings import Settings, get_settings
 from backend.interfaces.api.main import create_app
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """CI must not pass when database integration tests silently skip."""
+    if os.environ.get("JOBSCOPE_REQUIRE_DATABASE") != "1":
+        return
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is not None and reporter.stats.get("skipped"):
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+        reporter.write_sep("!", "CI requires all tests to execute; skips are failures")
 
 
 @pytest.fixture

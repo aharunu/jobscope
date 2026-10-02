@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Database Configuration
     database_url: str = Field(
-        default="postgresql+asyncpg://jobscope:jobscope@localhost:5432/jobscope",
+        default="postgresql+asyncpg://jobscope:CHANGE_ME@localhost:5432/jobscope",
         description="PostgreSQL connection URL with async driver",
     )
 

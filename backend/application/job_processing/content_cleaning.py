@@ -98,10 +98,10 @@ def normalize_job_description_and_responsibilities(
                     desc = "\n\n".join(parts).strip()
                 elif body_plain or body_html:
                     desc = str(body_plain or body_html).strip()
-        except Exception as exc:
+        except Exception:
             # If not valid JSON, log diagnostic and preserve existing description
-            logger.debug(
-                "Could not parse payload as structured JSON description: %s", exc
+            logger.warning(
+                "Could not parse structured job description; preserving fallback"
             )
 
     return desc, resp

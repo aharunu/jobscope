@@ -161,6 +161,7 @@ class JobNormalizer:
                     return datetime.fromtimestamp(val / 1000.0, tz=UTC)
                 return datetime.fromtimestamp(val, tz=UTC)
             except (ValueError, OverflowError, OSError):
+                logger.warning("Invalid numeric job timestamp; using unknown date")
                 return None
 
         # String representation
@@ -177,17 +178,16 @@ class JobNormalizer:
                         return datetime.fromtimestamp(num / 1000.0, tz=UTC)
                     return datetime.fromtimestamp(num, tz=UTC)
                 except (ValueError, OverflowError, OSError):
+                    logger.warning(
+                        "Invalid numeric job date string; using unknown date"
+                    )
                     return None
 
             # ISO 8601 string parsing
             try:
                 dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
                 return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
-            except ValueError as exc:
-                logger.debug(
-                    "Could not parse datetime string '%s' as ISO 8601: %s",
-                    cleaned,
-                    exc,
-                )
+            except ValueError:
+                logger.warning("Invalid ISO job date string; using unknown date")
 
         return None

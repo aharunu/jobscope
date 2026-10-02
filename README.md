@@ -66,8 +66,10 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 
 JobScope implements a scoped user identity pattern:
 - **Authentication Header:** Client requests supply the candidate ID via the `X-User-Id` HTTP header (UUID format).
-- **Development Environment (`ENVIRONMENT=development`):** If `X-User-Id` is omitted, the backend automatically falls back to a deterministic development candidate (`00000000-0000-0000-0000-000000000001`) and auto-provisions a blank `BaseProfile`.
-- **Production Environment (`ENVIRONMENT=production`):** `X-User-Id` is strictly required. Unauthenticated or invalid requests receive a `401 Unauthorized` response.
+- **Development Environment (`ENVIRONMENT=development`):** If `X-User-Id` is omitted, the backend falls back to a deterministic development candidate (`00000000-0000-0000-0000-000000000001`) and ensures its User record exists.
+- **Production configuration (`ENVIRONMENT=production`, `DEBUG=false`):** `X-User-Id` is required and must identify an existing user. Missing or unknown users receive `401`; malformed UUIDs receive `400`. Debug mode also enables the development fallback.
+
+This header supplies user context; it is not verified authentication. JWT/OAuth and a trusted identity boundary remain future work. `GET /api/profile` auto-provisions the blank BaseProfile when needed.
 
 ---
 
@@ -134,7 +136,9 @@ jobscope/
    ```powershell
    cp .env.example .env
    ```
-   *(Verify PostgreSQL connection strings and ports in `.env`)*
+   Replace `CHANGE_ME` with the same new local password in `DATABASE_URL` and `POSTGRES_PASSWORD`. For the default setup both use user/database `jobscope`, host `localhost`, and port `5432`. URL-encode special characters in the URL password, or use an alphanumeric password. Never commit `.env`.
+
+   Compose reads root `.env`; backend settings and Alembic also read it when run from the repository root. Existing Docker volumes retain their database credentials: changing `.env` does not rotate an existing role password. Align that role in place; do not delete the volume to change credentials.
 
 4. **Start PostgreSQL with Docker Compose:**
    ```powershell
@@ -166,7 +170,7 @@ jobscope/
 
 2. **Install dependencies:**
    ```powershell
-   npm install
+   npm ci
    ```
 
 3. **Start the Next.js development server:**
@@ -178,6 +182,8 @@ jobscope/
 
 > **Note on API Communication:** Next.js proxies all `/api/*` requests to the FastAPI backend (`http://127.0.0.1:8000/api/*`) via server rewrites defined in `next.config.mjs`. You do not need to configure CORS for local development.
 
+Optional frontend overrides belong in `frontend/.env.local`: `BACKEND_API_URL=http://127.0.0.1:8000` (no `/api` suffix) and `NEXT_PUBLIC_USER_ID` (UUID). Next.js does not load the repository root `.env`. The defaults use backend port 8000 and frontend port 3000; changing `PORT` in backend settings alone does not change the explicit Uvicorn CLI port or frontend proxy.
+
 ---
 
 ## Testing & Quality Assurance
@@ -185,15 +191,17 @@ jobscope/
 JobScope maintains an extensive test suite across both backend and frontend layers:
 
 ### Backend Testing (Pytest & Ruff)
+Run from the repository root after configuring PostgreSQL and running `alembic upgrade head`. Database integration fixtures use the application's `DATABASE_URL` and roll back test transactions; use a dedicated development/test database. Without a reachable migrated database, some integration tests skip. CI sets `JOBSCOPE_REQUIRE_DATABASE=1` so any skip fails the quality gate.
+
 ```powershell
 # Run all backend tests (700+ tests)
 pytest -v
 
 # Run linter
-ruff check backend tests
+ruff check .
 
 # Check code formatting
-ruff format --check backend tests
+ruff format --check .
 ```
 
 ### Frontend Testing (Vitest & Next Build)
@@ -239,15 +247,16 @@ All application routes are served under `/api` (or at root for health checks):
 | **Jobs** | `/api/jobs` | GET | Paginated canonical job list with search & filter params (`company`, `location`, `work_mode`, `employment_type`, `status`) |
 | **Jobs** | `/api/jobs/{id}` | GET | Canonical job details including structured requirements |
 | **Sources** | `/api/sources` | GET | List registered ATS and career sources |
-| **Sources** | `/api/sources/summary` | GET | Sources breakdown and health summary |
+| **Sources** | `/api/sources/stats` | GET | Sources breakdown and health summary |
 | **Sources** | `/api/sources/sync` | POST | Sync sources from canonical Markdown catalog into DB |
-| **Sources** | `/api/sources/probe-all` | POST | Execute health probes across all active sources |
+| **Sources** | `/api/sources/probe` | POST | Execute batch source health probes |
+| **Sources** | `/api/sources/{id}` | GET, PATCH | Retrieve or update a source |
+| **Sources** | `/api/sources/{id}/status` | PATCH | Update source active status |
 | **Sources** | `/api/sources/{id}/probe` | POST | Probe specific source health |
 | **Crawl** | `/api/crawl/run` | POST | Trigger ingestion run for a source or all sources |
 | **Crawl** | `/api/crawl/runs` | GET | List historical crawl runs |
 | **Crawl** | `/api/crawl/runs/{id}` | GET | Get specific crawl run details |
 | **Crawl** | `/api/crawl/runs/{id}/jobs` | GET | Discovered job audit records for a crawl run |
-| **Crawl** | `/api/crawl/history` | GET | Crawl run history for a source |
 | **Profile** | `/api/profile` | GET | Get candidate BaseProfile (auto-provisions if missing) |
 | **Profile** | `/api/profile` | PATCH | Update BaseProfile metadata (name, summary) |
 | **Profile** | `/api/profile/skills` | GET, POST | List or add profile skills |
@@ -259,15 +268,22 @@ All application routes are served under `/api` (or at root for health checks):
 | **Profile** | `/api/profile/projects` | GET, POST | List or add profile projects |
 | **Profile** | `/api/profile/projects/{id}` | PATCH, DELETE | Update or remove profile project |
 | **Search Profiles** | `/api/search-profiles` | GET, POST | List or create contextual search personas |
-| **Search Profiles** | `/api/search-profiles/{id}` | GET, PUT, DELETE | Retrieve, update, or remove a search profile |
+| **Search Profiles** | `/api/search-profiles/{id}` | GET, PATCH, DELETE | Retrieve, update, or remove a search profile |
 | **Matching** | `/api/matches` | POST | Evaluate job against SearchProfile; returns deterministic score & evidence |
+| **Applications** | `/api/applications` | GET, POST | List or create tracked applications (backend already implemented) |
+| **Applications** | `/api/applications/{id}` | GET, DELETE | Retrieve or delete an application |
+| **Applications** | `/api/applications/{id}/status` | PATCH | Transition status and append history |
+| **Applications** | `/api/applications/{id}/notes` | PATCH | Update application notes |
+| **Applications** | `/api/applications/{id}/history` | GET | Retrieve status history |
 
 ### Planned Endpoints (Future Phases)
 The following capabilities are specified in design documentation and scheduled for subsequent implementation phases:
-- **Application Tracking (`/api/applications`)**: KanBan/funnel tracking for job application stages.
+- **Application Tracking frontend**: Backend routes already exist; the tracking UI and end-to-end workflow remain planned. No tracking functionality was added in Phase 0.
+- **Profile frontend and match retrieval**: BaseProfile backend exists; a dedicated Profile UI and persisted match retrieval API remain planned.
 - **AI Matching Analysis (`/api/matches/{id}/ai`)**: Deep qualitative LLM match evaluation and evidence extraction.
 - **CV Import & Parse (`/api/cv/upload`, `/api/cv/{id}/approve`)**: PDF/DOCX resume parsing.
 - **Manual Job Entry (`/api/jobs/manual`)**: User-submitted job URLs.
+- **Scheduler, Ashby and Workday adapters**: Planned; only Greenhouse and Lever crawlers are implemented.
 
 ---
 

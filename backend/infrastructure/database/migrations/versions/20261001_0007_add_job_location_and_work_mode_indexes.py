@@ -1,6 +1,6 @@
 """add location and work_mode indexes to jobs table
 
-Revision ID: 0007_job_location_work_mode_indexes
+Revision ID: 0007_job_filter_indexes
 Revises: 0006_cvs
 Create Date: 2026-10-01 19:10:00.000000+00:00
 
@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0007_job_location_work_mode_indexes"
+revision: str = "0007_job_filter_indexes"
 down_revision: str | None = "0006_cvs"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
