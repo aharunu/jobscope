@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 
 from backend.application.matching.exceptions import (
     JobNotFoundError,
+    MatchingError,
+    MatchResultNotFoundError,
     SearchProfileNotFoundError,
 )
 from backend.domain.job.repositories import JobRepository
@@ -35,6 +37,45 @@ class MatchingService:
     search_profile_repo: SearchProfileRepository
     match_result_repo: MatchResultRepository
     engine: DeterministicMatchEngine = field(default_factory=DeterministicMatchEngine)
+
+    async def get_saved_match(
+        self,
+        job_id: uuid.UUID,
+        search_profile_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> MatchResult:
+        base = await self.base_profile_repo.get_by_user_id(user_id)
+        profile = (
+            await self.search_profile_repo.get_by_id_and_base_profile_id(
+                search_profile_id, base.id
+            )
+            if base is not None
+            else None
+        )
+        if profile is None:
+            raise SearchProfileNotFoundError()
+        if await self.job_repo.get_by_id(job_id) is None:
+            raise JobNotFoundError()
+        result = await self.match_result_repo.get_by_job_and_search_profile(
+            job_id, search_profile_id
+        )
+        if result is None or result.base_profile_id != base.id:
+            raise MatchResultNotFoundError()
+        return result
+
+    async def list_saved_matches(
+        self,
+        user_id: uuid.UUID,
+        job_id: uuid.UUID | None = None,
+        search_profile_id: uuid.UUID | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[MatchResult], int]:
+        if not 1 <= limit <= 100 or offset < 0:
+            raise MatchingError("Invalid pagination", status_code=422)
+        return await self.match_result_repo.list_by_user_id(
+            user_id, job_id, search_profile_id, limit, offset
+        )
 
     async def match_job(
         self,

@@ -27,6 +27,7 @@ const mockCreateSearchProfile = vi.fn();
 const mockDeleteSearchProfile = vi.fn();
 const mockGetJobById = vi.fn();
 const mockEvaluateMatch = vi.fn();
+const mockGetSavedMatch = vi.fn();
 
 vi.mock('../lib/api/search_profiles', () => ({
   listSearchProfiles: (...args: any[]) => mockListSearchProfiles(...args),
@@ -40,6 +41,7 @@ vi.mock('../lib/api/jobs', () => ({
 
 vi.mock('../lib/api/matching', () => ({
   evaluateMatch: (...args: any[]) => mockEvaluateMatch(...args),
+  getSavedMatch: (...args: any[]) => mockGetSavedMatch(...args),
 }));
 
 const mockSingleProfile: SearchProfileResponse = {
@@ -347,7 +349,7 @@ describe('Search Profile Management UI', () => {
   it('11. renders newly created profile in Job Detail dropdown when profiles exist', async () => {
     mockGetJobById.mockResolvedValueOnce(mockJob);
     mockListSearchProfiles.mockResolvedValueOnce([mockSingleProfile]);
-    mockEvaluateMatch.mockResolvedValueOnce({
+    mockGetSavedMatch.mockResolvedValueOnce({
       id: 'match-1',
       job_id: 'job-999',
       base_profile_id: 'bp-1',

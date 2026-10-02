@@ -2,24 +2,46 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+import uuid
+
+from fastapi import APIRouter, Body, HTTPException, Query, status
 
 from backend.application.matching.exceptions import (
     BaseProfileNotFoundError,
     JobNotFoundError,
     SearchProfileNotFoundError,
 )
+from backend.domain.matching.entities import MatchResult
 from backend.interfaces.api.dependencies import MatchingServiceDep
-from backend.interfaces.api.dependencies.auth import CurrentUserDep
+from backend.interfaces.api.dependencies.auth import (
+    CurrentUserDep,
+    ReadOnlyCurrentUserDep,
+)
+from backend.interfaces.api.dependencies.matching import AIAnalyzerDep
 from backend.interfaces.api.schemas.matching import (
+    AIAnalysisResponse,
+    AIRequest,
     CategoryExplanationResponse,
     MatchExplanationResponse,
+    MatchListResponse,
     MatchRequest,
     MatchResultResponse,
     RequirementMatchResponse,
 )
 
 router = APIRouter(prefix="/matches", tags=["Matching"])
+
+
+@router.post("/{match_result_id}/ai", response_model=MatchResultResponse)
+async def analyze_match(
+    match_result_id: uuid.UUID,
+    analyzer: AIAnalyzerDep,
+    current_user_id: ReadOnlyCurrentUserDep,
+    force: bool = False,
+    payload: AIRequest | None = Body(default=None),
+) -> MatchResultResponse:
+    result, cached = await analyzer.analyze(match_result_id, current_user_id, force)
+    return _to_match_response(result, cached)
 
 
 @router.post(
@@ -62,6 +84,13 @@ async def match_job(
             detail=str(err),
         ) from err
 
+    return _to_match_response(match_result)
+
+
+def _to_match_response(
+    match_result: MatchResult, cached: bool = True
+) -> MatchResultResponse:
+    """One transport representation for calculation and persisted retrieval."""
     # Transform explanation if present
     explanation_response = None
     if match_result.explanation is not None:
@@ -112,6 +141,13 @@ async def match_job(
         search_profile_id=match_result.search_profile_id,
         overall_score=match_result.final_score,
         deterministic_score=match_result.deterministic_score,
+        ai_score=match_result.ai_score,
+        ai_adjustment=match_result.ai_adjustment,
+        ai_analysis=AIAnalysisResponse.model_validate(
+            match_result.ai_analysis
+        ).model_copy(update={"cached": cached})
+        if match_result.ai_analysis
+        else None,
         final_score=match_result.final_score,
         confidence=match_result.confidence,
         category_scores=match_result.category_scores,
@@ -119,4 +155,37 @@ async def match_job(
         explanation=explanation_response,
         created_at=match_result.created_at,
         updated_at=match_result.updated_at,
+    )
+
+
+@router.get("/job/{job_id}", response_model=MatchResultResponse)
+async def get_saved_match(
+    job_id: uuid.UUID,
+    search_profile_id: uuid.UUID,
+    matching_service: MatchingServiceDep,
+    current_user_id: ReadOnlyCurrentUserDep,
+) -> MatchResultResponse:
+    result = await matching_service.get_saved_match(
+        job_id, search_profile_id, current_user_id
+    )
+    return _to_match_response(result)
+
+
+@router.get("", response_model=MatchListResponse)
+async def list_saved_matches(
+    matching_service: MatchingServiceDep,
+    current_user_id: ReadOnlyCurrentUserDep,
+    job_id: uuid.UUID | None = None,
+    search_profile_id: uuid.UUID | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> MatchListResponse:
+    items, total = await matching_service.list_saved_matches(
+        current_user_id, job_id, search_profile_id, limit, offset
+    )
+    return MatchListResponse(
+        items=[_to_match_response(result) for result in items],
+        total=total,
+        limit=limit,
+        offset=offset,
     )

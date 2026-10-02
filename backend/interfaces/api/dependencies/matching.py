@@ -6,10 +6,13 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from backend.application.matching.ai.analyzer import AIAnalyzer
+from backend.application.matching.ai.provider import LLMProvider
 from backend.application.matching.services import MatchingService
 from backend.domain.matching.repositories import MatchResultRepository
 from backend.domain.profile.repositories import BaseProfileRepository
 from backend.domain.search_profile.repositories import SearchProfileRepository
+from backend.infrastructure.config.settings import Settings, get_settings
 from backend.infrastructure.database.repositories.base_profile_repository import (
     SQLAlchemyBaseProfileRepository,
 )
@@ -19,6 +22,7 @@ from backend.infrastructure.database.repositories.matching_repository import (
 from backend.infrastructure.database.repositories.search_profile_repository import (
     SQLAlchemySearchProfileRepository,
 )
+from backend.infrastructure.llm.openai_provider import OpenAIProvider
 from backend.interfaces.api.dependencies.database import DbSession
 from backend.interfaces.api.dependencies.job_processing import (
     JobRepositoryDep,
@@ -73,3 +77,29 @@ def get_matching_service(
 
 
 MatchingServiceDep = Annotated[MatchingService, Depends(get_matching_service)]
+
+
+def get_ai_provider(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> LLMProvider:
+    return OpenAIProvider(
+        settings.openai_api_key.get_secret_value(),
+        settings.ai_model,
+        settings.ai_timeout_seconds,
+        settings.ai_enabled,
+    )
+
+
+def get_ai_analyzer(
+    match_result_repo: MatchResultRepositoryDep,
+    job_repo: JobRepositoryDep,
+    base_profile_repo: BaseProfileRepositoryDep,
+    search_profile_repo: SearchProfileRepositoryDep,
+    provider: Annotated[LLMProvider, Depends(get_ai_provider)],
+) -> AIAnalyzer:
+    return AIAnalyzer(
+        match_result_repo, job_repo, base_profile_repo, search_profile_repo, provider
+    )
+
+
+AIAnalyzerDep = Annotated[AIAnalyzer, Depends(get_ai_analyzer)]

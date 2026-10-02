@@ -15,6 +15,7 @@ def create_database_engine(settings: Settings | None = None) -> AsyncEngine:
     return create_async_engine(
         settings.database_url,
         echo=settings.debug,
+        hide_parameters=True,  # SQL debug output must not disclose profile/AI payloads.
         pool_pre_ping=True,
     )
 

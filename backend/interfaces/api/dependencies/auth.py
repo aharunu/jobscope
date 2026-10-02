@@ -72,3 +72,28 @@ async def get_current_user_id(
 
 
 CurrentUserDep = Annotated[uuid.UUID, Depends(get_current_user_id)]
+
+
+async def get_readonly_current_user_id(
+    session: DbSession,
+    x_user_id: Annotated[str | None, Header(alias="X-User-Id")] = None,
+    settings: Settings = Depends(get_settings),
+) -> uuid.UUID:
+    """Resolve retrieval identity without provisioning a user on GET."""
+    is_dev = settings.environment.lower() in ("development", "test") or settings.debug
+    if x_user_id is None:
+        if is_dev:
+            return DEV_FALLBACK_USER_ID
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    try:
+        user_id = uuid.UUID(x_user_id.strip())
+    except (ValueError, AttributeError) as err:
+        raise HTTPException(
+            status_code=400, detail="Invalid X-User-Id header format."
+        ) from err
+    if not is_dev and await session.get(UserModel, user_id) is None:
+        raise HTTPException(status_code=401, detail="Authenticated user not found.")
+    return user_id
+
+
+ReadOnlyCurrentUserDep = Annotated[uuid.UUID, Depends(get_readonly_current_user_id)]

@@ -72,6 +72,37 @@ class MatchExplanationResponse(BaseModel):
     )
 
 
+class AIRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class AIEvidenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    claim: str
+    evidence_type: str
+    source_reference: str
+    source_quote: str | None = None
+    reason: str
+
+
+class AIAnalysisResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    match_result_id: uuid.UUID
+    provider: str
+    model: str
+    ai_score: Decimal
+    assessment: str
+    summary: str
+    strengths: list[str]
+    gaps: list[str]
+    risks: list[str]
+    evidence: list[AIEvidenceResponse]
+    created_at: datetime | None = None
+    cached: bool = True
+
+
 class MatchResultResponse(BaseModel):
     """Response payload for a deterministic match evaluation."""
 
@@ -83,13 +114,16 @@ class MatchResultResponse(BaseModel):
     search_profile_id: uuid.UUID
     overall_score: Decimal = Field(
         ...,
-        description="Deterministic overall score on a 0 - 100 scale",
+        description="Final score (deterministic plus optional AI adjustment), 0–100",
     )
     deterministic_score: Decimal
+    ai_score: Decimal | None = None
+    ai_adjustment: Decimal | None = None
+    ai_analysis: AIAnalysisResponse | None = None
     final_score: Decimal
     confidence: Decimal = Field(
         ...,
-        description="Evidence-based deterministic confidence percentage (0 - 100%)",
+        description="Backend-calculated evidence confidence percentage (0 - 100%)",
     )
     category_scores: dict[str, Decimal] = Field(
         default_factory=dict,
@@ -102,3 +136,10 @@ class MatchResultResponse(BaseModel):
     explanation: MatchExplanationResponse | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+class MatchListResponse(BaseModel):
+    items: list[MatchResultResponse]
+    total: int
+    limit: int
+    offset: int

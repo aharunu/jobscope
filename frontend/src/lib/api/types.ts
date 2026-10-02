@@ -92,6 +92,23 @@ export interface MatchRequest {
 
 export type MatchStatus = 'MATCHED' | 'PARTIAL' | 'NOT_MATCHED' | 'UNKNOWN';
 
+export type ApplicationStatus = 'INTERESTED' | 'APPLYING' | 'APPLIED' | 'INTERVIEW' | 'OFFER' | 'REJECTED';
+export interface ApplicationHistory {
+  id: string; application_id: string; from_status: ApplicationStatus;
+  to_status: ApplicationStatus; changed_at: string | null;
+}
+export interface Application {
+  id: string; job_id: string; user_id: string; status: ApplicationStatus;
+  notes: string | null; created_at: string | null; updated_at: string | null;
+  job: {id: string; canonical_url: string; company: string; title: string; status: string;
+    location: string | null; work_mode: string | null; employment_type: string | null;
+    salary: string | null; source_name: string | null} | null;
+  status_history: ApplicationHistory[];
+}
+export interface ApplicationListResponse {
+  items: Application[]; total: number; limit: number; offset: number;
+}
+
 export interface RequirementMatchResponse {
   id: string;
   requirement_id: string;
@@ -131,6 +148,9 @@ export interface MatchResultResponse {
   search_profile_id: string;
   overall_score: number;
   deterministic_score: number;
+  ai_score?: number | string | null;
+  ai_adjustment?: number | string | null;
+  ai_analysis?: AIAnalysisResponse | null;
   final_score: number;
   confidence: number;
   category_scores: Record<string, number>;
@@ -138,6 +158,14 @@ export interface MatchResultResponse {
   explanation: MatchExplanationResponse | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+export interface AIAnalysisResponse {
+  id: string; match_result_id: string; provider: string; model: string;
+  ai_score: number | string; assessment: string; summary: string;
+  strengths: string[]; gaps: string[]; risks: string[];
+  evidence: {id: string; claim: string; evidence_type: string; source_reference: string; source_quote: string | null; reason: string}[];
+  created_at: string | null; cached: boolean;
 }
 
 export interface ApiErrorDetail {
@@ -150,6 +178,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     public detail: string | ApiErrorDetail[],
+    public code?: string,
   ) {
     const formattedMessage =
       typeof detail === 'string'

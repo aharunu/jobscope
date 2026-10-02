@@ -25,6 +25,15 @@ class MatchingError(JobScopeError):
         )
 
 
+class MatchResultNotFoundError(MatchingError):
+    """No saved calculation exists for the requested owned job/profile pair."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "No saved match result yet", code="MATCH_RESULT_NOT_FOUND", status_code=404
+        )
+
+
 class JobNotFoundError(MatchingError):
     """Raised when the specified Job entity does not exist."""
 

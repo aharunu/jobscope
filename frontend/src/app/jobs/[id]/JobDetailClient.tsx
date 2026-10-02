@@ -10,6 +10,7 @@ import { JobDetailHeader } from '@/components/jobs/JobDetailHeader';
 import { JobDetailBody } from '@/components/jobs/JobDetailBody';
 import { MatchPanel } from '@/components/matching/MatchPanel';
 import { Alert } from '@/components/ui/Alert';
+import { ApplicationTrackingPanel } from '@/components/applications/ApplicationTrackingPanel';
 
 interface JobDetailClientProps {
   jobId: string;
@@ -33,13 +34,15 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
 
   // Fetch Job details
   const fetchJob = useCallback(async (signal?: AbortSignal) => {
+    signal = signal ?? activeAbortControllerRef.current?.signal;
     setLoadingJob(true);
     setJobError(null);
     setJobStatusCode(null);
     try {
       const data = await getJobById(jobId, signal);
-      setJob(data);
+      if (!signal?.aborted) setJob(data);
     } catch (err: unknown) {
+      if (signal?.aborted) return;
       if ((err instanceof Error || err instanceof DOMException) && err.name === 'AbortError') return;
       if (err instanceof Error && 'status' in err) {
         setJobStatusCode((err as { status: number }).status);
@@ -47,7 +50,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
       const msg = err instanceof Error ? err.message : 'Failed to load job details.';
       setJobError(msg);
     } finally {
-      setLoadingJob(false);
+      if (!signal?.aborted) setLoadingJob(false);
     }
   }, [jobId]);
 
@@ -57,13 +60,14 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
     setProfilesError(null);
     try {
       const profiles = await listSearchProfiles(signal);
-      setSearchProfiles(profiles);
+      if (!signal?.aborted) setSearchProfiles(profiles);
     } catch (err: unknown) {
+      if (signal?.aborted) return;
       if (err instanceof Error && err.name === 'AbortError') return;
       const msg = err instanceof Error ? err.message : 'Failed to load search profiles.';
       setProfilesError(msg);
     } finally {
-      setLoadingProfiles(false);
+      if (!signal?.aborted) setLoadingProfiles(false);
     }
   }, []);
 
@@ -301,7 +305,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
               gap: '1.75rem',
               alignItems: 'start',
             }}
@@ -319,6 +323,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
                 selectedProfileId={selectedProfileId}
                 onSelectProfile={handleSelectProfile}
               />
+              <ApplicationTrackingPanel jobId={job.id} />
             </div>
           </div>
         </div>

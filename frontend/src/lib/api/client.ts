@@ -58,15 +58,20 @@ export async function apiClient<T>(
 
     if (!response.ok) {
       let errorDetail: string | ApiErrorDetail[] = `Request failed with status ${response.status}`;
+      let errorCode: string | undefined;
       try {
-        const errorData = (await response.json()) as { detail?: string | ApiErrorDetail[] };
+        const errorData = (await response.json()) as { detail?: string | ApiErrorDetail[]; error?: {message?: string; code?: string} };
+        if (errorData.error?.message) {
+          errorDetail = errorData.error.message;
+          errorCode = errorData.error.code;
+        }
         if (errorData && errorData.detail) {
           errorDetail = errorData.detail;
         }
       } catch {
         // Response was not JSON
       }
-      throw new ApiError(response.status, errorDetail);
+      throw new ApiError(response.status, errorDetail, errorCode);
     }
 
     if (response.status === 204) {

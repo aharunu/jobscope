@@ -10,8 +10,10 @@ import { MatchPanel } from '../components/matching/MatchPanel';
 import { MatchResultResponse, SearchProfileResponse } from '../lib/api/types';
 
 const mockEvaluateMatch = vi.fn();
+const mockGetSavedMatch = vi.fn();
 vi.mock('../lib/api/matching', () => ({
   evaluateMatch: (...args: any[]) => mockEvaluateMatch(...args),
+  getSavedMatch: (...args: any[]) => mockGetSavedMatch(...args),
 }));
 
 const mockProfiles: SearchProfileResponse[] = [
@@ -169,8 +171,8 @@ describe('Match Experience Components', () => {
   });
 
   describe('MatchPanel Component', () => {
-    it('evaluates match on mount and displays results', async () => {
-      mockEvaluateMatch.mockResolvedValue(mockMatchResult);
+    it('retrieves saved match on mount and displays results without calculation', async () => {
+      mockGetSavedMatch.mockResolvedValue(mockMatchResult);
 
       render(
         <MatchPanel
@@ -182,8 +184,8 @@ describe('Match Experience Components', () => {
       );
 
       await waitFor(() => {
-        expect(mockEvaluateMatch).toHaveBeenCalledWith(
-          { job_id: 'job-1', search_profile_id: 'p-1' },
+        expect(mockGetSavedMatch).toHaveBeenCalledWith(
+          'job-1', 'p-1',
           expect.any(AbortSignal)
         );
       });
@@ -193,10 +195,12 @@ describe('Match Experience Components', () => {
         expect(screen.getByText(/Hard Blocker Disqualification Detected/i)).toBeInTheDocument();
         expect(screen.getByText('Technical & Required Skills')).toBeInTheDocument();
       });
+      expect(mockEvaluateMatch).not.toHaveBeenCalled();
     });
 
     it('triggers re-evaluation when re-evaluate button is clicked', async () => {
       mockEvaluateMatch.mockResolvedValue(mockMatchResult);
+      mockGetSavedMatch.mockResolvedValue(mockMatchResult);
 
       render(
         <MatchPanel
@@ -211,6 +215,7 @@ describe('Match Experience Components', () => {
       expect(screen.getByText('88')).toBeInTheDocument();
 
       const reEvalBtn = screen.getByTestId('re-evaluate-btn');
+      await waitFor(() => expect(reEvalBtn).not.toBeDisabled());
       fireEvent.click(reEvalBtn);
 
       await waitFor(() => {

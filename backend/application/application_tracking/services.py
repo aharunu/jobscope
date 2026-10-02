@@ -104,12 +104,20 @@ class ApplicationTrackingService:
         status: ApplicationStatus | None = None,
         limit: int = 50,
         offset: int = 0,
+        job_id: uuid.UUID | None = None,
     ) -> tuple[list[Application], int]:
         """List tracked applications with optional status filter and pagination."""
         if limit < 1 or limit > 100:
             raise ApplicationValidationError("Limit must be between 1 and 100.")
         if offset < 0:
             raise ApplicationValidationError("Offset must be non-negative.")
+
+        if job_id is not None:
+            # The existing unique job/user lookup avoids downloading a user's
+            # entire tracking list when opening a job detail page.
+            app = await self.app_repo.get_by_job_and_user(job_id, user_id)
+            matches = app is not None and (status is None or app.status == status)
+            return ([app] if matches and offset == 0 else []), int(matches)
 
         items = await self.app_repo.list_by_user_id(
             user_id=user_id,
