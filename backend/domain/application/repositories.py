@@ -27,8 +27,10 @@ class ApplicationRepository(Protocol):
         self,
         application_id: uuid.UUID,
         user_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Application | None:
-        """Retrieve an application strictly scoped to the specified user."""
+        """Retrieve an owned application, optionally locking until transaction end."""
         ...
 
     async def get_by_job_and_user(

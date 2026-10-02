@@ -54,7 +54,11 @@ class ApiTestApplicationRepository(ApplicationRepository):
         return self.items.get(application_id)
 
     async def get_by_id_and_user_id(
-        self, application_id: uuid.UUID, user_id: uuid.UUID
+        self,
+        application_id: uuid.UUID,
+        user_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Application | None:
         app = self.items.get(application_id)
         if app is not None and app.user_id == user_id:

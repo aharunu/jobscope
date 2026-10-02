@@ -276,6 +276,29 @@ All application routes are served under `/api` (or at root for health checks):
 | **Applications** | `/api/applications/{id}/notes` | PATCH | Update application notes |
 | **Applications** | `/api/applications/{id}/history` | GET | Retrieve status history |
 
+### Application Tracking Backend — COMPLETE
+
+The backend supports tracking an existing job, listing/filtering/paginating the current user's applications, retrieving details, updating status or notes, and deleting a tracking record. Application Tracking frontend is **not implemented yet (FAZ 4)**.
+
+- Creation defaults to `INTERESTED`; any valid explicit ApplicationStatus is accepted. Initial creation has no history entry because there is no previous application status.
+- One application per `(job_id, user_id)` is enforced by PostgreSQL and the service. Duplicate tracking returns `409 APPLICATION_ALREADY_EXISTS`, including insert races.
+- Every actual allowed status change writes history in the same request transaction. A failure rolls back status and history together. Concurrent status/notes edits lock and refresh the owned application before mutation.
+- Same-status requests return `422 INVALID_STATUS_TRANSITION` and create no history. Existing transition policy is preserved:
+
+  | Current status | Allowed next statuses |
+  |---|---|
+  | INTERESTED | APPLYING, APPLIED, REJECTED |
+  | APPLYING | INTERESTED, APPLIED, REJECTED |
+  | APPLIED | INTERVIEW, OFFER, REJECTED |
+  | INTERVIEW | OFFER, REJECTED |
+  | OFFER | REJECTED |
+  | REJECTED | INTERESTED, APPLYING, APPLIED, INTERVIEW |
+
+- Missing or another user's application returns `404 APPLICATION_NOT_FOUND` for detail, status, notes, deletion and history. Payload `user_id` is rejected; ownership comes from request context.
+- Notes are optional, limited to 5,000 characters, and trimmed; null/blank notes clear the value. Notes edits create no status history.
+- Detail embeds chronological history; `/history` exposes the same ordering by `changed_at`, then ID. Lists use status filtering and `limit` (1–100) / `offset` (non-negative), returning `items`, `total`, `limit`, `offset`.
+- Job and Application statuses are independent: closing a job preserves an application in `INTERVIEW`. Explicitly deleting the application deletes its history; closing the job does neither.
+
 ### Planned Endpoints (Future Phases)
 The following capabilities are specified in design documentation and scheduled for subsequent implementation phases:
 - **Application Tracking frontend**: Backend routes already exist; the tracking UI and end-to-end workflow remain planned. No tracking functionality was added in Phase 0.

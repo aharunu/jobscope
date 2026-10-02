@@ -127,11 +127,14 @@ class ApplicationTrackingService:
         self,
         application_id: uuid.UUID,
         user_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Application:
         """Retrieve a specific application scoped strictly to the authenticated user."""
         app = await self.app_repo.get_by_id_and_user_id(
             application_id=application_id,
             user_id=user_id,
+            for_update=for_update,
         )
         if app is None:
             raise ApplicationNotFoundError(f"Application '{application_id}' not found.")
@@ -147,7 +150,9 @@ class ApplicationTrackingService:
 
         Logs an entry in the application status transition history.
         """
-        app = await self.get_application(application_id=application_id, user_id=user_id)
+        app = await self.get_application(
+            application_id=application_id, user_id=user_id, for_update=True
+        )
 
         if new_status == app.status:
             raise InvalidStatusTransitionError(
@@ -171,6 +176,7 @@ class ApplicationTrackingService:
 
         saved_app = await self.app_repo.save(app)
         await self.app_repo.add_status_history(history_entry)
+        saved_app.status_history = app.status_history
 
         logger.info(
             "Application %s transitioned from %s to %s by user %s",
@@ -188,7 +194,9 @@ class ApplicationTrackingService:
         notes: str | None,
     ) -> Application:
         """Update candidate notes on an application."""
-        app = await self.get_application(application_id=application_id, user_id=user_id)
+        app = await self.get_application(
+            application_id=application_id, user_id=user_id, for_update=True
+        )
 
         cleaned_notes = None
         if notes is not None:

@@ -6,9 +6,13 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.application.application_tracking.exceptions import (
+    ApplicationAlreadyExistsError,
+)
 from backend.domain.application.entities import (
     Application,
     ApplicationStatusHistory,
@@ -52,6 +56,8 @@ class SQLAlchemyApplicationRepository(ApplicationRepository):
         self,
         application_id: uuid.UUID,
         user_id: uuid.UUID,
+        *,
+        for_update: bool = False,
     ) -> Application | None:
         """Retrieve an application strictly scoped to the specified user."""
         stmt = (
@@ -65,6 +71,10 @@ class SQLAlchemyApplicationRepository(ApplicationRepository):
                 ApplicationModel.user_id == user_id,
             )
         )
+        if for_update:
+            # Refresh cached state after acquiring the lock: another request may
+            # have committed a transition while this transaction was waiting.
+            stmt = stmt.with_for_update().execution_options(populate_existing=True)
         result = await self.session.execute(stmt)
         orm_app = result.scalars().first()
         return orm_app.to_domain() if orm_app is not None else None
@@ -154,7 +164,21 @@ class SQLAlchemyApplicationRepository(ApplicationRepository):
             )
             self.session.add(orm_app)
 
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:
+            original = exc.orig
+            cause = getattr(original, "__cause__", None)
+            diagnostic = getattr(original, "diag", None)
+            constraint = (
+                getattr(original, "constraint_name", None)
+                or getattr(cause, "constraint_name", None)
+                or getattr(diagnostic, "constraint_name", None)
+            )
+            if constraint == "uq_applications_job_user":
+                # The request session owner rolls back the failed transaction.
+                raise ApplicationAlreadyExistsError() from exc
+            raise
         return await self.get_by_id(orm_app.id) or orm_app.to_domain()
 
     async def delete(
