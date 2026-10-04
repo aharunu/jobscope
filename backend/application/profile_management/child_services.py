@@ -18,6 +18,10 @@ from backend.application.profile_management.exceptions import (
     ProfileSkillNotFoundError,
     ProfileValidationError,
 )
+from backend.application.profile_management.validation import (
+    validate_experience_dates,
+    validate_skill_years,
+)
 from backend.domain.profile.entities import (
     BaseProfile,
     ProfileEducation,
@@ -94,8 +98,7 @@ class ProfileSkillService:
         if not stripped_name:
             raise ProfileValidationError("Skill name cannot be empty")
 
-        if years_of_experience is not None and years_of_experience < Decimal("0"):
-            raise ProfileValidationError("Years of experience cannot be negative")
+        validate_skill_years(years_of_experience)
 
         skill = ProfileSkill(
             base_profile_id=profile.id,
@@ -139,8 +142,7 @@ class ProfileSkillService:
         updated_years = existing.years_of_experience
         if "years_of_experience" in updates:
             raw_years = updates["years_of_experience"]
-            if raw_years is not None and raw_years < Decimal("0"):
-                raise ProfileValidationError("Years of experience cannot be negative")
+            validate_skill_years(raw_years)
             updated_years = raw_years
 
         updated_level = existing.level
@@ -215,8 +217,8 @@ class ProfileExperienceService:
         if not title_clean:
             raise ProfileValidationError("Job title cannot be empty")
 
-        if end_date is not None and end_date < start_date:
-            raise ProfileValidationError("End date cannot precede start date")
+        end_date = None if is_current else end_date
+        validate_experience_dates(start_date, end_date)
 
         cleaned_skills = _clean_and_validate_skills_used(skills_used)
 
@@ -280,8 +282,7 @@ class ProfileExperienceService:
         if updated_is_current:
             updated_end = None
 
-        if updated_end is not None and updated_end < updated_start:
-            raise ProfileValidationError("End date cannot precede start date")
+        validate_experience_dates(updated_start, updated_end)
 
         updated_desc = existing.description
         if "description" in updates:

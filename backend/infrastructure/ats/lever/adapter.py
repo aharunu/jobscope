@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import html
 import json
 import logging
-import urllib.parse
 from typing import Any
 
 from backend.application.job_discovery.dtos import (
@@ -20,6 +20,15 @@ from backend.application.job_discovery.exceptions import (
     MalformedAdapterResultError,
 )
 from backend.application.job_discovery.ports import ATSAdapter, SafeHttpClient
+from backend.infrastructure.ats.posting import (
+    posting_identity,
+    text_value,
+    valid_posting_fields,
+)
+from backend.infrastructure.ats.runtime_config import (
+    extract_token,
+    lever_runtime_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,71 +38,8 @@ DEFAULT_MAX_PAGES = 10
 
 
 def extract_lever_site_token(source: RuntimeSourceDTO) -> str:
-    """Extract and validate the Lever site token from source config or URL.
-
-    Checks adapter_config overrides first, then parses the URL path for
-    recognized Lever hostnames (jobs.lever.co or api.lever.co). Rejects non-Lever
-    domains (such as careers.unilever.com) to prevent false positives.
-
-    Raises:
-        InvalidSourceConfigurationError: If no valid token can be resolved.
-    """
-    # 1. Explicit configuration overrides
-    for key in ("site_token", "board_token", "token", "company_slug"):
-        val = source.adapter_config.get(key)
-        if val and isinstance(val, str) and val.strip():
-            return val.strip()
-
-    # 2. Extract from URL
-    if not source.url:
-        raise InvalidSourceConfigurationError(
-            f"Source '{source.name}' ({source.id}) has no URL configured.",
-            details={"source_id": str(source.id)},
-        )
-
-    try:
-        parsed = urllib.parse.urlsplit(source.url)
-    except Exception as exc:
-        raise InvalidSourceConfigurationError(
-            f"Failed to parse source URL '{source.url}': {exc}",
-            details={"source_id": str(source.id), "url": source.url},
-        ) from exc
-
-    hostname = (parsed.hostname or "").lower()
-
-    # Reject non-Lever hostnames (e.g. unilever.com)
-    if hostname != "lever.co" and not hostname.endswith(".lever.co"):
-        raise InvalidSourceConfigurationError(
-            f"URL '{source.url}' does not belong to Lever (hostname: '{hostname}').",
-            details={
-                "source_id": str(source.id),
-                "url": source.url,
-                "hostname": hostname,
-            },
-        )
-
-    path_segments = [p for p in parsed.path.strip("/").split("/") if p]
-
-    if hostname == "api.lever.co":
-        # Pattern: /v0/postings/{site_token}
-        if "postings" in path_segments:
-            idx = path_segments.index("postings")
-            if idx + 1 < len(path_segments):
-                candidate = path_segments[idx + 1].strip()
-                if candidate and not candidate.startswith("<"):
-                    return candidate
-    else:
-        # Pattern: jobs.lever.co/{site_token} (or /{site_token}/{job_id})
-        if path_segments:
-            candidate = path_segments[0].strip()
-            if candidate and not candidate.startswith("<"):
-                return candidate
-
-    raise InvalidSourceConfigurationError(
-        f"Cannot resolve Lever site token from source '{source.name}' "
-        f"({source.id}) URL: '{source.url}'",
-        details={"source_id": str(source.id), "url": source.url},
-    )
+    """Resolve a validated Lever path token from config or supported board URL."""
+    return extract_token(source, "lever")
 
 
 class LeverAdapter(ATSAdapter):
@@ -113,38 +59,25 @@ class LeverAdapter(ATSAdapter):
 
     async def crawl(self, source: RuntimeSourceDTO) -> CrawlResultDTO:
         """Crawl open postings from Lever for the given runtime source."""
-        site_token = extract_lever_site_token(source)
-
-        base_url = (
-            source.endpoint_config.get("base_url") or self._default_base_url
-        ).rstrip("/")
-        endpoint_url = f"{base_url}/{site_token}"
-
-        page_size = int(source.pagination_config.get("page_size", DEFAULT_PAGE_SIZE))
-        max_pages = int(source.pagination_config.get("max_pages", DEFAULT_MAX_PAGES))
-        pagination_mode = source.pagination_config.get("pagination_mode", "cursor")
-
-        # Rate limiting: minimal delay between pagination calls
-        delay_seconds = float(
-            source.rate_limit_config.get("delay_seconds")
-            or source.rate_limit_config.get("request_delay_seconds")
-            or 0.0
-        )
-
+        config = lever_runtime_config(source, self._default_base_url)
+        site_token = config.site_token
+        endpoint_url = f"{config.base_url}/{site_token}"
         jobs: list[DiscoveredJobDTO] = []
         warnings: list[str] = []
         raw_payload_count = 0
         pages_fetched = 0
-        current_skip: str | int | None = None
-        is_complete = False
+        offset = 0
+        exhausted = False
+        seen_ids: set[str] = set()
 
-        while True:
-            if pages_fetched > 0 and delay_seconds > 0:
-                await asyncio.sleep(delay_seconds)
-
-            params: dict[str, Any] = {"mode": "json", "limit": page_size}
-            if current_skip is not None:
-                params["skip"] = current_skip
+        for _ in range(config.max_pages):
+            if pages_fetched > 0 and config.delay_seconds > 0:
+                await asyncio.sleep(config.delay_seconds)
+            params: dict[str, Any] = {
+                "mode": "json",
+                "limit": config.page_size,
+                "skip": offset,
+            }
 
             response = await self._http_client.get(endpoint_url, params=params)
 
@@ -189,7 +122,7 @@ class LeverAdapter(ATSAdapter):
                     f"Lever API response is not valid JSON: {exc}",
                     details={
                         "source_id": str(source.id),
-                        "response_preview": response.text[:200],
+                        "page_number": pages_fetched + 1,
                     },
                 ) from exc
 
@@ -202,74 +135,93 @@ class LeverAdapter(ATSAdapter):
             raw_payload_count += len(data)
             pages_fetched += 1
 
+            overlap = False
             for idx, item in enumerate(data):
                 if not isinstance(item, dict):
                     warnings.append(
                         f"Skipped non-dict item at page {pages_fetched} index {idx}"
                     )
                     continue
-
-                raw_job_id = item.get("id")
-                job_id = str(raw_job_id).strip() if raw_job_id else None
-
-                job_url = item.get("hostedUrl") or item.get("applyUrl")
-                if not job_url and job_id:
-                    job_url = f"https://jobs.lever.co/{site_token}/{job_id}"
-
-                if not job_url:
+                job_id = posting_identity(item.get("id"))
+                if job_id is None:
                     warnings.append(
-                        f"Skipped posting without URL (id: {job_id}) "
-                        f"on page {pages_fetched}"
+                        f"Skipped posting without valid ID at page {pages_fetched} "
+                        f"index {idx}"
                     )
                     continue
-
-                raw_title = item.get("text")
-                title = str(raw_title).strip() if raw_title else "Untitled"
-
-                raw_content = json.dumps(item, ensure_ascii=False)
-                payload_hash = hashlib.sha256(raw_content.encode("utf-8")).hexdigest()
-
+                if job_id in seen_ids:
+                    overlap = True
+                    continue
+                seen_ids.add(job_id)
+                if not valid_posting_fields(
+                    item,
+                    "text",
+                    "hostedUrl",
+                    "applyUrl",
+                    text_keys=(
+                        "description",
+                        "descriptionBody",
+                        "descriptionPlain",
+                        "descriptionBodyPlain",
+                        "opening",
+                        "openingPlain",
+                        "additional",
+                        "additionalPlain",
+                    ),
+                ):
+                    warnings.append(
+                        f"Skipped malformed posting at page {pages_fetched} index {idx}"
+                    )
+                    continue
+                title = text_value(item.get("text")) or "Untitled"
+                board_host = (
+                    "jobs.eu.lever.co" if config.region == "eu" else "jobs.lever.co"
+                )
+                job_url = (
+                    text_value(item.get("hostedUrl"))
+                    or text_value(item.get("applyUrl"))
+                    or f"https://{board_host}/{site_token}/{job_id}"
+                )
                 categories = (
                     item.get("categories")
                     if isinstance(item.get("categories"), dict)
                     else {}
                 )
-                location = categories.get("location") or item.get("country")
-
-                responsibilities = None
-                lists = item.get("lists")
-                if isinstance(lists, list):
-                    for lst in lists:
-                        if not isinstance(lst, dict):
-                            continue
-                        section_text = str(lst.get("text") or "").lower()
-                        if "responsibilit" in section_text:
-                            content_val = str(lst.get("content") or "").strip()
-                            responsibilities = content_val or None
-                            break
-
-                desc_plain = item.get("descriptionPlain") or item.get(
-                    "descriptionBodyPlain"
-                )
-                desc_html = item.get("description") or item.get("descriptionBody")
-
+                desc_html, desc_plain, responsibilities = lever_descriptions(item)
+                raw_content = json.dumps(item, ensure_ascii=False)
                 metadata: dict[str, Any] = {
+                    "title_available": bool(text_value(item.get("text"))),
                     "company": source.company or source.name,
-                    "location": location,
+                    "location": text_value(categories.get("location"))
+                    or text_value(item.get("country")),
                     "categories": categories,
-                    "workplace_type": item.get("workplaceType"),
-                    "created_at_upstream": item.get("createdAt"),
-                    "payload_hash": payload_hash,
+                    "employment_type": canonical_employment(
+                        categories.get("commitment")
+                    ),
+                    "work_mode": canonical_work_mode(item.get("workplaceType")),
+                    # Raw values must not enter the normalizer's fallback aliases.
+                    "provider": {
+                        "commitment": categories.get("commitment"),
+                        "workplace_type": item.get("workplaceType"),
+                        "created_at": item.get("createdAt"),
+                    },
+                    "apply_url": item.get("applyUrl"),
+                    "team": categories.get("team"),
+                    "department": categories.get("department"),
+                    "lists": item.get("lists"),
+                    "payload_hash": hashlib.sha256(
+                        raw_content.encode("utf-8")
+                    ).hexdigest(),
                     "site_token": site_token,
                     "description_plain": desc_plain,
-                    "description": desc_html,
+                    "description_available": bool(desc_html or desc_plain),
+                    "description": desc_html or desc_plain or title,
                     "responsibilities": responsibilities,
                 }
-
                 jobs.append(
                     DiscoveredJobDTO(
                         external_job_id=job_id,
-                        url=str(job_url),
+                        url=job_url,
                         title=title,
                         raw_content=raw_content,
                         content_type="application/json",
@@ -277,28 +229,18 @@ class LeverAdapter(ATSAdapter):
                     )
                 )
 
-            # Check pagination termination
-            if len(data) < page_size:
-                # All postings retrieved naturally
-                is_complete = True
+            if overlap:
+                warnings.append("duplicate_or_overlapping_page_detected")
                 break
-
-            if pages_fetched >= max_pages:
-                warnings.append("pagination_max_pages_reached")
-                is_complete = False
+            if len(data) > config.page_size:
+                warnings.append("unexpected_page_size")
                 break
-
-            # Calculate next cursor/offset
-            if pagination_mode == "offset":
-                current_skip = (
-                    int(current_skip) if current_skip is not None else 0
-                ) + len(data)
-            else:
-                last_item = data[-1] if data else None
-                if not isinstance(last_item, dict) or not last_item.get("id"):
-                    is_complete = False
-                    break
-                current_skip = str(last_item["id"])
+            if len(data) < config.page_size:
+                exhausted = True
+                break
+            offset += len(data)
+        if not exhausted and pages_fetched == config.max_pages:
+            warnings.append("pagination_max_pages_reached")
 
         return CrawlResultDTO(
             source_id=source.id,
@@ -310,6 +252,87 @@ class LeverAdapter(ATSAdapter):
                 "site_token": site_token,
                 "pages_fetched": pages_fetched,
                 "total_discovered": len(jobs),
+                "unique_identities": len(seen_ids),
+                "region": config.region,
             },
-            is_complete=is_complete,
+            is_complete=exhausted and not warnings,
         )
+
+
+def canonical_employment(value: Any) -> str | None:
+    key = text_value(value)
+    if key is None:
+        return None
+    key = key.casefold().replace("-", "").replace(" ", "")
+    return {
+        "fulltime": "Full-time",
+        "parttime": "Part-time",
+        "contract": "Contract",
+        "intern": "Internship",
+        "internship": "Internship",
+    }.get(key)
+
+
+def canonical_work_mode(value: Any) -> str | None:
+    key = text_value(value)
+    if key is None:
+        return None
+    key = key.casefold().replace("-", "").replace(" ", "")
+    return {"remote": "Remote", "hybrid": "Hybrid", "onsite": "On-site"}.get(key)
+
+
+def lever_descriptions(
+    item: dict[str, Any],
+) -> tuple[str | None, str | None, str | None]:
+    """Keep combined opening/body once, then all sections and closing content."""
+    description = text_value(item.get("description"))
+    if not description:
+        description = "\n".join(
+            filter(
+                None,
+                [
+                    text_value(item.get("opening")),
+                    text_value(item.get("descriptionBody")),
+                ],
+            )
+        )
+    plain = text_value(item.get("descriptionPlain"))
+    if not plain:
+        plain = "\n".join(
+            filter(
+                None,
+                [
+                    text_value(item.get("openingPlain")),
+                    text_value(item.get("descriptionBodyPlain")),
+                ],
+            )
+        )
+    sections = []
+    responsibilities = []
+    lists = item.get("lists")
+    if isinstance(lists, list):
+        for section in lists:
+            if not isinstance(section, dict):
+                continue
+            heading = text_value(section.get("text")) or ""
+            content = text_value(section.get("content"))
+            if content:
+                sections.append(f"<h3>{html.escape(heading)}</h3>\n{content}")
+                if "responsibilit" in heading.casefold():
+                    responsibilities.append(content)
+    # A plain-only opening remains complete even when section content is HTML.
+    full = "\n".join(
+        filter(
+            None,
+            [
+                description or plain,
+                *sections,
+                text_value(item.get("additional"))
+                or text_value(item.get("additionalPlain")),
+            ],
+        )
+    )
+    plain_full = "\n".join(
+        filter(None, [plain, text_value(item.get("additionalPlain"))])
+    )
+    return full or None, plain_full or None, "\n".join(responsibilities) or None

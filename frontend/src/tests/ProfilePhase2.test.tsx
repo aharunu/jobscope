@@ -4,13 +4,13 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import ProfileClient from '../app/profile/ProfileClient';
 import {ApiError} from '../lib/api/types';
 
-const api = vi.hoisted(() => ({getProfile: vi.fn(), updateProfile: vi.fn(), saveProfileEntry: vi.fn(), deleteProfileEntry: vi.fn()}));
+const api = vi.hoisted(() => ({getProfile: vi.fn(), getSkillSuggestions: vi.fn(), updateProfile: vi.fn(), saveProfileEntry: vi.fn(), deleteProfileEntry: vi.fn()}));
 vi.mock('../lib/api/profile', () => api);
 const blank = {id: 'base', name: 'Candidate Profile', summary: null, skills: [], experiences: [], educations: [], projects: []};
 const change = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), {target: {value}});
 
 describe('Manual candidate profile', () => {
-  beforeEach(() => {vi.resetAllMocks(); api.getProfile.mockResolvedValue(blank); vi.spyOn(window, 'confirm').mockReturnValue(true);});
+  beforeEach(() => {vi.resetAllMocks(); api.getProfile.mockResolvedValue(blank); api.getSkillSuggestions.mockResolvedValue([]); vi.spyOn(window, 'confirm').mockReturnValue(true);});
   it('shows loading, creates the blank profile through PATCH and prevents duplicate saves', async () => {
     let resolve!: (value: unknown) => void;
     api.updateProfile.mockImplementation(() => new Promise(r => {resolve = r;}));
@@ -54,7 +54,7 @@ describe('Manual candidate profile', () => {
     expect(screen.getByText('Python')).toBeInTheDocument();
   });
   it.each([
-    ['skills', 'Skill', 'Skills', {'Skill name': 'Python', Category: 'Backend', 'Years of experience': '4.5', Level: 'Senior'}, {name: 'Python', category: 'Backend', years_of_experience: 4.5, level: 'Senior'}],
+    ['skills', 'Skill', 'Skills', {'Skill name': 'Python', 'Years of experience': '4.5', Level: 'ADVANCED'}, {name: 'Python', category: null, years_of_experience: 4.5, level: 'ADVANCED'}],
     ['experiences', 'Experience', 'Experience', {Company: 'Acme', 'Role title': 'Engineer', 'Start date': '2020-01-01', 'End date': '2022-01-01', Description: 'Built services', 'Skills used (one per line)': 'Python\n SQL '}, {company: 'Acme', title: 'Engineer', start_date: '2020-01-01', end_date: '2022-01-01', is_current: false, description: 'Built services', skills_used: ['Python', 'SQL']}],
     ['educations', 'Education', 'Education', {School: 'University', Degree: 'BSc', 'Field of study': 'Computing', 'Start year': '2015', 'End year': '2019'}, {school: 'University', degree: 'BSc', field_of_study: 'Computing', start_year: 2015, end_year: 2019}],
     ['projects', 'Project', 'Projects', {'Project title': 'JobScope', Description: 'Portfolio', 'Skills used (one per line)': 'Python\n SQL', 'Project URL': 'https://example.org'}, {title: 'JobScope', description: 'Portfolio', skills_used: ['Python', 'SQL'], url: 'https://example.org'}],
@@ -70,7 +70,8 @@ describe('Manual candidate profile', () => {
     fireEvent.click(scoped.getByRole('button', {name: `Edit ${singular}`}));
     Object.entries(fields).forEach(([label, value]) => expect(screen.getByLabelText(label)).toHaveValue(value === '4.5' ? 4.5 : ['2015', '2019'].includes(value) ? Number(value) : value.includes('\n') ? 'Python\nSQL' : value));
     fireEvent.submit(screen.getByRole('form', {name: `${singular} editor`}));
-    await waitFor(() => expect(api.saveProfileEntry).toHaveBeenLastCalledWith(section, payload, 'entry'));
+    const updatePayload = {...payload} as Record<string,unknown>; if (section === 'skills') delete updatePayload.category;
+    await waitFor(() => expect(api.saveProfileEntry).toHaveBeenLastCalledWith(section, updatePayload, 'entry'));
     await waitFor(() => expect(screen.queryByRole('form', {name: `${singular} editor`})).not.toBeInTheDocument());
     fireEvent.click(scoped.getByRole('button', {name: `Remove ${singular}`}));
     await screen.findByText(`${singular} removed.`);

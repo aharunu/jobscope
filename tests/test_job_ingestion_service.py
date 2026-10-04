@@ -60,6 +60,7 @@ def mock_repos() -> tuple[AsyncMock, AsyncMock, AsyncMock]:
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
 
+    job_repo.get_by_canonical_url.return_value = None
     # Default behaviors
     crawl_run_repo.create_run.side_effect = lambda r: r
     crawl_run_repo.update_run.side_effect = lambda r: r
@@ -162,7 +163,7 @@ async def test_deduplication_by_external_id_never_falls_back(
     job_repo.get_by_source_and_external_id.assert_awaited_once_with(
         source.id, "job-abc"
     )
-    assert job_repo.get_by_canonical_url.call_count == 0
+    job_repo.get_by_canonical_url.assert_awaited_once_with(discovered[0].url)
 
 
 @pytest.mark.asyncio
@@ -193,9 +194,7 @@ async def test_deduplication_by_canonical_url_when_external_id_missing(
     await service.ingest_crawl_result(source, crawl_result)
 
     assert job_repo.get_by_source_and_external_id.call_count == 0
-    job_repo.get_by_canonical_url.assert_awaited_once_with(
-        "https://jobs.lever.co/trendyol/custom-page"
-    )
+    assert job_repo.get_by_canonical_url.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -489,13 +488,10 @@ async def test_item_processing_error_handling(
         crawl_run_repo=crawl_run_repo,
     )
     crawl_result = _make_crawl_result(source.id, discovered)
-    result = await service.ingest_crawl_result(source, crawl_result)
-
-    assert result.jobs_created == 1
-    assert result.error_count == 1
-    assert result.status == CrawlStatus.PARTIAL
-    assert len(result.errors) == 1
-    assert "DB constraint violation" in result.errors[0]
+    with pytest.raises(RuntimeError, match="DB constraint violation"):
+        await service.ingest_crawl_result(source, crawl_result)
+    assert job_repo.save.call_count == 1
+    crawl_run_repo.update_run.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -524,8 +520,6 @@ async def test_all_items_failed_sets_status_failed(
         crawl_run_repo=crawl_run_repo,
     )
     crawl_result = _make_crawl_result(source.id, discovered)
-    result = await service.ingest_crawl_result(source, crawl_result)
-
-    assert result.jobs_created == 0
-    assert result.error_count == 1
-    assert result.status == CrawlStatus.FAILED
+    with pytest.raises(RuntimeError, match="Fatal DB failure"):
+        await service.ingest_crawl_result(source, crawl_result)
+    crawl_run_repo.update_run.assert_not_awaited()

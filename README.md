@@ -21,7 +21,7 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 - **Architecture Layers:**
   - `backend/domain/`: Core business entities, deterministic evaluator rules, value objects, and repository interfaces.
   - `backend/application/`: Application services, use-case orchestration, and domain exceptions inheriting from `JobScopeError`.
-  - `backend/infrastructure/`: PostgreSQL repositories, ATS crawlers (Greenhouse, Lever implemented; Ashby, Workday planned), HTTP clients, and configuration.
+  - `backend/infrastructure/`: PostgreSQL repositories, twelve ATS acquisition adapters, safe HTTP clients, and configuration.
   - `backend/interfaces/`: FastAPI app, dependency injection, route handlers, and Pydantic schemas.
 
 ### Frontend
@@ -36,7 +36,7 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 ## Core System Features
 
 1. **Source Registry & Multi-ATS Crawlers:**
-   - Pluggable crawler engine supporting **Greenhouse** and **Lever** (with **Ashby** and **Workday** planned for future phases).
+   - Acquisition adapters for **Lever, Greenhouse, Ashby, Workday, SmartRecruiters, Recruitee, Personio, Teamtailor, Workable, Hirex, BambooHR and Oracle**. Hosted/widget providers with unverified coverage return PARTIAL and cannot close absent jobs. See [A3 acquisition guide](docs/development/acquisition_a3.md).
    - Crawl orchestration, content hashing, deduplication, and crawl run history auditing.
 
 2. **Deterministic Match Engine:**
@@ -108,14 +108,178 @@ jobscope/
 │   └── design/               # Architecture decision records and specifications
 ├── .github/
 │   └── workflows/ci.yml      # Automated GitHub Actions CI workflow
-├── docker-compose.yml        # PostgreSQL 16 container setup
+├── compose.yaml              # Full local Docker development stack
+├── docker-compose.yml        # Preserved native PostgreSQL-only helper
 ├── .env.example              # Environment variables template
 └── pyproject.toml            # Python dependencies and tool configs
 ```
 
 ---
 
-## Getting Started
+## Local Development
+
+### Option A — Docker Compose
+
+Requires Docker Desktop running Linux containers and a current Compose v2 with
+`up --wait` support. The canonical full-stack file is `compose.yaml`; the existing
+`docker-compose.yml` remains an explicitly selected PostgreSQL-only native helper.
+
+If root `.env` already has your local `POSTGRES_PASSWORD`, simply run:
+
+```powershell
+docker compose up --build
+# Or build, detach, and wait for all healthchecks:
+.\start.ps1
+```
+
+For a fresh checkout, or to keep Docker credentials separate from native settings:
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+# Edit .env.docker: replace CHANGE_ME with your own local password.
+docker compose --env-file .env.docker up --build
+# Equivalent convenience wrapper:
+.\start.ps1 -EnvFile .env.docker
+```
+
+Only safe templates are committed. `.env` and `.env.docker` remain ignored.
+Compose requires a nonempty `POSTGRES_PASSWORD`; replace template placeholders
+before starting. Credentials are injected at runtime, never copied into images.
+
+| Service | Browser / host address | Container address |
+| --- | --- | --- |
+| Frontend | http://localhost:3000 | `frontend:3000` |
+| Backend | http://localhost:8000 | `backend:8000` |
+| API docs | http://localhost:8000/docs | — |
+| PostgreSQL | `localhost:5433` by default | `db:5432` |
+
+The backend constructs its container-only `DATABASE_URL` from `POSTGRES_USER`,
+`POSTGRES_PASSWORD` and `POSTGRES_DB`, URL-encoding credentials and always using
+`db:5432`. Native `DATABASE_URL` is never passed into this container. PostgreSQL
+health gates migrations; `alembic upgrade head` must succeed before Uvicorn starts.
+The backend readiness check verifies DB connectivity; frontend health checks the
+same readiness endpoint through its existing `/api` rewrite to `http://backend:8000`.
+The browser continues to use same-origin `/api/*`; no new proxy or CORS setup.
+
+Ports are published on host loopback only. Stop any native frontend/backend using
+3000/8000 before starting this stack, or set `DOCKER_FRONTEND_PORT` /
+`DOCKER_BACKEND_PORT` to unused host ports. `DOCKER_POSTGRES_PORT` can change the Docker
+database host port without affecting the internal URL; existing `POSTGRES_PORT`
+continues to configure only the legacy PostgreSQL helper. Native PostgreSQL on
+5432 can remain running. This is **local development, not production deployment**;
+the existing development identity limitation remains unchanged.
+
+#### Everyday Docker commands
+
+```powershell
+docker compose up -d --build
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose restart backend
+docker compose up -d --build backend frontend
+docker compose down
+.\stop.ps1
+```
+
+When using `.env.docker`, include `--env-file .env.docker` on Compose commands and
+`-EnvFile .env.docker` on both wrappers. The wrappers use their own repository path,
+fail visibly on Docker/startup errors, and never open a browser automatically.
+`start.ps1` uses Compose health waiting (default timeout 240s after build); inspect
+logs if it fails. No arbitrary sleep loops. For slow machines use `-WaitTimeout 600`.
+Restart alone does not apply changed environment variables: use `up -d` to recreate.
+
+#### Hot reload and rebuilds
+
+Backend code (`backend/`) and the source catalog (`data/`) are read-only bind
+mounts; Python reload uses polling for Docker Desktop compatibility. Frontend
+`src/` is a read-only bind mount and Next.js watches via polling. Container users
+are non-root; generated `.next` and npm dependencies stay inside the image/container,
+separate from Windows `node_modules` and native build artifacts. Source edits reload
+without rebuilding. Changes to dependencies, Dockerfiles, startup helper or frontend
+config require `docker compose up -d --build`. Next.js in Docker uses the dev server;
+`npm run build` remains the independent native production-build validation.
+Docker runtime dependencies use `backend/requirements.lock` constraints captured
+from the smoke-tested Linux image; direct dependencies remain in `pyproject.toml`.
+Refresh constraints deliberately when upgrading. Frontend installs with `npm ci`
+and the existing lockfile. Official base images track Python 3.11 / Node 20 patches;
+first builds require registry access and may be slow, later source-only builds
+reuse dependency layers.
+
+#### Database persistence and protecting existing data
+
+The Docker stack starts with a **separate, fresh database** in the named volume
+`jobscope_docker_postgres_data`. It never copies, overwrites or automatically migrates
+the existing native database or the old `postgres_data` volume. `docker compose down`
+and `stop.ps1` preserve database data. **`docker compose down -v` is destructive**:
+it deletes this stack's database volume. Do not use it for normal shutdown or to
+change passwords. Existing volumes retain role passwords even if environment
+values change; rotate the role in place and align local configuration.
+
+Optional import is manual. First make a separate full backup using a `pg_dump`
+version compatible with the source server. The Docker server is PostgreSQL 16;
+do not assume a PostgreSQL 17/18 database can be downgraded into it. Verify server
+versions and schema revisions first, and keep the original database untouched.
+
+For a PostgreSQL 16 source at the same Alembic head, the following uses PostgreSQL
+16 client tools, password prompts (no password in command arguments), and a data-only
+archive. Run this only with an **empty, migrated Docker target**, before browsing
+pages that provision profile/user records or inserting test data. Full backups
+should be stored outside Git/build contexts and may contain personal information.
+
+```powershell
+# Full source backup; SOURCE_DB and user/port are examples to replace.
+pg_dump -h localhost -p 5432 -U jobscope -d SOURCE_DB -W -Fc -f C:\Backups\jobscope-full.dump
+# Separate import archive: keep target's current Alembic revision.
+pg_dump -h localhost -p 5432 -U jobscope -d SOURCE_DB -W -Fc --data-only --exclude-table=public.alembic_version -f C:\Backups\jobscope-data.dump
+pg_restore --list C:\Backups\jobscope-data.dump
+# No --clean, drop, truncate or automatic import. Failure rolls back this restore.
+pg_restore -h localhost -p 5433 -U jobscope -d jobscope -W --data-only --no-owner --no-privileges --single-transaction --exit-on-error C:\Backups\jobscope-data.dump
+```
+
+Adapt the target port/user/database to Docker settings. Do not restore into a
+nonempty target; inspect conflicts and schema compatibility rather than deleting
+records to force an import. This procedure is guidance, not automatically executed
+by any script. The original database remains the recovery source.
+
+#### LM Studio on the Windows host
+
+AI is disabled by default and is never required for startup. Compose uses separate
+`DOCKER_AI_*` settings so native `AI_BASE_URL=http://127.0.0.1:1234/v1` remains valid
+for a backend running directly on Windows. Set these in the Compose environment
+file to opt in (or set them in root `.env` if using plain Compose):
+
+```dotenv
+DOCKER_AI_ENABLED=true
+DOCKER_AI_BASE_URL=http://host.docker.internal:1234/v1
+DOCKER_OPENAI_API_KEY=lm-studio
+DOCKER_AI_MODEL=EXACT_MODEL_ID_FROM_GET_V1_MODELS
+DOCKER_AI_TIMEOUT_SECONDS=120
+```
+
+These map to existing backend `AI_ENABLED`, `AI_BASE_URL`, `OPENAI_API_KEY`,
+`AI_MODEL`, `AI_TIMEOUT_SECONDS`. Blank base URL retains hosted OpenAI support; use
+the real hosted key only in ignored local configuration. The harmless `lm-studio`
+placeholder applies only to a local server with authentication disabled.
+LM Studio stays native; the application contains no Docker hostname/model hardcode.
+
+[Docker Desktop documents `host.docker.internal`](https://docs.docker.com/desktop/features/networking/networking-how-tos/)
+for reaching host services. If a loopback-only LM Studio server is unreachable
+from Docker, its [Serve on Local Network setting](https://lmstudio.ai/docs/developer/core/server/serve-on-network)
+may be needed. Limit access with your Windows firewall/authentication settings;
+the setup does not change them automatically. Select/load the exact model returned
+by `/v1/models` and keep strict structured-output/evidence validation enabled.
+
+```powershell
+# Optional connectivity probe; prints only HTTP status, not model/profile content.
+docker compose exec backend python -c "import urllib.request; print(urllib.request.urlopen('http://host.docker.internal:1234/v1/models', timeout=5).status)"
+```
+
+For authenticated servers use a credential-aware probe without printing keys.
+Run AI analysis explicitly from the UI only after opting in; deterministic matching
+continues to work when the provider is unavailable.
+
+### Option B — Native Development
 
 ### Prerequisites
 - **Python** >= 3.11
@@ -152,7 +316,7 @@ jobscope/
 
 4. **Start PostgreSQL with Docker Compose:**
    ```powershell
-   docker compose up -d
+   docker compose -f docker-compose.yml up -d postgres
    ```
 
 5. **Run database migrations:**
@@ -270,6 +434,7 @@ All application routes are served under `/api` (or at root for health checks):
 | **Profile** | `/api/profile` | GET | Get candidate BaseProfile (auto-provisions if missing) |
 | **Profile** | `/api/profile` | PATCH | Update BaseProfile metadata (name, summary) |
 | **Profile** | `/api/profile/skills` | GET, POST | List or add profile skills |
+| **Profile** | `/api/profile/skill-suggestions?q={query}&limit=20` | GET | Read bounded suggestions from the existing technical-skill taxonomy; custom skills remain allowed |
 | **Profile** | `/api/profile/skills/{id}` | PATCH, DELETE | Update or remove profile skill |
 | **Profile** | `/api/profile/experiences` | GET, POST | List or add profile work experiences |
 | **Profile** | `/api/profile/experiences/{id}` | PATCH, DELETE | Update or remove profile experience |
@@ -303,7 +468,7 @@ The backend supports tracking an existing job, listing/filtering/paginating the 
   | INTERESTED | APPLYING, APPLIED, REJECTED |
   | APPLYING | INTERESTED, APPLIED, REJECTED |
   | APPLIED | INTERVIEW, OFFER, REJECTED |
-  | INTERVIEW | OFFER, REJECTED |
+  | INTERVIEW | APPLIED, OFFER, REJECTED |
   | OFFER | REJECTED |
   | REJECTED | INTERESTED, APPLYING, APPLIED, INTERVIEW |
 
@@ -337,6 +502,10 @@ Validation combines real PostgreSQL/API workflow tests and frontend behavioral t
 
 Open `/profile` from navigation, create/edit the candidate name and summary, then manage skills, experience, education and projects. The existing backend initializes a blank `Candidate Profile` on GET; the UI's Create Profile action saves its metadata through PATCH. SearchProfiles remain separate search personas configured at `/search-profiles`.
 
+Skill names offer optional suggestions from the existing extraction taxonomy. Custom names remain valid. The editor offers Beginner, Intermediate, Advanced, Expert or Not specified; historical free-text levels and category metadata are preserved when editing other fields. Category is omitted from the editor because matching does not consume it. Optional experience years accept 0–50 in half-year steps in the UI; the API rejects non-finite or out-of-range numbers.
+
+Experience company, role title and start date are required. Native date controls remain empty until a date is entered, accept dates from 1900-01-01 through today, and require end date to be on or after start date. Current role immediately clears/disables end date, and the backend persists it as null. Historical invalid dates are flagged for manual correction rather than replaced with an invented date. Field errors preserve the draft, and save requests use the existing duplicate-request guard.
+
 `GET /api/matches/job/{job_id}?search_profile_id={id}` is the canonical detail lookup. It returns the same persisted representation as POST, including scores, category breakdowns, requirement evidence, blockers and explanation. Missing saved results return `404 MATCH_RESULT_NOT_FOUND`; missing jobs or inaccessible SearchProfiles return their resource 404s. GET never calls the match engine or writes results. Collection GET returns `items`, `total`, `limit`, `offset`, ordered by `updated_at` descending then ID descending; `limit` is 1–100 and `offset` is non-negative.
 
 Each `(job_id, base_profile_id, search_profile_id)` stores one latest snapshot. Explicit POST re-evaluation overwrites that snapshot, retaining its ID and creation timestamp. Profile/job edits do not automatically invalidate or recalculate it; MatchPanel displays its saved timestamp and offers explicit re-evaluation.
@@ -354,7 +523,22 @@ AI_ENABLED=true
 OPENAI_API_KEY=YOUR_API_KEY
 AI_MODEL=gpt-4.1-mini-2025-04-14
 AI_TIMEOUT_SECONDS=30
+AI_BASE_URL=
 ```
+
+Leave `AI_BASE_URL` blank for hosted OpenAI. For an OpenAI-compatible local server such as LM Studio, start the server, read its exact chat-model ID from `GET http://127.0.0.1:1234/v1/models`, and configure the ignored root `.env`:
+
+```dotenv
+AI_ENABLED=true
+AI_BASE_URL=http://127.0.0.1:1234/v1
+OPENAI_API_KEY=lm-studio
+AI_MODEL=EXACT_CHAT_MODEL_ID_FROM_V1_MODELS
+AI_TIMEOUT_SECONDS=120
+```
+
+Restart the backend after changing settings. `lm-studio` is a harmless explicit placeholder only for a server with authentication disabled; use the server's actual key when authentication is enabled. No hosted credential is needed for local inference. The base URL must include its API prefix (normally `/v1`) and must not contain credentials, query parameters or fragments. The server must support the existing strict `response_format=json_schema` request and return the complete AI output schema; [LM Studio documents this format](https://lmstudio.ai/docs/developer/openai-compat/structured-output). Invalid/truncated output remains an error, with the deterministic result preserved. Changing endpoints invalidates AI cache even when model IDs are equal. No model/server-specific fallback or relaxed validation is used.
+
+The Next.js API rewrite proxy allows 150 seconds so it can relay the backend's bounded 120-second AI request and transaction overhead. Restart the frontend after updating `next.config.mjs` (rebuild before production start); its former 30-second default could return a proxy 500 while a local model's successful analysis continued in the backend. Provider text containing NUL characters is rejected as `AI_INVALID_OUTPUT` / 502 before persistence; it is never stripped or repaired.
 
 The safe template defaults to disabled AI with an empty key. One OpenAI HTTP adapter uses existing `httpx`; the application depends on a provider Protocol, and automated tests use an offline fake or mock HTTP. The pinned model supports [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) according to its [official model documentation](https://developers.openai.com/api/docs/models/gpt-4.1-mini). Requests have a bounded timeout, no automatic retries, no redirects, no tools, a strict JSON schema and `store=false`.
 
@@ -375,13 +559,13 @@ Evidence references must match `profile.skills[i]`, `profile.experiences[i]`, `p
 
 Migration `0009_ai_details` saves previously unsupported strengths/gaps/risks, baseline confidence and source quotes in existing AI tables. Run `alembic upgrade head` before using AI. Both migration directions are tested transactionally.
 
-**Privacy:** An explicit AI request sends the current job's description/responsibilities/requirements and fit metadata, candidate summary/skills/experience/education/projects, search preferences and deterministic scores/evidence to OpenAI. Candidate root name/IDs, project URLs, internal settings, keys, headers, application notes and unrelated users are omitted. Prompts/responses are not logged; SQL debug parameters are hidden. Job/profile text is delimited as untrusted JSON data with instructions against prompt injection and invented evidence; this is defensive separation, not perfect injection immunity. Provider costs, terms and account/model availability apply. No real-provider call is part of normal tests.
+**Privacy:** An explicit AI request sends the current job's description/responsibilities/requirements and fit metadata, candidate summary/skills/experience/education/projects, search preferences and deterministic scores/evidence to the configured provider (hosted OpenAI by default, or the configured OpenAI-compatible server). Candidate root name/IDs, project URLs, internal settings, keys, headers, application notes and unrelated users are omitted. Prompts/responses are not logged; SQL debug parameters are hidden. Job/profile text is delimited as untrusted JSON data with instructions against prompt injection and invented evidence; this is defensive separation, not perfect injection immunity. Provider costs, terms and account/model availability apply. No real-provider call is part of normal tests.
 
 ### Planned Endpoints (Future Phases)
 The following capabilities are specified in design documentation and scheduled for subsequent implementation phases:
 - **CV Import & Parse (`/api/cv/upload`, `/api/cv/{id}/approve`)**: PDF/DOCX resume parsing.
 - **Manual Job Entry (`/api/jobs/manual`)**: User-submitted job URLs.
-- **Scheduler, Ashby and Workday adapters**: Planned; only Greenhouse and Lever crawlers are implemented.
+- **Scheduler**: Planned. Twelve acquisition adapters are implemented; PARTIAL providers suppress absence closure.
 
 ---
 

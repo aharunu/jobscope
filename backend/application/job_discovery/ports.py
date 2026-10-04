@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from contextlib import AbstractAsyncContextManager
 from typing import Any, Protocol, runtime_checkable
 
 from backend.application.job_discovery.dtos import (
@@ -14,6 +15,7 @@ from backend.application.job_discovery.dtos import (
     SourceCreateDTO,
     SourceProbeResultDTO,
 )
+from backend.domain.source.entities import Source
 
 
 @runtime_checkable
@@ -72,6 +74,12 @@ class RuntimeSourceProvider(Protocol):
         ...
 
 
+class CrawlSourceProvider(RuntimeSourceProvider, Protocol):
+    async def get_source(self, source_id: uuid.UUID) -> Source | None:
+        """Short lookup retaining existing missing/inactive API distinctions."""
+        ...
+
+
 @runtime_checkable
 class ATSAdapter(Protocol):
     """Port implemented by platform-specific ATS adapters (Lever, Greenhouse, etc.).
@@ -107,6 +115,23 @@ class SafeHttpClient(Protocol):
         timeout: float | None = None,
     ) -> SafeHttpResponseDTO:
         """Perform an SSRF-validated GET request."""
+        ...
+
+    async def post_json(
+        self,
+        url: str,
+        *,
+        json: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> SafeHttpResponseDTO:
+        """Adapter-owned read/search JSON POST only; never mutation operations."""
+        ...
+
+
+class CrawlAdmissionGuard(Protocol):
+    def hold(self, source_id: uuid.UUID) -> AbstractAsyncContextManager[None]:
+        """Reject busy Source before creating a run; release after persistence."""
         ...
 
 

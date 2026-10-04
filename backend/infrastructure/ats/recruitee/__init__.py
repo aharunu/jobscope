@@ -1,0 +1,1 @@
+"""Recruitee Careers Site acquisition."""

@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // AI inference is bounded at 120s in the backend; allow DB/HTTP overhead.
+    // Next's default 30s would return 500 before a slower local model finishes.
+    proxyTimeout: 150_000,
+  },
   async rewrites() {
     return [
       {

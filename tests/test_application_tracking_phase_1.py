@@ -89,6 +89,50 @@ async def create_tracked(client, user_id, job_id, **fields):
 
 
 @pytest.mark.asyncio
+async def test_interview_to_applied_correction_records_exactly_one_history(
+    database_api,
+):
+    client, _, factory, user_id, other_id, job_id = database_api
+    async with factory() as session:
+        job = await session.get(JobModel, job_id)
+        job.status = JobStatus.CLOSED
+        await session.commit()
+    created = await create_tracked(client, user_id, job_id, status="INTERVIEW")
+    path = f"/api/applications/{created['id']}"
+    headers = {"X-User-Id": str(user_id)}
+    foreign = await client.patch(
+        f"{path}/status",
+        headers={"X-User-Id": str(other_id)},
+        json={"status": "APPLIED"},
+    )
+    assert foreign.status_code == 404
+    before = (await client.get(path, headers=headers)).json()
+    assert before["status"] == "INTERVIEW" and before["status_history"] == []
+    corrected = await client.patch(
+        f"{path}/status", headers=headers, json={"status": "APPLIED"}
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["status"] == "APPLIED"
+    history = (await client.get(f"{path}/history", headers=headers)).json()
+    assert len(history) == 1
+    assert (history[0]["from_status"], history[0]["to_status"]) == (
+        "INTERVIEW",
+        "APPLIED",
+    )
+    assert history[0]["application_id"] == created["id"]
+    assert history[0]["changed_at"]
+    persisted = (await client.get(path, headers=headers)).json()
+    assert persisted["status"] == "APPLIED"
+    assert persisted["status_history"] == history
+    assert persisted["job"]["status"] == "CLOSED"
+    no_op = await client.patch(
+        f"{path}/status", headers=headers, json={"status": "APPLIED"}
+    )
+    assert no_op.status_code == 422
+    assert (await client.get(f"{path}/history", headers=headers)).json() == history
+
+
+@pytest.mark.asyncio
 async def test_real_api_creation_history_and_closed_job_independence(database_api):
     client, _, factory, user_id, _, job_id = database_api
     created = await create_tracked(client, user_id, job_id, notes="  Initial note  ")

@@ -1,0 +1,1 @@
+"""Personio career XML acquisition."""

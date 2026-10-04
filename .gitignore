@@ -61,6 +61,7 @@ ipython_config.py
 .env
 .env.*
 !.env.example
+!.env.docker.example
 .venv/
 venv/
 ENV/
@@ -116,4 +117,3 @@ lerna-debug.log*
 
 # Agent reports
 docs/agent-reports/
-

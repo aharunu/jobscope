@@ -72,6 +72,7 @@ def _make_job(
 @pytest.fixture
 def mock_lifecycle_repos() -> tuple[AsyncMock, AsyncMock, AsyncMock]:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
 
@@ -131,6 +132,7 @@ async def test_complete_crawl_closes_absent_jobs_and_reconciles_counters(
     job1 = _make_job(
         source.id, "job-1", title="Backend Engineer", content_hash=job1_hash
     )
+    job1.location = job1_canonical.location
     job2 = _make_job(source.id, "job-2", title="Frontend Engineer")
     job_absent = _make_job(source.id, "job-absent", title="DevOps Engineer")
 
@@ -247,10 +249,8 @@ async def test_closure_suppressed_when_crawl_failed(
         crawl_run_repo=crawl_run_repo,
     )
 
-    res = await service.ingest_crawl_result(source, crawl_result)
-
-    assert res.status == CrawlStatus.FAILED
-    assert res.jobs_closed == 0
+    with pytest.raises(RuntimeError, match="DB crash"):
+        await service.ingest_crawl_result(source, crawl_result)
     assert job_absent.status == JobStatus.ACTIVE
     assert job_absent.closed_at is None
     assert crawl_run_repo.record_job_actions.call_count == 0
@@ -408,7 +408,9 @@ async def test_closure_suppressed_when_job_error_count_greater_than_zero(
     def mock_get(sid: uuid.UUID, ext_id: str) -> Job:
         if ext_id == "job-seen":
             return job_seen
-        raise ValueError("Normalization crash")
+        from backend.application.job_processing.errors import JobURLConflictError
+
+        raise JobURLConflictError()
 
     job_repo.get_by_source_and_external_id.side_effect = mock_get
 
@@ -599,6 +601,7 @@ async def test_reopen_closed_job_transitions_to_active_and_counts_as_updated(
         ats_type=source.ats_type,
         jobs=discovered,
         raw_payload_count=1,
+        is_complete=True,
     )
 
     service = JobIngestionService(

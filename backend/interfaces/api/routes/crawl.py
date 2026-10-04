@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 
 from backend.application.job_discovery.dtos import CrawlRunFilterDTO
+from backend.application.job_discovery.ports import CrawlSourceProvider
 from backend.domain.crawl.enums import CrawlJobAction, CrawlStatus
 from backend.interfaces.api.dependencies.crawler import (
     CrawlerOrchestratorDep,
     CrawlHistoryServiceDep,
+    get_runtime_source_provider,
 )
-from backend.interfaces.api.dependencies.sources import SourceRegistryDep
 from backend.interfaces.api.schemas.crawl import (
     CrawlRunJobItemResponse,
     CrawlRunJobListResponse,
@@ -40,7 +42,9 @@ router = APIRouter(prefix="/crawl", tags=["Crawl"])
 )
 async def run_crawl(
     orchestrator: CrawlerOrchestratorDep,
-    source_service: SourceRegistryDep,
+    source_service: Annotated[
+        CrawlSourceProvider, Depends(get_runtime_source_provider)
+    ],
     payload: CrawlRunRequest = Body(default_factory=CrawlRunRequest),
 ) -> CrawlRunResponse:
     """Execute operational crawl run."""

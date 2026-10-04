@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 
+from backend.application.job_discovery.budget import current_budget
 from backend.application.job_discovery.dtos import SafeHttpResponseDTO
 from backend.application.job_discovery.exceptions import AdapterExecutionError
 from backend.application.job_discovery.ports import SafeHttpClient
@@ -31,7 +32,11 @@ class HttpSafeClient(SafeHttpClient):
         max_retries: int = 2,
         retry_delay: float = 0.5,
         client: httpx.AsyncClient | None = None,
+        max_response_bytes: int = 15 * 1024 * 1024,
     ) -> None:
+        if type(max_response_bytes) is not int or max_response_bytes <= 0:
+            raise ValueError("max_response_bytes must be a positive integer")
+        self._max_response_bytes = max_response_bytes
         self._timeout_seconds = timeout_seconds
         self._user_agent = user_agent
         self._max_redirects = max_redirects
@@ -78,6 +83,58 @@ class HttpSafeClient(SafeHttpClient):
         params: dict[str, Any] | None = None,
         timeout: float | None = None,
     ) -> SafeHttpResponseDTO:
+        return await self._request(
+            "GET", url, headers=headers, params=params, timeout=timeout
+        )
+
+    async def post_json(
+        self,
+        url: str,
+        *,
+        json: dict[str, Any],
+        headers: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> SafeHttpResponseDTO:
+        """Adapter-owned read/search operations only, never mutations."""
+        return await self._request(
+            "POST", url, headers=headers, json=json, timeout=timeout
+        )
+
+    async def _read_response(self, response: httpx.Response) -> SafeHttpResponseDTO:
+        body = bytearray()
+        budget = current_budget.get()
+        try:
+            async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
+                if budget is not None:
+                    budget.consume_bytes(len(chunk))
+                if len(body) + len(chunk) > self._max_response_bytes:
+                    raise AdapterExecutionError(
+                        message="Provider response exceeded the response body limit",
+                        code="RESPONSE_BODY_LIMIT_EXCEEDED",
+                        details={"limit_bytes": self._max_response_bytes},
+                    )
+                body.extend(chunk)
+            content = bytes(body)
+            return SafeHttpResponseDTO(
+                status_code=response.status_code,
+                url=str(response.url),
+                headers=dict(response.headers),
+                content_bytes=content,
+                text=content.decode(response.encoding or "utf-8", errors="replace"),
+            )
+        finally:
+            await response.aclose()
+
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        timeout: float | None = None,
+    ) -> SafeHttpResponseDTO:
         """Perform an SSRF-validated GET request with manual redirect following.
 
         Args:
@@ -94,18 +151,16 @@ class HttpSafeClient(SafeHttpClient):
                 or redirect loop.
         """
         # 1. Resolve full URL including query parameters for SSRF check
-        request_obj = httpx.Request("GET", url, params=params)
+        request_obj = httpx.Request(method, url, params=params)
         target_url = str(request_obj.url)
 
         is_safe, error_type, error_msg = validate_target_url_safety(target_url)
-        if not is_safe:
+        if not is_safe or urllib.parse.urlsplit(target_url).username is not None:
             raise AdapterExecutionError(
-                message=f"SSRF blocked outbound request to '{target_url}': {error_msg}",
+                message="SSRF blocked outbound request",
                 code="ADAPTER_EXECUTION_FAILURE",
                 details={
-                    "url": target_url,
                     "error_type": error_type,
-                    "error_message": error_msg,
                 },
             )
 
@@ -119,6 +174,7 @@ class HttpSafeClient(SafeHttpClient):
         current_url = target_url
         visited_urls = {current_url}
         redirect_count = 0
+        budget = current_budget.get()
 
         while True:
             attempt = 0
@@ -127,24 +183,28 @@ class HttpSafeClient(SafeHttpClient):
                 is_safe, error_type, error_msg = validate_target_url_safety(current_url)
                 if not is_safe:
                     raise AdapterExecutionError(
-                        message=(
-                            f"SSRF blocked outbound request to '{current_url}': "
-                            f"{error_msg}"
-                        ),
+                        message="SSRF blocked outbound request",
                         code="ADAPTER_EXECUTION_FAILURE",
                         details={
-                            "url": current_url,
                             "error_type": error_type,
-                            "error_message": error_msg,
                         },
                     )
 
+                if budget is not None:
+                    budget.before_request()
+                    req_timeout = min(req_timeout, budget.remaining_seconds())
                 try:
-                    response = await active_client.get(
+                    request = active_client.build_request(
+                        method,
                         current_url,
                         headers=req_headers,
+                        json=json,
                         timeout=req_timeout,
                     )
+                    streamed = await active_client.send(
+                        request, stream=True, follow_redirects=False
+                    )
+                    response = await self._read_response(streamed)
                     if (
                         response.status_code in TRANSIENT_STATUS_CODES
                         and attempt < self._max_retries
@@ -152,12 +212,13 @@ class HttpSafeClient(SafeHttpClient):
                         attempt += 1
                         delay = self._retry_delay * (2 ** (attempt - 1))
                         logger.warning(
-                            "Transient HTTP %s from '%s'. Retrying attempt %s/%s",
+                            "Transient HTTP %s. Retrying attempt %s/%s",
                             response.status_code,
-                            current_url,
                             attempt,
                             self._max_retries,
                         )
+                        if budget is not None and delay >= budget.remaining_seconds():
+                            budget.exhausted("duration")
                         if delay > 0:
                             await asyncio.sleep(delay)
                         continue
@@ -167,39 +228,43 @@ class HttpSafeClient(SafeHttpClient):
                         attempt += 1
                         delay = self._retry_delay * (2 ** (attempt - 1))
                         logger.warning(
-                            "Transient connection error requesting '%s'. "
-                            "Retrying attempt %s/%s",
-                            current_url,
+                            "Transient connection error. Retrying attempt %s/%s",
                             attempt,
                             self._max_retries,
                         )
+                        if budget is not None and delay >= budget.remaining_seconds():
+                            budget.exhausted("duration")
                         if delay > 0:
                             await asyncio.sleep(delay)
                         continue
                     raise AdapterExecutionError(
-                        message=f"Network error requesting '{current_url}': {exc}",
+                        message="Network error during provider request",
                         code="ADAPTER_EXECUTION_FAILURE",
-                        details={"url": current_url, "error_type": "network_error"},
+                        details={"error_type": "network_error"},
                     ) from exc
                 except httpx.TimeoutException as exc:
                     raise AdapterExecutionError(
-                        message=f"Request to '{current_url}' timed out: {exc}",
+                        message="Provider request timed out",
                         code="ADAPTER_EXECUTION_FAILURE",
-                        details={"url": current_url, "error_type": "timeout"},
+                        details={"error_type": "timeout"},
                     ) from exc
                 except (httpx.NetworkError, httpx.RequestError) as exc:
                     raise AdapterExecutionError(
-                        message=f"Network error requesting '{current_url}': {exc}",
+                        message="Network error during provider request",
                         code="ADAPTER_EXECUTION_FAILURE",
-                        details={"url": current_url, "error_type": "network_error"},
+                        details={"error_type": "network_error"},
                     ) from exc
 
             # Check for redirect status
             if response.status_code in REDIRECT_STATUS_CODES:
                 location = response.headers.get("location")
                 if not location:
-                    break
+                    return response
 
+                if method == "POST" and response.status_code not in {307, 308}:
+                    raise AdapterExecutionError(
+                        message="Ambiguous read-only POST redirect rejected"
+                    )
                 redirect_count += 1
                 if redirect_count > self._max_redirects:
                     raise AdapterExecutionError(
@@ -208,42 +273,47 @@ class HttpSafeClient(SafeHttpClient):
                             f"exceeded limit of {self._max_redirects}."
                         ),
                         code="ADAPTER_EXECUTION_FAILURE",
-                        details={"url": current_url, "redirect_count": redirect_count},
+                        details={"redirect_count": redirect_count},
                     )
 
                 next_url = urllib.parse.urljoin(current_url, location)
 
                 if next_url in visited_urls:
                     raise AdapterExecutionError(
-                        message=f"Redirect loop detected at '{next_url}'.",
+                        message="Redirect loop detected",
                         code="ADAPTER_EXECUTION_FAILURE",
-                        details={"url": next_url, "cycle": list(visited_urls)},
+                        details={"redirect_count": redirect_count},
                     )
 
                 is_next_safe, next_err_type, next_err_msg = validate_target_url_safety(
                     next_url
                 )
-                if not is_next_safe:
+                if (
+                    not is_next_safe
+                    or urllib.parse.urlsplit(next_url).username is not None
+                ):
                     raise AdapterExecutionError(
-                        message=(
-                            f"SSRF blocked redirect to '{next_url}': {next_err_msg}"
-                        ),
+                        message="SSRF blocked redirect",
                         code="ADAPTER_EXECUTION_FAILURE",
                         details={
-                            "url": next_url,
                             "error_type": next_err_type,
-                            "error_message": next_err_msg,
                         },
                     )
 
+                old_url, new_url = httpx.URL(current_url), httpx.URL(next_url)
+                same_origin = (old_url.scheme, old_url.host, old_url.port) == (
+                    new_url.scheme,
+                    new_url.host,
+                    new_url.port,
+                )
+                if method == "POST" and not same_origin:
+                    raise AdapterExecutionError(
+                        message="Cross-origin read-only POST redirect rejected"
+                    )
+                if not same_origin:
+                    req_headers = {"User-Agent": self._user_agent}
                 visited_urls.add(next_url)
                 current_url = next_url
                 continue
 
-            return SafeHttpResponseDTO(
-                status_code=response.status_code,
-                url=str(response.url),
-                headers=dict(response.headers),
-                text=response.text,
-                content_bytes=response.content,
-            )
+            return response

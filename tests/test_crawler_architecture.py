@@ -62,6 +62,7 @@ class DummyValidAdapter:
             raw_payload_count=len(self.jobs_to_return),
             warnings=[],
             metadata={"mock": True},
+            is_complete=True,
         )
 
 
@@ -82,6 +83,11 @@ class DummyHttpClient:
             headers={"content-type": "application/json"},
             text='{"mock": "response"}',
         )
+
+    async def post_json(
+        self, url: str, *, json: dict[str, Any], headers=None, timeout=None
+    ) -> SafeHttpResponseDTO:
+        return await self.get(url, headers=headers, timeout=timeout)
 
 
 class InMemoryRuntimeSourceProvider(RuntimeSourceProvider):
@@ -151,6 +157,11 @@ def test_safe_http_client_protocol_runtime_checkable() -> None:
         pass
 
     assert not isinstance(IncompleteClient(), SafeHttpClient)
+
+    class GetOnlyClient:
+        get = DummyHttpClient.get
+
+    assert not isinstance(GetOnlyClient(), SafeHttpClient)
 
 
 def test_safe_http_response_dto_attributes() -> None:
@@ -491,7 +502,8 @@ async def test_crawl_source_unexpected_exception_isolation() -> None:
     assert result.success is False
     assert result.status == CrawlStatus.FAILED
     assert result.error_type == "UNEXPECTED_EXECUTION_ERROR"
-    assert "Unexpected memory corruption" in (result.error_message or "")
+    assert result.error_message == "Crawl execution failed; see safe server diagnostics"
+    assert "Unexpected memory corruption" not in result.error_message
 
 
 @pytest.mark.asyncio

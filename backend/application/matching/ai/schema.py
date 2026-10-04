@@ -2,10 +2,21 @@
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 SCHEMA_VERSION = "1"
-Text = Annotated[str, Field(min_length=1, max_length=4000)]
+
+
+def validate_provider_text(value: str) -> str:
+    # JSON can encode NUL, but PostgreSQL text/JSONB cannot store it. Reject the
+    # provider output before evidence sanitization or any persistence changes.
+    if "\x00" in value:
+        raise ValueError("AI text cannot contain NUL characters")
+    return value
+
+
+ProviderText = Annotated[str, AfterValidator(validate_provider_text)]
+Text = Annotated[ProviderText, Field(min_length=1, max_length=4000)]
 
 
 class EvidenceOutput(BaseModel):
@@ -13,7 +24,7 @@ class EvidenceOutput(BaseModel):
     claim: Text
     evidence_type: Literal["PROJECT", "EXPERIENCE", "EDUCATION", "SKILL", "NONE"]
     source_reference: Text
-    source_quote: Annotated[str, Field(max_length=4000)]
+    source_quote: Annotated[ProviderText, Field(max_length=4000)]
     reason: Text
 
 

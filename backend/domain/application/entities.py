@@ -30,6 +30,7 @@ VALID_STATUS_TRANSITIONS: dict[ApplicationStatus, set[ApplicationStatus]] = {
         ApplicationStatus.REJECTED,
     },
     ApplicationStatus.INTERVIEW: {
+        ApplicationStatus.APPLIED,
         ApplicationStatus.OFFER,
         ApplicationStatus.REJECTED,
     },

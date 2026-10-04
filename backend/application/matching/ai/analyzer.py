@@ -63,7 +63,7 @@ class AIAnalyzer:
         context = prompt.build_context(job, profile, search, match, baseline)
         digest = prompt.fingerprint(
             context,
-            self.provider.provider,
+            getattr(self.provider, "cache_identity", self.provider.provider),
             self.provider.model,
             prompt.PROMPT_VERSION,
             SCHEMA_VERSION,

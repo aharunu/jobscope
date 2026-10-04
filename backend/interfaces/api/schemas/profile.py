@@ -143,7 +143,7 @@ class ProfileSkillCreateRequest(BaseModel):
         default=None, max_length=100, description="Domain category"
     )
     years_of_experience: Decimal | None = Field(
-        default=None, ge=0, le=99.9, description="Years practiced"
+        default=None, ge=0, le=50, allow_inf_nan=False, description="Years practiced"
     )
     level: str | None = Field(
         default=None, max_length=50, description="Proficiency level"
@@ -160,7 +160,7 @@ class ProfileSkillUpdateRequest(BaseModel):
         default=None, max_length=100, description="Updated category"
     )
     years_of_experience: Decimal | None = Field(
-        default=None, ge=0, le=99.9, description="Updated years"
+        default=None, ge=0, le=50, allow_inf_nan=False, description="Updated years"
     )
     level: str | None = Field(default=None, max_length=50, description="Updated level")
 

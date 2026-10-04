@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import uuid
 from dataclasses import dataclass
@@ -109,6 +110,10 @@ class JobNormalizer:
             description=description,
             location=location,
             work_mode=work_mode,
+            responsibilities=responsibilities,
+            employment_type=employment_type,
+            salary=salary,
+            company=company,
         )
 
         return Job(
@@ -135,15 +140,43 @@ class JobNormalizer:
         description: str,
         location: str | None = None,
         work_mode: str | None = None,
+        responsibilities: str | None = None,
+        employment_type: str | None = None,
+        salary: str | None = None,
+        company: str | None = None,
     ) -> str:
         """Compute deterministic SHA-256 hash across canonical job fields."""
-        content = (
-            f"{title.strip()}\n"
-            f"{description.strip()}\n"
-            f"{(location or '').strip()}\n"
-            f"{(work_mode or '').strip()}"
+        content = json.dumps(
+            [
+                (value or "").strip()
+                for value in (
+                    title,
+                    description,
+                    location,
+                    work_mode,
+                    responsibilities,
+                    employment_type,
+                    salary,
+                    company,
+                )
+            ],
+            ensure_ascii=False,
+            separators=(",", ":"),
         )
         return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def hash_job(cls, job: Job) -> str:
+        return cls.compute_content_hash(
+            title=job.title,
+            description=job.description,
+            location=job.location,
+            work_mode=job.work_mode,
+            responsibilities=job.responsibilities,
+            employment_type=job.employment_type,
+            salary=job.salary,
+            company=job.company,
+        )
 
     @staticmethod
     def _parse_datetime(val: Any) -> datetime | None:

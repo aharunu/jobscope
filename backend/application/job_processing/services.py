@@ -13,6 +13,10 @@ from backend.application.job_discovery.dtos import (
     RuntimeSourceDTO,
 )
 from backend.application.job_processing.dtos import JobIngestionResultDTO
+from backend.application.job_processing.errors import (
+    JobURLConflictError,
+    RequirementExtractionError,
+)
 from backend.application.job_processing.extraction import (
     RequirementExtractionService,
     RequirementExtractor,
@@ -106,6 +110,8 @@ class JobIngestionService:
         jobs_closed = 0
         errors: list[str] = []
         warnings: list[str] = list(crawl_result.warnings)
+        if not crawl_result.is_complete and not warnings:
+            warnings.append("acquisition_incomplete")
         seen_job_ids: set[uuid.UUID] = set()
 
         # 2. Process each discovered job
@@ -125,12 +131,13 @@ class JobIngestionService:
                     jobs_updated += 1
                 elif action == CrawlJobAction.UNCHANGED:
                     jobs_unchanged += 1
-            except Exception as exc:
-                err_msg = (
-                    f"Error processing job external_id={discovered.external_job_id!r} "
-                    f"url={discovered.url!r}: {exc}"
+            except JobURLConflictError as exc:
+                err_msg = exc.code
+                logger.warning(
+                    "Ingestion item conflict source_id=%s reason=%s",
+                    source.id,
+                    exc.code,
                 )
-                logger.error(err_msg, exc_info=True)
                 errors.append(err_msg)
 
         # 3. Determine interim crawl status
@@ -239,6 +246,14 @@ class JobIngestionService:
         else:
             existing = await self.job_repo.get_by_canonical_url(canonical.canonical_url)
 
+        # Check global URL uniqueness before any mutation/flush, including updates
+        # and URL-only identities. Never bind a provider ID to another Job.
+        owner = await self.job_repo.get_by_canonical_url(canonical.canonical_url)
+        if (existing is not None and existing.source_id != source.id) or (
+            owner is not None and (existing is None or owner.id != existing.id)
+        ):
+            raise JobURLConflictError()
+
         if existing is None:
             # --- CREATED ---
             canonical.first_seen_at = now
@@ -258,7 +273,7 @@ class JobIngestionService:
             if self.requirement_service is not None:
                 try:
                     await self.requirement_service.extract_and_persist(saved_job)
-                except Exception as exc:
+                except RequirementExtractionError as exc:
                     warn_msg = (
                         f"requirement_extraction_failed_job_{saved_job.id}: {exc}"
                     )
@@ -266,7 +281,6 @@ class JobIngestionService:
                         "Requirement extraction failed for job %s: %s",
                         saved_job.id,
                         exc,
-                        exc_info=True,
                     )
                     if warnings is not None and warn_msg not in warnings:
                         warnings.append(warn_msg)
@@ -278,6 +292,42 @@ class JobIngestionService:
             )
             return CrawlJobAction.CREATED, saved_job.id
 
+        # Missing/unknown observations are not an authoritative clear. There is
+        # currently no provider clear contract. Raw data remains unmodified.
+        for field_name in (
+            "responsibilities",
+            "work_mode",
+            "employment_type",
+            "salary",
+        ):
+            if getattr(canonical, field_name) is None:
+                setattr(canonical, field_name, getattr(existing, field_name))
+        if not (
+            discovered.metadata.get("location") or discovered.metadata.get("country")
+        ):
+            canonical.location = existing.location or canonical.location
+        if discovered.metadata.get("description_available") is False or (
+            discovered.content_type == "application/json"
+            and not (
+                discovered.metadata.get("description")
+                or discovered.metadata.get("description_plain")
+            )
+        ):
+            canonical.description = existing.description
+        if (
+            discovered.metadata.get("title_available") is False
+            or not discovered.title
+            or not discovered.title.strip()
+        ):
+            canonical.title = existing.title
+        canonical.content_hash = self.normalizer.hash_job(canonical)
+        meaningful_change = canonical.content_hash != self.normalizer.hash_job(existing)
+        url_change = canonical.canonical_url != existing.canonical_url
+        publication_change = (
+            canonical.published_at is not None
+            and canonical.published_at != existing.published_at
+        )
+
         # Existing job found: preserve first_seen_at, touch last_seen_at
         existing.last_seen_at = now
         was_closed = existing.status == JobStatus.CLOSED
@@ -287,7 +337,7 @@ class JobIngestionService:
             existing.status = JobStatus.ACTIVE
             existing.closed_at = None
 
-        if canonical.content_hash != existing.content_hash or was_closed:
+        if meaningful_change or url_change or was_closed:
             # --- UPDATED --- (or REOPEN)
             existing.title = canonical.title
             existing.description = canonical.description
@@ -317,7 +367,7 @@ class JobIngestionService:
             if self.requirement_service is not None:
                 try:
                     await self.requirement_service.extract_and_persist(saved_job)
-                except Exception as exc:
+                except RequirementExtractionError as exc:
                     warn_msg = (
                         f"requirement_extraction_failed_job_{saved_job.id}: {exc}"
                     )
@@ -325,7 +375,6 @@ class JobIngestionService:
                         "Requirement extraction failed for job %s: %s",
                         saved_job.id,
                         exc,
-                        exc_info=True,
                     )
                     if warnings is not None and warn_msg not in warnings:
                         warnings.append(warn_msg)
@@ -338,6 +387,10 @@ class JobIngestionService:
             return CrawlJobAction.UPDATED, saved_job.id
 
         # --- UNCHANGED ---
+        # Hash algorithm transition alone is bookkeeping, never a fake update.
+        existing.content_hash = canonical.content_hash
+        if publication_change:
+            existing.published_at = canonical.published_at
         saved_job = await self.job_repo.save(existing)
 
         await self.crawl_run_repo.record_job_action(

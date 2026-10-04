@@ -7,6 +7,7 @@ import type { SearchProfileResponse } from '@/lib/api/types';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
+import { CreateSearchProfileClient } from './new/CreateSearchProfileClient';
 
 function formatSalaryRange(min: number | null, max: number | null): string | null {
   if (min != null && max != null) {
@@ -28,6 +29,8 @@ export function SearchProfilesClient() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<SearchProfileResponse | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const fetchProfiles = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -67,8 +70,15 @@ export function SearchProfilesClient() {
     }
   };
 
+  if (editing) return <CreateSearchProfileClient key={editing.id} initialProfile={editing}
+    onCancel={() => setEditing(null)} onSaved={updated => {
+      setProfiles(current => current.map(profile => profile.id === updated.id ? updated : profile));
+      setEditing(null); setSuccess('Search profile updated.');
+    }}/>;
+
   return (
     <div className="container" style={{ paddingTop: '2rem', paddingBottom: '3rem' }}>
+      {success && <p role="status">{success}</p>}
       {/* Header section */}
       <div
         style={{
@@ -454,6 +464,10 @@ export function SearchProfilesClient() {
                       </button>
                     </div>
                   ) : (
+                    <>
+                    <button type="button" className="btn btn-secondary" disabled={deletingId !== null}
+                      aria-label={`Edit ${profile.name}`} data-testid={`edit-profile-btn-${profile.id}`}
+                      onClick={() => {setConfirmDeleteId(null); setSuccess(null); setEditing(profile);}}>Edit</button>
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteId(profile.id)}
@@ -472,6 +486,7 @@ export function SearchProfilesClient() {
                       </svg>
                       Delete
                     </button>
+                    </>
                   )}
                 </div>
               </Card>

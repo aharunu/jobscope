@@ -16,6 +16,7 @@ function ApplicationDetail({applicationId}: {applicationId: string}) {
   const router = useRouter();
   const [app, setApp] = useState<Application | null>(null);
   const [notes, setNotes] = useState('');
+  const [notesSaved, setNotesSaved] = useState(false);
   const [target, setTarget] = useState<ApplicationStatus | ''>('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,11 @@ function ApplicationDetail({applicationId}: {applicationId: string}) {
   const [retry, setRetry] = useState(0);
   const controllerRef = useRef<AbortController | null>(null);
   const locked = useRef(false);
+  useEffect(() => {
+    if (!notesSaved) return;
+    const timer = setTimeout(() => setNotesSaved(false), 5000);
+    return () => clearTimeout(timer);
+  }, [notesSaved]);
   useEffect(() => {
     const controller = new AbortController(); controllerRef.current = controller;
     setLoading(true); setError('');
@@ -40,7 +46,7 @@ function ApplicationDetail({applicationId}: {applicationId: string}) {
     if (kind === 'status' && (!target || target === app.status)) return;
     if (kind === 'notes' && notes.length > 5000) return;
     if (kind === 'delete' && !confirm) return;
-    locked.current = true; setBusy(kind); setError('');
+    locked.current = true; setBusy(kind); setError(''); setNotesSaved(false);
     try {
       if (kind === 'delete') {
         await deleteApplication(applicationId, signal);
@@ -49,7 +55,7 @@ function ApplicationDetail({applicationId}: {applicationId: string}) {
         const result = kind === 'status' ? await updateApplicationStatus(applicationId, target as ApplicationStatus, signal) : await updateApplicationNotes(applicationId, notes.trim() || null, signal);
         if (!signal.aborted) {
           setApp(result); setTarget('');
-          if (kind === 'notes') setNotes(result.notes || '');
+          if (kind === 'notes') { setNotes(result.notes || ''); setNotesSaved(true); }
         }
       }
     } catch (err) {
@@ -80,6 +86,7 @@ function ApplicationDetail({applicationId}: {applicationId: string}) {
         </form>
       </section>
       <section className="card application-section"><h2>Private notes</h2>
+        {notesSaved && <Alert variant="info">Notes saved</Alert>}
         <form onSubmit={e => { e.preventDefault(); void mutate('notes'); }}>
           <label className="application-field">Notes<textarea value={notes} maxLength={5000} rows={6} disabled={!!busy} onChange={e => setNotes(e.target.value)} /></label>
           <p className="application-muted">{notes.length}/5000 characters. Empty notes clear the saved text.</p>

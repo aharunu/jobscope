@@ -1,0 +1,25 @@
+# Backend builds use the repository root. Only runtime inputs enter the context.
+**
+!pyproject.toml
+!alembic.ini
+!backend/
+!backend/**
+!data/
+!data/turkish-job-sources.md
+!scripts/
+!scripts/docker_backend_start.py
+**/.env
+**/.env.*
+**/.git
+**/venv
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+**/.next
+**/coverage
+**/*.log
+**/.idea
+**/.vscode

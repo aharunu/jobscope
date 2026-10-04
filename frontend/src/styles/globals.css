@@ -555,6 +555,14 @@ input, select {
 .profile-section-header, .profile-actions { display: flex; gap: .75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .profile-actions { justify-content: flex-start; }
 .profile-fieldset { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1rem; }
+.profile-fieldset { min-width: 0; }
+.profile-experience-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-field-group { min-width: 0; display: grid; align-content: start; gap: .5rem; }
+.profile-wide-field { grid-column: 1 / -1; min-width: 0; }
+.profile-fieldset input, .profile-fieldset select { min-width: 0; max-width: 100%; }
+.profile-fieldset input[type="date"] { color-scheme: dark; }
+.profile-field-error { color: var(--danger-text); font-size: .75rem; }
+@media (max-width: 640px) { .profile-experience-fields { grid-template-columns: minmax(0,1fr); } }
 .profile-editor { display: grid; gap: 1rem; }
 .profile-fieldset label { display: grid; gap: .35rem; font-size: .875rem; }
 .profile-fieldset .profile-checkbox { display: flex; align-items: center; gap: .5rem; }
