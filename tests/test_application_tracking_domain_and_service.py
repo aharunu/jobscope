@@ -108,6 +108,7 @@ def test_status_transition_matrix_valid_paths() -> None:
         (ApplicationStatus.APPLIED, ApplicationStatus.OFFER),
         (ApplicationStatus.APPLIED, ApplicationStatus.REJECTED),
         # From INTERVIEW
+        (ApplicationStatus.INTERVIEW, ApplicationStatus.APPLIED),
         (ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER),
         (ApplicationStatus.INTERVIEW, ApplicationStatus.REJECTED),
         # From OFFER

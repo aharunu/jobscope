@@ -22,6 +22,7 @@ export interface BaseProfileResponse {
 export type ProfileSectionName = 'skills' | 'experiences' | 'educations' | 'projects';
 export type ProfileEntry = ProfileSkill | ProfileExperience | ProfileEducation | ProfileProject;
 export const getProfile = (signal?: AbortSignal) => apiClient<BaseProfileResponse>('/api/profile', {signal, cache: 'no-store'});
+export const getSkillSuggestions = (q: string, signal?: AbortSignal) => apiClient<string[]>('/api/profile/skill-suggestions', {params:{q,limit:20},signal,cache:'no-store'});
 export const updateProfile = (payload: {name: string; summary: string | null}) => apiClient<BaseProfileResponse>('/api/profile', {method: 'PATCH', body: JSON.stringify(payload)});
 export const saveProfileEntry = (section: ProfileSectionName, payload: Record<string, unknown>, id?: string) =>
   apiClient<ProfileEntry>(`/api/profile/${section}${id ? `/${encodeURIComponent(id)}` : ''}`, {method: id ? 'PATCH' : 'POST', body: JSON.stringify(payload)});

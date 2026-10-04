@@ -112,6 +112,7 @@ def _make_job(
 @pytest.mark.asyncio
 async def test_canonical_job_ingestion_followed_by_requirement_extraction() -> None:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
     req_repo = InMemoryJobRequirementRepository()
@@ -186,6 +187,7 @@ async def test_canonical_job_ingestion_followed_by_requirement_extraction() -> N
 @pytest.mark.asyncio
 async def test_extraction_failure_follows_warning_error_semantics() -> None:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
     req_repo = InMemoryJobRequirementRepository()
@@ -243,6 +245,7 @@ async def test_extraction_failure_follows_warning_error_semantics() -> None:
 @pytest.mark.asyncio
 async def test_job_lifecycle_remains_unchanged_with_extraction() -> None:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
     req_repo = InMemoryJobRequirementRepository()
@@ -292,6 +295,7 @@ async def test_job_lifecycle_remains_unchanged_with_extraction() -> None:
 @pytest.mark.asyncio
 async def test_crawl_run_counters_with_requirements() -> None:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
     req_repo = InMemoryJobRequirementRepository()
@@ -354,6 +358,7 @@ async def test_crawl_run_counters_with_requirements() -> None:
 @pytest.mark.asyncio
 async def test_reopen_closed_job_extracts_updated_requirements() -> None:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
     req_repo = InMemoryJobRequirementRepository()
@@ -420,6 +425,7 @@ async def test_reopen_closed_job_extracts_updated_requirements() -> None:
 @pytest.mark.asyncio
 async def test_absence_closure_remains_functional_with_requirements() -> None:
     job_repo = AsyncMock(spec=JobRepository)
+    job_repo.get_by_canonical_url.return_value = None
     raw_job_repo = AsyncMock(spec=RawJobRepository)
     crawl_run_repo = AsyncMock(spec=CrawlRunRepository)
     req_repo = InMemoryJobRequirementRepository()

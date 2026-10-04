@@ -87,6 +87,7 @@ def get_ai_provider(
         settings.ai_model,
         settings.ai_timeout_seconds,
         settings.ai_enabled,
+        base_url=settings.ai_base_url,
     )
 
 

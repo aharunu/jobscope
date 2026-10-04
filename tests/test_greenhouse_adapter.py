@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import uuid
 from typing import Any
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -279,7 +278,12 @@ async def test_greenhouse_adapter_crawls_and_maps_dto() -> None:
             SafeHttpResponseDTO(
                 status_code=200,
                 url="https://boards-api.greenhouse.io/v1/boards/gramgamescareers/jobs",
-                text=json.dumps({"jobs": SAMPLE_GREENHOUSE_POSTINGS}),
+                text=json.dumps(
+                    {
+                        "jobs": SAMPLE_GREENHOUSE_POSTINGS,
+                        "meta": {"total": len(SAMPLE_GREENHOUSE_POSTINGS)},
+                    }
+                ),
             )
         ]
     )
@@ -325,7 +329,7 @@ async def test_greenhouse_adapter_fallback_canonical_url() -> None:
             SafeHttpResponseDTO(
                 status_code=200,
                 url="https://boards-api.greenhouse.io/v1/boards/gramgamescareers/jobs",
-                text=json.dumps({"jobs": [item]}),
+                text=json.dumps({"jobs": [item], "meta": {"total": len([item])}}),
             )
         ]
     )
@@ -353,7 +357,7 @@ async def test_greenhouse_adapter_skips_postings_without_valid_id() -> None:
             SafeHttpResponseDTO(
                 status_code=200,
                 url="...",
-                text=json.dumps({"jobs": items}),
+                text=json.dumps({"jobs": items, "meta": {"total": len(items)}}),
             )
         ]
     )
@@ -376,7 +380,7 @@ async def test_greenhouse_adapter_skips_non_dict_items() -> None:
             SafeHttpResponseDTO(
                 status_code=200,
                 url="...",
-                text=json.dumps({"jobs": items}),
+                text=json.dumps({"jobs": items, "meta": {"total": len(items)}}),
             )
         ]
     )
@@ -396,33 +400,22 @@ async def test_greenhouse_adapter_skips_non_dict_items() -> None:
 
 @pytest.mark.asyncio
 async def test_greenhouse_adapter_deduplicates_by_job_id_within_crawl() -> None:
-    """Duplicate job IDs across pages are not emitted twice."""
-    page1 = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-    page2 = [
-        SAMPLE_GREENHOUSE_POSTINGS[0],  # Duplicate of page 1 job
-        {
-            "id": 9999999,
-            "title": "Staff DevOps Engineer",
-            "absolute_url": "https://boards.greenhouse.io/job/9999999",
-        },
-    ]
-    mock_http = MockSafeHttpClient(
+    """A duplicated posting is emitted once, but coverage remains incomplete."""
+    items = [*SAMPLE_GREENHOUSE_POSTINGS, SAMPLE_GREENHOUSE_POSTINGS[0]]
+    client = MockSafeHttpClient(
         [
             SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page1})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page2})
-            ),
+                status_code=200,
+                url="...",
+                text=json.dumps({"jobs": items, "meta": {"total": 3}}),
+            )
         ]
     )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(pagination_config={"page_size": 2, "max_pages": 5})
-
-    result = await adapter.crawl(source)
-    assert len(result.jobs) == 3
-    job_ids = [j.external_job_id for j in result.jobs]
-    assert job_ids == ["4829101", "4829102", "9999999"]
+    result = await GreenhouseAdapter(client).crawl(make_greenhouse_source())
+    assert [j.external_job_id for j in result.jobs] == ["4829101", "4829102"]
+    assert result.is_complete is False
+    assert result.warnings == ["Duplicate posting ID at index 2"]
+    assert len(client.requests) == 1
 
 
 @pytest.mark.asyncio
@@ -447,7 +440,9 @@ async def test_greenhouse_adapter_does_not_merge_distinct_jobs_with_same_title()
     mock_http = MockSafeHttpClient(
         [
             SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": items})
+                status_code=200,
+                url="...",
+                text=json.dumps({"jobs": items, "meta": {"total": len(items)}}),
             )
         ]
     )
@@ -489,197 +484,46 @@ async def test_greenhouse_adapter_handles_valid_empty_board() -> None:
     assert result.metadata["pages_fetched"] == 1
 
 
-# ==============================================================================
-# Pagination & Completeness Tests
-# ==============================================================================
+# Full-list Contract & Legacy Configuration Tests
 
 
 @pytest.mark.asyncio
-async def test_greenhouse_adapter_multi_page_natural_exhaustion() -> None:
-    """Multi-page pagination terminates with is_complete=True
-    when page has < page_size items.
-    """
-    page1 = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-    page2 = [
-        {
-            "id": 9999999,
-            "title": "Staff DevOps Engineer",
-            "absolute_url": "https://boards.greenhouse.io/job/9999999",
-        }
-    ]
-    mock_http = MockSafeHttpClient(
-        [
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page1})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page2})
-            ),
-        ]
-    )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(pagination_config={"page_size": 2, "max_pages": 5})
-
-    result = await adapter.crawl(source)
-    assert len(result.jobs) == 3
-    assert result.metadata["pages_fetched"] == 2
-    assert "pagination_max_pages_reached" not in result.warnings
-    assert result.is_complete is True
-
-    # Verify params passed
-    assert len(mock_http.requests) == 2
-    assert mock_http.requests[0]["params"] == {
-        "content": "true",
-        "page": 1,
-        "per_page": 2,
-    }
-    assert mock_http.requests[1]["params"] == {
-        "content": "true",
-        "page": 2,
-        "per_page": 2,
-    }
-
-
-@pytest.mark.asyncio
-async def test_greenhouse_adapter_multi_page_empty_final_page() -> None:
-    """Multi-page pagination terminates with is_complete=True
-    when final page returns 0 items.
-    """
-    page1 = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-    page2: list[dict[str, Any]] = []
-
-    mock_http = MockSafeHttpClient(
-        [
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page1})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page2})
-            ),
-        ]
-    )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(pagination_config={"page_size": 2, "max_pages": 5})
-
-    result = await adapter.crawl(source)
-    assert len(result.jobs) == 2
-    assert result.metadata["pages_fetched"] == 2
-    assert result.is_complete is True
-
-
-@pytest.mark.asyncio
-async def test_greenhouse_adapter_pagination_max_pages_warning() -> None:
-    """Reaching max_pages when full page returned records warning
-    and sets is_complete=False.
-    """
-    page_full = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-    page_full_2 = [
-        {
-            "id": 1001,
-            "title": "Job 1",
-            "absolute_url": "https://boards.greenhouse.io/job/1001",
-        },
-        {
-            "id": 1002,
-            "title": "Job 2",
-            "absolute_url": "https://boards.greenhouse.io/job/1002",
-        },
-    ]
-
-    mock_http = MockSafeHttpClient(
-        [
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page_full})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page_full_2})
-            ),
-        ]
-    )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(pagination_config={"page_size": 2, "max_pages": 2})
-
-    result = await adapter.crawl(source)
-    assert len(result.jobs) == 4
-    assert result.metadata["pages_fetched"] == 2
-    assert "pagination_max_pages_reached" in result.warnings
-    assert result.is_complete is False
-
-
-@pytest.mark.asyncio
-async def test_greenhouse_adapter_loop_protection_duplicate_page() -> None:
-    """When server returns identical non-empty page, break to prevent infinite loop."""
-    page_full = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-
-    mock_http = MockSafeHttpClient(
-        [
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page_full})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page_full})
-            ),
-        ]
-    )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(pagination_config={"page_size": 2, "max_pages": 10})
-
-    result = await adapter.crawl(source)
-    assert len(result.jobs) == 2
-    assert result.metadata["pages_fetched"] == 2
-    assert "duplicate_page_detected" in result.warnings
-    assert result.is_complete is False
-
-
-@pytest.mark.asyncio
-async def test_greenhouse_adapter_pagination_mode_none() -> None:
-    """When pagination_mode == 'none', completes after single fetch
-    without page params.
-    """
-    mock_http = MockSafeHttpClient(
+@pytest.mark.parametrize(
+    "legacy",
+    [
+        {},
+        {"page_size": 1, "max_pages": 1, "pagination_mode": "page"},
+        {"page_size": False, "max_pages": -2, "pagination_mode": "cursor"},
+        {"page_size": "invalid", "max_pages": None, "pagination_mode": "none"},
+    ],
+)
+async def test_greenhouse_full_list_ignores_legacy_pagination(legacy: dict) -> None:
+    client = MockSafeHttpClient(
         [
             SafeHttpResponseDTO(
                 status_code=200,
                 url="...",
-                text=json.dumps({"jobs": SAMPLE_GREENHOUSE_POSTINGS}),
+                text=json.dumps(
+                    {
+                        "jobs": SAMPLE_GREENHOUSE_POSTINGS,
+                        "meta": {"total": 2},
+                    }
+                ),
             )
         ]
     )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(pagination_config={"pagination_mode": "none"})
-
-    result = await adapter.crawl(source)
+    source = make_greenhouse_source(
+        pagination_config=legacy, rate_limit_config={"delay_seconds": 0.5}
+    )
+    original = dict(source.pagination_config)
+    result = await GreenhouseAdapter(client).crawl(source)
     assert len(result.jobs) == 2
     assert result.is_complete is True
-    assert mock_http.requests[0]["params"] == {"content": "true"}
-
-
-@pytest.mark.asyncio
-async def test_greenhouse_adapter_respects_rate_limit_delay() -> None:
-    """Rate limit delay is triggered between pagination requests."""
-    page1 = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-    page2 = [SAMPLE_GREENHOUSE_POSTINGS[0]]
-
-    mock_http = MockSafeHttpClient(
-        [
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page1})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page2})
-            ),
-        ]
-    )
-    adapter = GreenhouseAdapter(http_client=mock_http)
-    source = make_greenhouse_source(
-        pagination_config={"page_size": 2, "max_pages": 5},
-        rate_limit_config={"delay_seconds": 0.5},
-    )
-
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        result = await adapter.crawl(source)
-        assert len(result.jobs) == 2
-        mock_sleep.assert_awaited_once_with(0.5)
+    assert not result.warnings
+    assert result.metadata["pages_fetched"] == 1
+    assert client.requests[0]["params"] == {"content": "true"}
+    assert len(client.requests) == 1
+    assert source.pagination_config == original
 
 
 # ==============================================================================

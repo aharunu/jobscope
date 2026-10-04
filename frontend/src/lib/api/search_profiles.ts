@@ -10,6 +10,7 @@ export async function listSearchProfiles(
 ): Promise<SearchProfileResponse[]> {
   return apiClient<SearchProfileResponse[]>('/api/search-profiles', {
     method: 'GET',
+    cache: 'no-store',
     signal,
   });
 }
@@ -31,6 +32,18 @@ export async function deleteSearchProfile(
 ): Promise<void> {
   await apiClient<void>(`/api/search-profiles/${id}`, {
     method: 'DELETE',
+    signal,
+  });
+}
+
+export async function updateSearchProfile(
+  id: string,
+  payload: Partial<SearchProfileCreateRequest>,
+  signal?: AbortSignal,
+): Promise<SearchProfileResponse> {
+  return apiClient<SearchProfileResponse>(`/api/search-profiles/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
     signal,
   });
 }

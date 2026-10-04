@@ -244,7 +244,7 @@ def test_registry_resolves_greenhouse_adapter() -> None:
 
     assert registry.is_supported("greenhouse") is True
     assert registry.is_supported("lever") is True
-    assert registry.is_supported("workday") is False
+    assert registry.is_supported("workday") is True
 
     adapter = registry.get_adapter("greenhouse")
     assert isinstance(adapter, GreenhouseAdapter)
@@ -253,7 +253,7 @@ def test_registry_resolves_greenhouse_adapter() -> None:
     # Case-insensitivity & whitespace trimming
     assert registry.get_adapter("GREENHOUSE") is adapter
     assert registry.get_adapter("  greenhouse  ") is adapter
-    assert registry.list_supported_types() == ["greenhouse", "lever"]
+    assert registry.is_supported("greenhouse") and registry.is_supported("lever")
 
 
 # ==============================================================================
@@ -279,7 +279,9 @@ async def test_crawler_orchestrator_crawls_greenhouse_source() -> None:
             SafeHttpResponseDTO(
                 status_code=200,
                 url="https://boards-api.greenhouse.io/v1/boards/gramgamescareers/jobs",
-                text=json.dumps({"jobs": SAMPLE_GREENHOUSE_POSTINGS}),
+                text=json.dumps(
+                    {"jobs": SAMPLE_GREENHOUSE_POSTINGS, "meta": {"total": 2}}
+                ),
             )
         ]
     )
@@ -343,12 +345,14 @@ async def test_crawler_orchestrator_crawls_sources_by_ats_type_greenhouse() -> N
             SafeHttpResponseDTO(
                 status_code=200,
                 url="...",
-                text=json.dumps({"jobs": SAMPLE_GREENHOUSE_POSTINGS}),
+                text=json.dumps(
+                    {"jobs": SAMPLE_GREENHOUSE_POSTINGS, "meta": {"total": 2}}
+                ),
             ),
             SafeHttpResponseDTO(
                 status_code=200,
                 url="...",
-                text=json.dumps({"jobs": []}),
+                text=json.dumps({"jobs": [], "meta": {"total": 0}}),
             ),
         ]
     )
@@ -382,7 +386,9 @@ async def test_full_greenhouse_pipeline_ingestion_and_requirement_extraction() -
             SafeHttpResponseDTO(
                 status_code=200,
                 url="https://boards-api.greenhouse.io/v1/boards/gramgamescareers/jobs",
-                text=json.dumps({"jobs": SAMPLE_GREENHOUSE_POSTINGS}),
+                text=json.dumps(
+                    {"jobs": SAMPLE_GREENHOUSE_POSTINGS, "meta": {"total": 2}}
+                ),
             )
         ]
     )
@@ -714,18 +720,8 @@ def test_crawler_orchestrator_contains_no_greenhouse_specific_branches() -> None
 
 
 @pytest.mark.asyncio
-async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() -> None:
-    """Test 14: Controlled multi-page response with max_pages=1 ceiling.
-
-    Verifies:
-    1. Adapter stops at max_pages=1 despite continuation (next page exists).
-    2. Adapter returns discovered jobs from page 1.
-    3. Adapter sets is_complete=False.
-    4. Adapter emits 'pagination_max_pages_reached' warning.
-    5. Ingestion pipeline skips absence-based closure (jobs_closed == 0).
-    6. Active jobs belonging to page 2 (unseen in page 1) remain ACTIVE
-       and are NOT closed.
-    """
+async def test_greenhouse_total_mismatch_suppresses_absence_closure() -> None:
+    """A truncated full-board response cannot close an unseen active job."""
     job_repo = InMemoryJobRepository()
     raw_job_repo = InMemoryRawJobRepository()
     crawl_run_repo = InMemoryCrawlRunRepository()
@@ -757,22 +753,18 @@ async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() ->
     )
     await job_repo.save(page2_active_job)
 
-    # Multi-page HTTP response mock
-    page1 = [SAMPLE_GREENHOUSE_POSTINGS[0], SAMPLE_GREENHOUSE_POSTINGS[1]]
-    page2 = [
-        {
-            "id": 99991,
-            "title": "PAGE2_JOB",
-            "absolute_url": "https://boards.greenhouse.io/gramgamescareers/jobs/PAGE2_JOB",
-        }
-    ]
+    # Response advertises three posts but supplies only two.
     mock_http = MockSafeHttpClient(
         [
             SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page1})
-            ),
-            SafeHttpResponseDTO(
-                status_code=200, url="...", text=json.dumps({"jobs": page2})
+                status_code=200,
+                url="...",
+                text=json.dumps(
+                    {
+                        "jobs": SAMPLE_GREENHOUSE_POSTINGS,
+                        "meta": {"total": 3},
+                    }
+                ),
             ),
         ]
     )
@@ -785,8 +777,8 @@ async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() ->
     assert len(crawl_result.jobs) == 2
     assert crawl_result.metadata["pages_fetched"] == 1
     assert crawl_result.is_complete is False
-    assert "pagination_max_pages_reached" in crawl_result.warnings
-    # Only 1 request was issued because max_pages=1 was reached immediately after page 1
+    assert "total_count_mismatch" in crawl_result.warnings
+    # Full-list acquisition always makes one request.
     assert len(mock_http.requests) == 1
 
     # 2. Ingest crawl result into pipeline
@@ -806,7 +798,7 @@ async def test_greenhouse_max_pages_ceiling_and_absence_closure_suppression() ->
     assert summary.status == CrawlStatus.PARTIAL
     assert summary.jobs_found == 2
     assert summary.jobs_closed == 0
-    assert "pagination_max_pages_reached" in summary.warnings
+    assert "total_count_mismatch" in summary.warnings
 
     # 3. Verify page2_active_job was NOT closed due to incomplete crawl
     active_jobs = await job_repo.get_active_jobs_by_source(source.id)

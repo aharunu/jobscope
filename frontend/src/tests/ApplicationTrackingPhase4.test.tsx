@@ -18,6 +18,23 @@ const list = (...items: Application[]): ApplicationListResponse => ({items, tota
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (error: Error) => void; const promise = new Promise<T>((a,b) => {resolve=a; reject=b;}); return {promise, resolve, reject}; }
 beforeEach(() => {vi.resetAllMocks(); api.listApplications.mockResolvedValue(list()); api.getApplication.mockResolvedValue(application()); api.createApplication.mockResolvedValue(application());});
 
+it('offers Applied for Interview and renders the backend persisted correction/history', async () => {
+  api.getApplication.mockResolvedValue(application('a', 'INTERVIEW'));
+  api.updateApplicationStatus.mockResolvedValue({...application('a', 'APPLIED'), status_history:[{
+    id:'correction', application_id:'a', from_status:'INTERVIEW', to_status:'APPLIED', changed_at:'2026-10-04T12:00:00Z',
+  }]});
+  render(<ApplicationDetailClient applicationId="a"/>);
+  const select = await screen.findByLabelText('New status');
+  expect(screen.getByRole('option', {name:'Applied'})).toHaveValue('APPLIED');
+  expect(api.updateApplicationStatus).not.toHaveBeenCalled();
+  fireEvent.change(select, {target:{value:'APPLIED'}});
+  fireEvent.click(screen.getByRole('button', {name:'Update status'}));
+  await screen.findByText('Interview → Applied');
+  expect(api.updateApplicationStatus).toHaveBeenCalledTimes(1);
+  expect(api.updateApplicationStatus).toHaveBeenCalledWith('a','APPLIED',expect.any(AbortSignal));
+  expect(screen.getByText('Applied', {selector:'span'})).toBeInTheDocument();
+});
+
 describe('Applications list', () => {
   it('shows loading then useful empty state', async () => {
     const pending = deferred<ApplicationListResponse>(); api.listApplications.mockReturnValue(pending.promise);
@@ -87,10 +104,28 @@ describe('Application management', () => {
     await waitFor(() => expect(screen.getByRole('button', {name:'Save notes'})).toBeEnabled()); expect(notes).toHaveValue(draft);
     expect(screen.getByText('No status changes yet.')).toBeInTheDocument();
   });
+  it('shows transient notes feedback only after the backend save succeeds', async () => {
+    const pending = deferred<Application>(); api.updateApplicationNotes.mockReturnValue(pending.promise);
+    render(<ApplicationDetailClient applicationId="a" />); await screen.findByText('Engineer a');
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(screen.getByLabelText('Notes'), {target:{value:'Saved draft'}});
+      fireEvent.click(screen.getByRole('button', {name:'Save notes'}));
+      expect(screen.queryByText('Notes saved')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Notes')).toBeDisabled();
+      await act(async () => pending.resolve({...application(), notes:'Saved draft'}));
+      expect(screen.getByRole('alert')).toHaveTextContent('Notes saved');
+      expect(screen.getByLabelText('Notes')).toHaveValue('Saved draft');
+      expect(screen.getByRole('button', {name:'Save notes'})).toBeEnabled();
+      act(() => vi.advanceTimersByTime(5000));
+      expect(screen.queryByText('Notes saved')).not.toBeInTheDocument();
+    } finally { vi.useRealTimers(); }
+  });
   it('preserves unsaved notes on failure', async () => {
     api.updateApplicationNotes.mockRejectedValue(new Error('Notes unavailable')); render(<ApplicationDetailClient applicationId="a" />); await screen.findByText('Engineer a');
     fireEvent.change(screen.getByLabelText('Notes'), {target:{value:'Keep draft'}}); fireEvent.click(screen.getByRole('button', {name:'Save notes'}));
     expect(await screen.findByRole('alert')).toHaveTextContent('Notes unavailable'); expect(screen.getByLabelText('Notes')).toHaveValue('Keep draft');
+    expect(screen.queryByText('Notes saved')).not.toBeInTheDocument();
   });
   it('requires confirmation, allows cancellation and returns to list after deletion', async () => {
     api.deleteApplication.mockResolvedValue(undefined); render(<ApplicationDetailClient applicationId="a" />); await screen.findByText('Engineer a');

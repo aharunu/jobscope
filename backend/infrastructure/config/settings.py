@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+import httpx
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -43,6 +44,29 @@ class Settings(BaseSettings):
         default="gpt-4.1-mini-2025-04-14", min_length=1, max_length=100
     )
     ai_timeout_seconds: float = Field(default=30, ge=1, le=120)
+    ai_base_url: str | None = Field(default=None, repr=False)
+
+    @field_validator("ai_base_url")
+    @classmethod
+    def validate_ai_base_url(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        value = value.strip().rstrip("/")
+        try:
+            url = httpx.URL(value)
+        except httpx.InvalidURL:
+            raise ValueError("AI_BASE_URL must be an HTTP(S) API base URL") from None
+        if (
+            url.scheme not in ("http", "https")
+            or not url.host
+            or url.userinfo
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "AI_BASE_URL must be HTTP(S), without credentials, query or fragment"
+            )
+        return value
 
     log_level: str = Field(default="INFO", description="Log verbosity level")
     log_format: str = Field(
@@ -57,6 +81,15 @@ class Settings(BaseSettings):
     )
 
     # Source Health Probe Configuration
+    crawler_max_response_bytes: int = Field(
+        default=15 * 1024 * 1024, ge=1024, le=64 * 1024 * 1024
+    )
+    crawler_max_source_requests: int = Field(default=1000, ge=1, le=10000)
+    crawler_max_source_bytes: int = Field(
+        default=128 * 1024 * 1024, ge=1024, le=1024 * 1024 * 1024
+    )
+    crawler_max_source_seconds: float = Field(default=300, ge=1, le=3600)
+
     source_probe_timeout_seconds: float = Field(
         default=10.0,
         description="Timeout in seconds for source health probe HTTP requests",

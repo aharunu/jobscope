@@ -38,7 +38,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Startup: ensure managed HttpSafeClient and ATSAdapterRegistry are initialized
     if getattr(app.state, "http_safe_client", None) is None:
-        app.state.http_safe_client = HttpSafeClient()
+        app.state.http_safe_client = HttpSafeClient(
+            max_response_bytes=settings.crawler_max_response_bytes
+        )
 
     if getattr(app.state, "adapter_registry", None) is None:
         app.state.adapter_registry = create_adapter_registry(app.state.http_safe_client)

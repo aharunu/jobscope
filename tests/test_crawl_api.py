@@ -27,9 +27,9 @@ from backend.interfaces.api.dependencies.crawler import (
     get_adapter_registry,
     get_crawl_persistence_manager,
     get_crawler_orchestrator,
+    get_runtime_source_provider,
 )
 from backend.interfaces.api.dependencies.sources import (
-    get_source_registry_service,
     get_source_repository,
 )
 from backend.interfaces.api.main import create_app
@@ -227,7 +227,7 @@ def client(source_repo: InMemorySourceRepo) -> TestClient:
     )
 
     app.dependency_overrides[get_source_repository] = lambda: source_repo
-    app.dependency_overrides[get_source_registry_service] = lambda: source_service
+    app.dependency_overrides[get_runtime_source_provider] = lambda: source_service
     app.dependency_overrides[get_adapter_registry] = lambda: registry
     app.dependency_overrides[get_crawl_persistence_manager] = lambda: persistence_mgr
     app.dependency_overrides[get_crawler_orchestrator] = lambda: orchestrator

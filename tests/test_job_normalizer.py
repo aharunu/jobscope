@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import uuid
 from datetime import UTC, datetime
 
@@ -130,7 +131,20 @@ def test_job_normalizer_deterministic_content_hash() -> None:
 
     # Verify matching manual hash
     expected = hashlib.sha256(
-        b"DevOps Engineer\nManaging Kubernetes clusters\nRemote\nremote"
+        json.dumps(
+            [
+                "DevOps Engineer",
+                "Managing Kubernetes clusters",
+                "Remote",
+                "remote",
+                "",
+                "",
+                "",
+                job1.company,
+            ],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
     ).hexdigest()
     assert job1.content_hash == expected
 

@@ -1,0 +1,78 @@
+name: jobscope-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jobscope}
+      POSTGRES_USER: ${POSTGRES_USER:-jobscope}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in an ignored environment file}
+    ports:
+      - "127.0.0.1:${DOCKER_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: "no"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jobscope}
+      POSTGRES_USER: ${POSTGRES_USER:-jobscope}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in an ignored environment file}
+      ENVIRONMENT: development
+      DEBUG: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      WATCHFILES_FORCE_POLLING: "true"
+      AI_ENABLED: ${DOCKER_AI_ENABLED:-false}
+      AI_BASE_URL: ${DOCKER_AI_BASE_URL:-}
+      OPENAI_API_KEY: ${DOCKER_OPENAI_API_KEY:-}
+      AI_MODEL: ${DOCKER_AI_MODEL:-gpt-4.1-mini-2025-04-14}
+      AI_TIMEOUT_SECONDS: ${DOCKER_AI_TIMEOUT_SECONDS:-120}
+    ports:
+      - "127.0.0.1:${DOCKER_BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app/backend:ro
+      - ./data:/app/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=4).close()"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 24
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: "no"
+    environment:
+      BACKEND_API_URL: http://backend:8000
+      WATCHPACK_POLLING: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "127.0.0.1:${DOCKER_FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend/src:/app/src:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      start_period: 30s
+      retries: 18
+
+volumes:
+  postgres_data:
+    name: jobscope_docker_postgres_data

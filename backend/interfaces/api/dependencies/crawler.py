@@ -11,16 +11,22 @@ from backend.application.job_discovery.crawler_service import CrawlerOrchestrato
 from backend.application.job_discovery.history_service import CrawlHistoryService
 from backend.application.job_discovery.ports import (
     CrawlPersistenceManager,
+    CrawlSourceProvider,
     RuntimeSourceProvider,
     SafeHttpClient,
 )
 from backend.infrastructure.ats.factory import create_adapter_registry
+from backend.infrastructure.config.settings import get_settings
 from backend.infrastructure.database.crawl_persistence import (
     SQLAlchemyCrawlPersistenceManager,
 )
+from backend.infrastructure.database.crawl_runtime import (
+    PostgreSQLCrawlAdmissionGuard,
+    SQLAlchemyRuntimeSourceProvider,
+)
+from backend.infrastructure.database.session import create_session_factory
 from backend.infrastructure.http.safe_client import HttpSafeClient
 from backend.interfaces.api.dependencies.job_processing import CrawlRunRepositoryDep
-from backend.interfaces.api.dependencies.sources import get_source_registry_service
 
 
 def get_safe_http_client(request: Request) -> SafeHttpClient:
@@ -28,7 +34,8 @@ def get_safe_http_client(request: Request) -> SafeHttpClient:
     client = getattr(request.app.state, "http_safe_client", None)
     if client is None:
         # Fallback for isolated unit tests or non-lifespan contexts
-        return HttpSafeClient()
+        settings = getattr(request.app.state, "settings", None) or get_settings()
+        return HttpSafeClient(max_response_bytes=settings.crawler_max_response_bytes)
     return client
 
 
@@ -54,7 +61,8 @@ def get_crawl_persistence_manager(request: Request) -> CrawlPersistenceManager:
     custom_mgr = getattr(request.app.state, "crawl_persistence_manager", None)
     if custom_mgr is not None:
         return custom_mgr
-    return SQLAlchemyCrawlPersistenceManager()
+    engine = getattr(request.app.state, "db_engine", None)
+    return SQLAlchemyCrawlPersistenceManager(create_session_factory(engine))
 
 
 CrawlPersistenceManagerDep = Annotated[
@@ -62,9 +70,15 @@ CrawlPersistenceManagerDep = Annotated[
 ]
 
 
+def get_runtime_source_provider(request: Request) -> CrawlSourceProvider:
+    engine = getattr(request.app.state, "db_engine", None)
+    return SQLAlchemyRuntimeSourceProvider(create_session_factory(engine))
+
+
 def get_crawler_orchestrator(
+    request: Request,
     source_provider: Annotated[
-        RuntimeSourceProvider, Depends(get_source_registry_service)
+        RuntimeSourceProvider, Depends(get_runtime_source_provider)
     ],
     adapter_registry: ATSAdapterRegistryDep,
     persistence_manager: CrawlPersistenceManagerDep,
@@ -76,6 +90,21 @@ def get_crawler_orchestrator(
         source_provider=source_provider,
         adapter_registry=adapter_registry,
         persistence_manager=persistence_manager,
+        admission_guard=PostgreSQLCrawlAdmissionGuard(
+            getattr(request.app.state, "db_engine", None)
+        ),
+        budget_factory=lambda: _acquisition_budget(request),
+    )
+
+
+def _acquisition_budget(request: Request):
+    from backend.application.job_discovery.budget import AcquisitionBudget
+
+    settings = getattr(request.app.state, "settings", None) or get_settings()
+    return AcquisitionBudget(
+        max_requests=settings.crawler_max_source_requests,
+        max_bytes=settings.crawler_max_source_bytes,
+        max_seconds=settings.crawler_max_source_seconds,
     )
 
 

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { createSearchProfile } from '@/lib/api/search_profiles';
-import { ApiError, ApiErrorDetail, SearchProfileCreateRequest } from '@/lib/api/types';
+import { createSearchProfile, updateSearchProfile } from '@/lib/api/search_profiles';
+import { ApiError, ApiErrorDetail, SearchProfileCreateRequest, SearchProfileResponse } from '@/lib/api/types';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -20,21 +20,28 @@ function parseCommaList(input: string): string[] {
     .filter((item) => item.length > 0);
 }
 
-export function CreateSearchProfileClient() {
+export function CreateSearchProfileClient({initialProfile, onSaved, onCancel}: {
+  initialProfile?: SearchProfileResponse;
+  onSaved?: (profile: SearchProfileResponse) => void;
+  onCancel?: () => void;
+} = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl');
+  const returnUrl = initialProfile ? null : searchParams.get('returnUrl');
+  const submitLock = useRef(false);
+  const editorList = (text: string, field: 'target_roles' | 'target_skills' | 'locations' | 'industries') =>
+    initialProfile && text === initialProfile[field].join(', ') ? initialProfile[field] : parseCommaList(text);
 
   // Form State
-  const [name, setName] = useState('');
-  const [seniority, setSeniority] = useState('');
-  const [targetRolesText, setTargetRolesText] = useState('');
-  const [targetSkillsText, setTargetSkillsText] = useState('');
-  const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([]);
-  const [locationsText, setLocationsText] = useState('');
-  const [industriesText, setIndustriesText] = useState('');
-  const [salaryMin, setSalaryMin] = useState('');
-  const [salaryMax, setSalaryMax] = useState('');
+  const [name, setName] = useState(initialProfile?.name ?? '');
+  const [seniority, setSeniority] = useState(initialProfile?.seniority ?? '');
+  const [targetRolesText, setTargetRolesText] = useState(initialProfile?.target_roles.join(', ') ?? '');
+  const [targetSkillsText, setTargetSkillsText] = useState(initialProfile?.target_skills.join(', ') ?? '');
+  const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>(initialProfile?.work_modes ?? []);
+  const [locationsText, setLocationsText] = useState(initialProfile?.locations.join(', ') ?? '');
+  const [industriesText, setIndustriesText] = useState(initialProfile?.industries.join(', ') ?? '');
+  const [salaryMin, setSalaryMin] = useState(String(initialProfile?.salary_min ?? ''));
+  const [salaryMax, setSalaryMax] = useState(String(initialProfile?.salary_max ?? ''));
 
   // UI / Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,28 +100,28 @@ export function CreateSearchProfileClient() {
     }
 
     // List validation checks
-    const roles = parseCommaList(targetRolesText);
+    const roles = editorList(targetRolesText, 'target_roles');
     if (roles.length > 50) {
       errors.target_roles = 'Cannot exceed 50 target roles.';
     } else if (roles.some((r) => r.length > 150)) {
       errors.target_roles = 'Individual role names cannot exceed 150 characters.';
     }
 
-    const skills = parseCommaList(targetSkillsText);
+    const skills = editorList(targetSkillsText, 'target_skills');
     if (skills.length > 50) {
       errors.target_skills = 'Cannot exceed 50 target skills.';
     } else if (skills.some((s) => s.length > 150)) {
       errors.target_skills = 'Individual skill names cannot exceed 150 characters.';
     }
 
-    const locs = parseCommaList(locationsText);
+    const locs = editorList(locationsText, 'locations');
     if (locs.length > 50) {
       errors.locations = 'Cannot exceed 50 locations.';
     } else if (locs.some((l) => l.length > 150)) {
       errors.locations = 'Individual location names cannot exceed 150 characters.';
     }
 
-    const inds = parseCommaList(industriesText);
+    const inds = editorList(industriesText, 'industries');
     if (inds.length > 50) {
       errors.industries = 'Cannot exceed 50 industries.';
     } else if (inds.some((i) => i.length > 150)) {
@@ -129,11 +136,12 @@ export function CreateSearchProfileClient() {
     e.preventDefault();
 
     // Prevent duplicate request when already submitting
-    if (isSubmitting) return;
+    if (submitLock.current) return;
 
     setApiError(null);
     if (!validateForm()) return;
 
+    submitLock.current = true;
     setIsSubmitting(true);
 
     const minNum = salaryMin.trim() !== '' ? Number(salaryMin) : null;
@@ -142,16 +150,21 @@ export function CreateSearchProfileClient() {
     const payload: SearchProfileCreateRequest = {
       name: name.trim(),
       seniority: seniority.trim() || null,
-      target_roles: parseCommaList(targetRolesText),
-      target_skills: parseCommaList(targetSkillsText),
-      locations: parseCommaList(locationsText),
+      target_roles: editorList(targetRolesText, 'target_roles'),
+      target_skills: editorList(targetSkillsText, 'target_skills'),
+      locations: editorList(locationsText, 'locations'),
       work_modes: selectedWorkModes,
-      industries: parseCommaList(industriesText),
+      industries: editorList(industriesText, 'industries'),
       salary_min: minNum,
       salary_max: maxNum,
     };
 
     try {
+      if (initialProfile) {
+        const updated = await updateSearchProfile(initialProfile.id, payload);
+        onSaved?.(updated);
+        return;
+      }
       const created = await createSearchProfile(payload);
 
       // Successfully created profile!
@@ -190,6 +203,7 @@ export function CreateSearchProfileClient() {
         });
       }
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
@@ -200,7 +214,7 @@ export function CreateSearchProfileClient() {
     <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '720px' }}>
       {/* Back Link */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <Link
+        {initialProfile ? <Button type="button" variant="secondary" disabled={isSubmitting} onClick={onCancel}>Back to Search Profiles</Button> : <Link
           href={cancelDestination}
           style={{
             display: 'inline-flex',
@@ -215,7 +229,7 @@ export function CreateSearchProfileClient() {
             <polyline points="15 18 9 12 15 6" />
           </svg>
           <span>{returnUrl ? 'Back to Job Detail' : 'Back to Search Profiles'}</span>
-        </Link>
+        </Link>}
       </div>
 
       <Card style={{ padding: '2rem' }}>
@@ -228,7 +242,7 @@ export function CreateSearchProfileClient() {
               letterSpacing: '-0.02em',
             }}
           >
-            Create Search Profile
+            {initialProfile ? 'Edit Search Profile' : 'Create Search Profile'}
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
             Set candidate target criteria, skills, and work preferences for deterministic match evaluation.
@@ -255,7 +269,8 @@ export function CreateSearchProfileClient() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <form aria-label={initialProfile ? 'Edit Search Profile' : 'Create Search Profile'} onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <fieldset disabled={isSubmitting} style={{border: 0, padding: 0, margin: 0, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
           {/* Profile Name (Required) */}
           <div>
             <Input
@@ -286,7 +301,7 @@ export function CreateSearchProfileClient() {
               label="Seniority Level"
               id="search-profile-seniority"
               name="seniority"
-              placeholder="e.g. Senior, Lead, Mid-Level"
+              placeholder="e.g. Senior"
               value={seniority}
               onChange={(e) => {
                 setSeniority(e.target.value);
@@ -297,12 +312,14 @@ export function CreateSearchProfileClient() {
               error={fieldErrors.seniority}
               data-testid="profile-seniority-input"
             />
+            <p className="text-muted" style={{fontSize: '0.75rem', marginTop: '0.25rem'}}>One seniority level per profile (optional).</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
               {SENIORITY_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setSeniority(preset)}
+                  aria-pressed={seniority === preset}
                   style={{
                     fontSize: '0.75rem',
                     padding: '0.2rem 0.5rem',
@@ -497,6 +514,7 @@ export function CreateSearchProfileClient() {
           </div>
 
           {/* Submit Actions */}
+          </fieldset>
           <div
             style={{
               display: 'flex',
@@ -508,14 +526,14 @@ export function CreateSearchProfileClient() {
               borderTop: '1px solid var(--border-subtle)',
             }}
           >
-            <Link
+            {initialProfile ? <Button type="button" variant="secondary" disabled={isSubmitting} onClick={onCancel}>Cancel</Button> : <Link
               href={cancelDestination}
               className="btn btn-secondary"
               style={{ textDecoration: 'none' }}
               data-testid="cancel-create-profile-btn"
             >
               Cancel
-            </Link>
+            </Link>}
 
             <Button
               type="submit"
@@ -524,7 +542,7 @@ export function CreateSearchProfileClient() {
               disabled={isSubmitting}
               data-testid="submit-create-profile-btn"
             >
-              Create Search Profile
+              {initialProfile ? 'Save Changes' : 'Create Search Profile'}
             </Button>
           </div>
         </form>

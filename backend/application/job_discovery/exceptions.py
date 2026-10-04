@@ -25,6 +25,15 @@ class CrawlerError(JobScopeError):
         )
 
 
+class SourceBusyError(CrawlerError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="A crawl for this Source is already running",
+            code="SOURCE_CRAWL_BUSY",
+            status_code=409,
+        )
+
+
 class UnsupportedATSError(CrawlerError):
     """Raised when an ATS platform type is unrecognized or unsupported."""
 

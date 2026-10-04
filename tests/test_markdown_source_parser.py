@@ -29,7 +29,7 @@ def test_classify_ats_type() -> None:
     assert classify_ats_type("https://company.jobs.personio.com") == "personio"
     assert classify_ats_type("https://apply.workable.com/tekfen") == "workable"
     assert classify_ats_type("https://company.bamboohr.com/jobs") == "bamboohr"
-    assert classify_ats_type("https://gethirex.com/jobs/company") == "hirex"
+    assert classify_ats_type("https://app.gethirex.com/o/company/") == "hirex"
     assert classify_ats_type("https://career.teamtailor.com") == "teamtailor"
     assert classify_ats_type("https://eeho.fa.em2.oraclecloud.com/hcmUI") == "oracle"
     assert (

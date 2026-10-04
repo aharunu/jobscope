@@ -4,19 +4,23 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from backend.application.profile_management.exceptions import (
     ProfileNotFoundError,
     ProfileValidationError,
 )
-from backend.interfaces.api.dependencies.auth import CurrentUserDep
+from backend.interfaces.api.dependencies.auth import (
+    CurrentUserDep,
+    ReadOnlyCurrentUserDep,
+)
 from backend.interfaces.api.dependencies.profile import (
     BaseProfileServiceDep,
     ProfileEducationServiceDep,
     ProfileExperienceServiceDep,
     ProfileProjectServiceDep,
     ProfileSkillServiceDep,
+    SkillSuggestionsDep,
 )
 from backend.interfaces.api.schemas.profile import (
     BaseProfileResponse,
@@ -36,6 +40,17 @@ from backend.interfaces.api.schemas.profile import (
 )
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
+
+
+@router.get("/skill-suggestions", response_model=list[str])
+async def skill_suggestions(
+    current_user_id: ReadOnlyCurrentUserDep,
+    suggestions: SkillSuggestionsDep,
+    q: str = Query(default="", max_length=100),
+    limit: int = Query(default=20, ge=1, le=20),
+) -> list[str]:
+    """Read the canonical taxonomy without provisioning or changing profile data."""
+    return suggestions.search(q, limit)
 
 
 # ============================================================================

@@ -16,6 +16,7 @@ from backend.application.profile_management.search_profile_service import (
     SearchProfileService,
 )
 from backend.application.profile_management.services import BaseProfileService
+from backend.application.profile_management.skill_suggestions import SkillSuggestions
 from backend.domain.profile.repositories import (
     ProfileEducationRepository,
     ProfileExperienceRepository,
@@ -28,6 +29,7 @@ from backend.infrastructure.database.repositories.profile_child_repositories imp
     SQLAlchemyProfileProjectRepository,
     SQLAlchemyProfileSkillRepository,
 )
+from backend.infrastructure.extraction.taxonomy import TECHNICAL_SKILLS
 from backend.interfaces.api.dependencies.database import DbSession
 from backend.interfaces.api.dependencies.matching import (
     BaseProfileRepositoryDep,
@@ -43,6 +45,13 @@ def get_base_profile_service(
 
 
 BaseProfileServiceDep = Annotated[BaseProfileService, Depends(get_base_profile_service)]
+
+
+def get_skill_suggestions() -> SkillSuggestions:
+    return SkillSuggestions(tuple(name for name, _, _ in TECHNICAL_SKILLS))
+
+
+SkillSuggestionsDep = Annotated[SkillSuggestions, Depends(get_skill_suggestions)]
 
 
 # ============================================================================

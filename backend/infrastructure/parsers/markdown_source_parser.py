@@ -7,8 +7,15 @@ import re
 from pathlib import Path
 
 from backend.application.job_discovery.dtos import SourceCreateDTO
+from backend.application.job_discovery.exceptions import InvalidSourceConfigurationError
 from backend.application.job_discovery.ports import CatalogParser
 from backend.domain.source.normalization import normalize_source_url
+from backend.infrastructure.ats.runtime_config import GREENHOUSE_HOSTS, LEVER_HOSTS
+from backend.infrastructure.ats.source_binding import (
+    NEW_PROVIDERS,
+    safe_url,
+    source_binding,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,32 +49,21 @@ BACKTICK_REGEX = re.compile(r"`([^`]+)`")
 
 def classify_ats_type(url: str) -> str:
     """Deterministically classify the ATS type from a candidate URL."""
-    url_lower = url.lower()
-    if "greenhouse.io" in url_lower:
+    try:
+        parsed = safe_url(url)
+    except InvalidSourceConfigurationError:
+        return "custom"
+    if parsed.hostname in GREENHOUSE_HOSTS:
         return "greenhouse"
-    if "lever.co" in url_lower:
+    if parsed.hostname in LEVER_HOSTS:
         return "lever"
-    if "workday" in url_lower or "myworkdayjobs" in url_lower:
-        return "workday"
-    if "ashbyhq.com" in url_lower:
-        return "ashby"
-    if "smartrecruiters.com" in url_lower:
-        return "smartrecruiters"
-    if "recruitee.com" in url_lower:
-        return "recruitee"
-    if "personio" in url_lower:
-        return "personio"
-    if "workable.com" in url_lower:
-        return "workable"
-    if "bamboohr.com" in url_lower:
-        return "bamboohr"
-    if "gethirex.com" in url_lower:
-        return "hirex"
-    if "teamtailor.com" in url_lower:
-        return "teamtailor"
-    if "oraclecloud.com" in url_lower:
-        return "oracle"
-    if "kariyer.net" in url_lower:
+    for provider in NEW_PROVIDERS:
+        try:
+            source_binding(url, provider)
+            return provider
+        except InvalidSourceConfigurationError:
+            continue
+    if parsed.hostname in {"kariyer.net", "www.kariyer.net"}:
         return "kariyer_net"
     return "custom"
 
@@ -163,6 +159,13 @@ class MarkdownSourceParser(CatalogParser):
                 clean_urls: list[str] = []
                 for u in found_urls:
                     u_clean = u.rstrip(".)\",'")
+                    try:
+                        safe_url(u_clean)
+                    except InvalidSourceConfigurationError:
+                        warnings.append(
+                            f"Line {line_idx}: Invalid/unsafe catalog URL omitted."
+                        )
+                        continue
                     if u_clean and u_clean not in clean_urls:
                         clean_urls.append(u_clean)
 
@@ -186,6 +189,9 @@ class MarkdownSourceParser(CatalogParser):
                 ]
 
                 ats_type = classify_ats_type(primary_url)
+                inferred_config = {}
+                if ats_type in NEW_PROVIDERS:
+                    inferred_config = source_binding(primary_url, ats_type)
 
                 # Extract company name cleanly
                 company = raw_name
@@ -224,6 +230,7 @@ class MarkdownSourceParser(CatalogParser):
                         ats_type=ats_type,
                         country="TR",
                         active=True,
+                        adapter_config=inferred_config,
                         metadata=metadata,
                     )
                 )

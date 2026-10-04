@@ -25,7 +25,8 @@ async def test_retry_transient_502_success() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.side_effect = [mock_resp_502, mock_resp_200]
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.side_effect = [mock_resp_502, mock_resp_200]
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -37,7 +38,7 @@ async def test_retry_transient_502_success() -> None:
 
     assert resp.status_code == 200
     assert resp.text == '{"status": "ok"}'
-    assert mock_client.get.call_count == 2
+    assert mock_client.send.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -51,7 +52,8 @@ async def test_retry_transient_connect_error_success() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.side_effect = [
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.side_effect = [
         httpx.ConnectError("Connection reset"),
         mock_resp_200,
     ]
@@ -66,7 +68,7 @@ async def test_retry_transient_connect_error_success() -> None:
 
     assert resp.status_code == 200
     assert resp.text == "recovered"
-    assert mock_client.get.call_count == 2
+    assert mock_client.send.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -74,7 +76,8 @@ async def test_retry_connect_error_exhausted() -> None:
     """Verify that exhausted ConnectError retries raise AdapterExecutionError."""
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.side_effect = httpx.ConnectError("Host unreachable")
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.side_effect = httpx.ConnectError("Host unreachable")
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -89,7 +92,7 @@ async def test_retry_connect_error_exhausted() -> None:
 
     assert "Network error" in exc_info.value.message
     # 1 initial + 2 retries = 3 calls
-    assert mock_client.get.call_count == 3
+    assert mock_client.send.call_count == 3
 
 
 @pytest.mark.asyncio
@@ -101,7 +104,8 @@ async def test_non_retryable_404_not_retried() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.return_value = mock_resp_404
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.return_value = mock_resp_404
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -112,7 +116,7 @@ async def test_non_retryable_404_not_retried() -> None:
         resp = await safe_client.get("https://example.com/api")
 
     assert resp.status_code == 404
-    assert mock_client.get.call_count == 1
+    assert mock_client.send.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -128,7 +132,8 @@ async def test_non_retryable_429_not_retried_in_mvp() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.return_value = mock_resp_429
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.return_value = mock_resp_429
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -139,7 +144,7 @@ async def test_non_retryable_429_not_retried_in_mvp() -> None:
         resp = await safe_client.get("https://example.com/api")
 
     assert resp.status_code == 429
-    assert mock_client.get.call_count == 1
+    assert mock_client.send.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -155,7 +160,8 @@ async def test_exhausted_503_retries_returns_final_response() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.return_value = mock_resp_503
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.return_value = mock_resp_503
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -167,7 +173,7 @@ async def test_exhausted_503_retries_returns_final_response() -> None:
 
     assert resp.status_code == 503
     # 1 initial + 2 retries = 3 calls
-    assert mock_client.get.call_count == 3
+    assert mock_client.send.call_count == 3
 
 
 @pytest.mark.asyncio
@@ -182,7 +188,8 @@ async def test_ssrf_validation_executed_on_every_retry() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.side_effect = [mock_resp_502, mock_resp_200]
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.side_effect = [mock_resp_502, mock_resp_200]
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -207,7 +214,8 @@ async def test_ssrf_blocked_during_retry_attempt() -> None:
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.return_value = mock_resp_502
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.return_value = mock_resp_502
 
     safe_client = HttpSafeClient(client=mock_client, max_retries=2, retry_delay=0.0)
 
@@ -236,7 +244,8 @@ async def test_retry_connect_timeout_success() -> None:
     )
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     mock_client.is_closed = False
-    mock_client.get.side_effect = [
+    mock_client.build_request.side_effect = httpx.AsyncClient().build_request
+    mock_client.send.side_effect = [
         httpx.ConnectTimeout("Connection timed out"),
         mock_resp_200,
     ]
@@ -250,4 +259,4 @@ async def test_retry_connect_timeout_success() -> None:
         resp = await safe_client.get("https://example.com/api")
 
     assert resp.status_code == 200
-    assert mock_client.get.call_count == 2
+    assert mock_client.send.call_count == 2

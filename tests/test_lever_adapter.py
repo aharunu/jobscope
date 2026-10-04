@@ -215,7 +215,9 @@ async def test_lever_adapter_successful_job_discovery() -> None:
     # Invariant: metadata contains location, company, payload_hash, etc.
     assert job1.metadata["company"] == "Trendyol"
     assert job1.metadata["location"] == "Istanbul, Turkey"
-    assert job1.metadata["workplace_type"] == "hybrid"
+    assert job1.metadata["provider"]["workplace_type"] == "hybrid"
+    assert job1.metadata["work_mode"] == "Hybrid"
+    assert job1.metadata["employment_type"] == "Full-time"
     assert job1.metadata["site_token"] == "trendyol"
     assert len(job1.metadata["payload_hash"]) == 64
 
@@ -283,12 +285,10 @@ async def test_lever_adapter_multi_page_pagination() -> None:
     assert "pagination_max_pages_reached" not in result.warnings
     assert result.is_complete is True
 
-    # Verify second request passed skip=last_id
+    # Verify numeric offsets, including the first request.
     assert len(mock_http.requests) == 2
-    assert (
-        mock_http.requests[1]["params"]["skip"]
-        == "a1b2c3d4-5678-4e9f-0a1b-cdef12345678"
-    )
+    assert mock_http.requests[0]["params"] == {"mode": "json", "limit": 2, "skip": 0}
+    assert mock_http.requests[1]["params"] == {"mode": "json", "limit": 2, "skip": 2}
 
 
 @pytest.mark.asyncio
@@ -296,10 +296,14 @@ async def test_lever_adapter_records_pagination_max_pages_reached_warning() -> N
     """Reaching max_pages when more jobs exist must record warning."""
     page_full = [SAMPLE_LEVER_POSTINGS[0], SAMPLE_LEVER_POSTINGS[1]]
 
+    page_two = [
+        dict(item, id=f"new-{i}", hostedUrl=f"https://jobs.lever.co/trendyol/new-{i}")
+        for i, item in enumerate(page_full)
+    ]
     mock_http = MockSafeHttpClient(
         [
             SafeHttpResponseDTO(status_code=200, url="...", text=json.dumps(page_full)),
-            SafeHttpResponseDTO(status_code=200, url="...", text=json.dumps(page_full)),
+            SafeHttpResponseDTO(status_code=200, url="...", text=json.dumps(page_two)),
         ]
     )
 
@@ -317,7 +321,13 @@ async def test_lever_adapter_records_pagination_max_pages_reached_warning() -> N
 async def test_lever_adapter_respects_rate_limit_delay() -> None:
     """Verify rate limit delay is triggered between pagination requests."""
     page_full = [SAMPLE_LEVER_POSTINGS[0], SAMPLE_LEVER_POSTINGS[1]]
-    page_end = [SAMPLE_LEVER_POSTINGS[0]]
+    page_end = [
+        dict(
+            SAMPLE_LEVER_POSTINGS[0],
+            id="third",
+            hostedUrl="https://jobs.lever.co/trendyol/third",
+        )
+    ]
 
     mock_http = MockSafeHttpClient(
         [
