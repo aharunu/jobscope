@@ -1,4 +1,4 @@
-"""Durable, sequential background execution with cooperative cancellation."""
+"""Bounded acquisition, serialized ingestion and cooperative cancellation."""
 
 import asyncio
 import logging
@@ -8,6 +8,7 @@ from typing import Protocol
 
 from backend.application.common.exceptions import JobScopeError
 from backend.application.job_discovery.budget import acquisition_scope
+from backend.application.job_discovery.detail_plan import DetailPlan, detail_scope
 from backend.application.job_discovery.exceptions import SourceBusyError
 
 logger = logging.getLogger(__name__)
@@ -28,9 +29,23 @@ class IngestionStore(Protocol):
 
 
 class IngestionRunner:
-    def __init__(self, store: IngestionStore, registry, guard, budget_factory):
+    def __init__(
+        self,
+        store: IngestionStore,
+        registry,
+        guard,
+        budget_factory,
+        *,
+        max_concurrent_sources: int = 3,
+    ):
+        if (
+            type(max_concurrent_sources) is not int
+            or not 1 <= max_concurrent_sources <= 3
+        ):
+            raise ValueError("Source acquisition concurrency must be between 1 and 3")
         self.store, self.registry, self.guard = store, registry, guard
         self.budget_factory = budget_factory
+        self.max_concurrent_sources = max_concurrent_sources
         self.tasks: dict[uuid.UUID, asyncio.Task] = {}
 
     async def reconcile(self):
@@ -67,11 +82,13 @@ class IngestionRunner:
 
     async def _execute(self, run, units, lease):
         run_id = run["id"]
-        try:
-            await self.store.mark_running(run_id)
-            for unit_id, source, policy in units:
+        acquisition_slots = asyncio.Semaphore(self.max_concurrent_sources)
+        completion_lock = asyncio.Lock()
+
+        async def execute_source(unit_id, source, policy):
+            async with acquisition_slots:
                 if (await self.store.detail(run_id))["cancel_requested_at"]:
-                    break
+                    return
                 start = time.perf_counter()
                 try:
                     async with self.guard.hold(source.id):
@@ -86,19 +103,43 @@ class IngestionRunner:
                         )
                         adapter = self.registry.get_adapter(source.ats_type)
                         budget = self.budget_factory()
-                        with acquisition_scope(budget):
-                            async with asyncio.timeout(budget.remaining_seconds()):
-                                result = await adapter.crawl(source)
-                                budget.remaining_seconds()
-                        await self.store.complete_source(
-                            run_id,
-                            unit_id,
-                            source,
-                            policy,
-                            result,
-                            run["mode"],
-                            (time.perf_counter() - start) * 1000,
-                        )
+                        budget.source_id = source.id
+                        with (
+                            acquisition_scope(budget),
+                            detail_scope(
+                                DetailPlan(
+                                    preview=run["mode"] == "PREVIEW",
+                                    reject_without_detail=policy.rejects_known_country,
+                                    country_codes=(
+                                        policy.allowed_country_codes
+                                        if policy.active
+                                        and not policy.include_unknown_country
+                                        else ()
+                                    ),
+                                )
+                            ),
+                        ):
+                            deadline = asyncio.timeout(budget.remaining_seconds())
+                            try:
+                                async with deadline:
+                                    result = await adapter.crawl(source)
+                                    budget.remaining_seconds()
+                            except Exception as exc:
+                                result = budget.recover_partial(
+                                    exc, duration_expired=deadline.expired()
+                                )
+                                if result is None:
+                                    raise
+                        async with completion_lock:
+                            await self.store.complete_source(
+                                run_id,
+                                unit_id,
+                                source,
+                                policy,
+                                result,
+                                run["mode"],
+                                (time.perf_counter() - start) * 1000,
+                            )
                         logger.info(
                             "ingestion_source_completed run=%s source=%s discovered=%d",
                             run_id,
@@ -119,9 +160,16 @@ class IngestionRunner:
                         source.id,
                         type(exc).__name__,
                     )
-                    await self.store.fail_source(
-                        run_id, unit_id, code, (time.perf_counter() - start) * 1000
-                    )
+                    async with completion_lock:
+                        await self.store.fail_source(
+                            run_id, unit_id, code, (time.perf_counter() - start) * 1000
+                        )
+
+        try:
+            await self.store.mark_running(run_id)
+            async with asyncio.TaskGroup() as group:
+                for unit_id, source, policy in units:
+                    group.create_task(execute_source(unit_id, source, policy))
             await self.store.finish(run_id)
             logger.info("ingestion_run_completed run=%s", run_id)
         except Exception as exc:

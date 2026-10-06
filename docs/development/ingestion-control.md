@@ -12,6 +12,14 @@ Existing canonical tables and provider request contracts are unchanged.
 
 ## Running safely
 
+Kariyer.net and `custom` registry entries are excluded from ingestion source/ATS/policy
+selectors and from all-source runs because no acquisition adapter exists.
+Explicit Kariyer.net/custom Source IDs return `422 INVALID_INGESTION_SCOPE`;
+excluded ATS selections are also rejected with 422 (the request schema already
+rejects `custom`). The Source Registry/catalog and previous run
+history remain intact. An old preview containing those Sources must be replaced
+with a new eligible preview.
+
 1. Start with **Preview** and one existing Source. Select a Source or an ATS type;
    the all-sources scope uses the active-sources checkbox by default.
 2. Choose saved policies or an override for this run. On first use, Turkey is
@@ -33,7 +41,56 @@ warnings still suppress closure under the existing guards. The new run records
 `from_preview_run_id` in its existing scope JSON; no additional migration is needed.
 
 Preview performs real acquisition but writes only ingestion audit records.
-It does not create/update Jobs, RawJobs, requirements, matches, applications,
+SmartRecruiters and Workday previews acquire paginated listing records without
+per-job detail calls. Deferred details are marked explicitly, and the source
+warning `preview_details_deferred_until_persist` prevents those results being
+mistaken for complete enriched acquisition. Preview country decisions use list
+geography and may change when persist obtains richer location data. Persist
+always re-acquires; an accepted deferred summary is rejected atomically with
+`INGESTION_DETAILS_REQUIRED` rather than stored as a title-only Job.
+
+During persist, these providers skip detail calls only for list records whose
+known country is definitely outside the snapshotted policy. Such records still
+appear in rejected audit decisions. Unknown countries are enriched before the
+final policy decision. Unfiltered/direct crawls still acquire full descriptions.
+The frozen ingestion policy can narrow provider list requests when unknown countries
+are excluded: SmartRecruiters queries each selected country; Workday discovers the
+board's own country facet IDs, then requests filtered pages. Unknown-country inclusion,
+disabled/empty policies and ordinary direct crawls keep full-board acquisition.
+Unsupported endpoints and unproven Workday facet mappings keep local filtering.
+No SearchProfile input is used. See [provider country filtering](provider-country-filtering.md).
+
+Workday retains the first trustworthy total when subsequent noninitial CXS pages
+return `total=0` with postings. Numeric offsets, repeated-page detection, hard
+page caps and the hosted-CXS incomplete coverage safeguard remain active.
+The default page size remains 20: live 100-item requests to 3M, Accenture and HP
+returned HTTP 400. No larger unsupported request size is used as a speed fix.
+Workday posting identity is validated before enrichment using the same existing
+posting-identity rule. Unmappable references are skipped with an incomplete
+coverage warning; no detail request is spent on a record that cannot be projected.
+
+If a source duration/request/byte budget is exhausted, validated observations
+already acquired by these adapters can be retained as PARTIAL with
+`acquisition_budget_exhausted_partial_results`. Empty snapshots, ordinary network
+errors, malformed responses and task cancellation retain the existing failure
+semantics. Partial and filtered acquisition never authorizes absence closure.
+The source's owned timeout scope identifies duration exhaustion; timer rounding
+cannot discard partial results, and unrelated early network timeouts cannot
+release partial observations as a successful acquisition.
+The one-second per-host operational minimum and source budgets are unchanged.
+
+Acquisition runs at most three Sources concurrently. All tasks share the managed
+SafeHttpClient, so requests to the same host still share its pacing lock and
+Retry-After cooldown. Source advisory locks and the global ingestion lease remain
+held. Each Source's result is ingested under one completion lock: canonical writes,
+decision audit and aggregate updates remain serialized. Cancellation stops queued
+Sources; up to three already-running Sources may finish their safe current work.
+The run finishes only after those tasks release their Source guards. Unexpected
+worker failure cancels and joins the remaining workers before releasing the lease.
+The monitor may name one current Source; the source list shows all RUNNING units.
+No Scheduler, distributed queue or new database schema is introduced.
+
+Preview does not create/update Jobs, RawJobs, requirements, matches, applications,
 or low-level CrawlRuns. Persist sends accepted DTOs through the existing
 `JobIngestionService`. Rejected records contain only compact identifying audit
 data; they create no RawJob or requirements. Unchanged accepted jobs retain the

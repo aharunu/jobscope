@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import time
+import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 
+from backend.application.job_discovery.dtos import CrawlResultDTO
 from backend.application.job_discovery.exceptions import AdapterExecutionError
 
 
@@ -20,6 +22,10 @@ class AcquisitionBudget:
     requests: int = 0
     bytes_read: int = 0
     started: float = field(init=False)
+    partial_snapshot: Callable[[], CrawlResultDTO | None] | None = field(
+        default=None, init=False, repr=False
+    )
+    source_id: uuid.UUID | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self.started = self.clock()
@@ -52,6 +58,26 @@ class AcquisitionBudget:
                 "bytes": self.bytes_read,
             },
         )
+
+    def recover_partial(
+        self, error: Exception, *, duration_expired: bool = False
+    ) -> CrawlResultDTO | None:
+        """Only duration/request/byte exhaustion can retain validated observations."""
+        if (
+            not (
+                (
+                    isinstance(error, TimeoutError)
+                    and (
+                        duration_expired
+                        or self.clock() - self.started >= self.max_seconds
+                    )
+                )
+                or getattr(error, "code", None) == "ACQUISITION_BUDGET_EXHAUSTED"
+            )
+            or self.partial_snapshot is None
+        ):
+            return None
+        return self.partial_snapshot()
 
 
 current_budget: ContextVar[AcquisitionBudget | None] = ContextVar(

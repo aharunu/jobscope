@@ -109,16 +109,24 @@ class CrawlerOrchestrator:
         self, adapter: ATSAdapter, source: RuntimeSourceDTO
     ) -> CrawlResultDTO:
         budget = self._budget_factory()
+        budget.source_id = source.id
         with acquisition_scope(budget):
+            deadline = asyncio.timeout(budget.remaining_seconds())
             try:
-                async with asyncio.timeout(budget.remaining_seconds()):
+                async with deadline:
                     result = await adapter.crawl(source)
                     budget.remaining_seconds()
-            except TimeoutError as exc:
-                raise AdapterExecutionError(
-                    message="Source acquisition budget exhausted: duration",
-                    code="ACQUISITION_BUDGET_EXHAUSTED",
-                ) from exc
+            except (TimeoutError, AdapterExecutionError) as exc:
+                result = budget.recover_partial(
+                    exc, duration_expired=deadline.expired()
+                )
+                if result is None:
+                    if isinstance(exc, TimeoutError):
+                        raise AdapterExecutionError(
+                            message="Source acquisition budget exhausted: duration",
+                            code="ACQUISITION_BUDGET_EXHAUSTED",
+                        ) from exc
+                    raise
             result.metadata["acquisition_budget"] = {
                 "requests": budget.requests,
                 "bytes": budget.bytes_read,

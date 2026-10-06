@@ -261,6 +261,18 @@ class HttpSafeClient(SafeHttpClient):
                         request, stream=True, follow_redirects=False
                     )
                     response = await self._read_response(streamed)
+                    if budget is not None and budget.source_id is not None:
+                        path = urllib.parse.urlsplit(current_url).path
+                        detail = "/job/" in path or (
+                            "/postings/" in path
+                            and bool(path.rsplit("/postings/", 1)[-1])
+                        )
+                        logger.info(
+                            "acquisition_http_response source=%s status=%d detail=%s",
+                            budget.source_id,
+                            response.status_code,
+                            detail,
+                        )
                     self._respect_retry_after(response)
                     if (
                         response.status_code in TRANSIENT_STATUS_CODES

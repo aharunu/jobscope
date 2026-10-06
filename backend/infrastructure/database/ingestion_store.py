@@ -36,6 +36,7 @@ COUNT_KEYS = (
     "jobs_closed",
 )
 TERMINAL = {"COMPLETED", "PARTIAL", "FAILED", "CANCELLED"}
+EXCLUDED_INGESTION_TYPES = ("kariyer_net", "custom")
 logger = logging.getLogger(__name__)
 
 
@@ -140,7 +141,32 @@ class SQLAlchemyIngestionStore:
                     raise JobScopeError(
                         "Unknown source IDs", "INVALID_INGESTION_SCOPE", 422
                     )
-            query = select(SourceModel).order_by(SourceModel.name, SourceModel.id)
+                if await session.scalar(
+                    select(SourceModel.id)
+                    .where(
+                        SourceModel.id.in_(ids),
+                        SourceModel.ats_type.in_(EXCLUDED_INGESTION_TYPES),
+                    )
+                    .limit(1)
+                ):
+                    raise JobScopeError(
+                        "Kariyer.net/custom sources are not eligible for ingestion",
+                        "INVALID_INGESTION_SCOPE",
+                        422,
+                    )
+            if set(request.get("ats_types") or []).intersection(
+                EXCLUDED_INGESTION_TYPES
+            ):
+                raise JobScopeError(
+                    "Kariyer.net/custom are not eligible for ingestion",
+                    "INVALID_INGESTION_SCOPE",
+                    422,
+                )
+            query = (
+                select(SourceModel)
+                .where(SourceModel.ats_type.not_in(EXCLUDED_INGESTION_TYPES))
+                .order_by(SourceModel.name, SourceModel.id)
+            )
             if ids:
                 query = query.where(SourceModel.id.in_(ids))
             if request["active_sources_only"]:
@@ -318,6 +344,14 @@ class SQLAlchemyIngestionStore:
                 decision, reason, country = policy.decide(job)
                 invalid_found = invalid_found or reason == "INVALID_DISCOVERED_JOB"
                 if decision == "ACCEPTED":
+                    if mode == "PERSIST" and job.metadata.get(
+                        "acquisition_detail_deferred"
+                    ):
+                        raise JobScopeError(
+                            "Required provider details were not acquired",
+                            "INGESTION_DETAILS_REQUIRED",
+                            502,
+                        )
                     accepted.append(job)
                 try:
                     url = normalize_source_url(job.url)
