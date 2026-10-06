@@ -1,5 +1,7 @@
 # Repository Audit Report — JobScope
 
+> Historical audit of 2026-10-01. Findings and implementation counts describe that date, not the current repository. See the [current documentation index](docs/development/README.md) and [product backlog](docs/roadmap/post_mvp_product_backlog.md) for maintained guidance. Original evidence is retained below.
+
 **Date:** 2026-10-01  
 **Auditor:** Senior Architecture Review  
 **Repository:** `c:\Users\aharu\Documents\GitHub\jobscope`

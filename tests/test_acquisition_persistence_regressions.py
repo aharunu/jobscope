@@ -1,4 +1,4 @@
-"""Regressions traced through the real product audit."""
+"""Provider URL binding, canonical field bounds and occurrence identity regressions."""
 
 import json
 from dataclasses import replace

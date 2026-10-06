@@ -20,6 +20,13 @@ is evidence, not a global uniqueness constraint: uncertain cross-source postings
 must be able to remain separate. A URL collision with a different company/title
 retains the existing safe ingestion-conflict behavior.
 
+A narrow catalog-alias exception proves the **same provider namespace/board,
+external ID, exact canonical posting URL and normalized title**, with no known
+conflicting requisitions. Lever, Workday and SmartRecruiters can then attach an
+alternate Source occurrence to the existing Logical Job even if catalog company
+labels differ. This is provider identity proof, not fuzzy company alias matching;
+other providers retain conservative behavior and dedup score gates are unchanged.
+
 `Job.source_id`, `external_job_id`, and `canonical_url` remain preferred-source
 compatibility fields. All provider identities, alternate URLs, status, hashes,
 first/last sightings, and original projections live on occurrences. Source and
@@ -210,8 +217,9 @@ safe failures, authoritative queue refresh and duplicate submissions. A4 preview
 tests now also assert no occurrence/candidate mutation. CI tests use fake
 provider acquisition, never live boards.
 
-Exact company/title/location blocking intentionally misses aliases and
-translations. Multi-location/provider-country enrichment and provider-specific
+Exact company/title/location scoring intentionally misses general company aliases
+and translations. The narrowly verified same-provider catalog alias identity
+exception above does not broaden that scorer. Multi-location/provider-country enrichment and provider-specific
 reference trust need reviewed data before broadening identity. Historical
 analysis is bounded and may need multiple controlled batches for larger datasets.
 Retired rows and archived requirements/matches need an eventual retention policy.
