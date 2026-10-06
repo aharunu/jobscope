@@ -1,5 +1,6 @@
 """Public SmartRecruiters Posting API with offset/total reconciliation."""
 
+from backend.application.job_discovery.detail_plan import acquisition_countries
 from backend.application.job_discovery.ports import SafeHttpClient
 from backend.infrastructure.ats.acquisition import (
     AcquisitionRequests,
@@ -7,12 +8,14 @@ from backend.infrastructure.ats.acquisition import (
     OffsetPages,
     ProviderRuntimeConfig,
     bound_url,
+    defer_detail,
     employment,
     exact_date,
     location,
     mapping,
     project,
     require_list,
+    retain_partial,
     runtime_config,
     work_mode,
 )
@@ -31,18 +34,40 @@ class SmartRecruitersAdapter:
 
     async def crawl(self, source):
         config = runtime_config(source, SmartRecruitersRuntimeConfig, self.ats_type)
-        requests, coverage, pages = (
+        requests, coverage = (
             AcquisitionRequests(self.client, config.delay_seconds),
             Coverage(source),
-            OffsetPages(config),
         )
+        countries = acquisition_countries()
+        if countries:
+            coverage.warn("provider_country_scoped_acquisition")
+        retain_partial(coverage, requests)
+        totals = []
+        exhausted = True
+        for country in countries or (None,):
+            pages = await self._crawl_country(
+                source, config, requests, coverage, country
+            )
+            exhausted = exhausted and pages.exhausted and pages.total is not None
+            totals.append(pages.total)
+        return coverage.result(
+            exhausted,
+            requests,
+            total=sum(totals) if all(t is not None for t in totals) else None,
+            country_scope=list(countries),
+        )
+
+    async def _crawl_country(self, source, config, requests, coverage, country):
+        pages = OffsetPages(config)
+        previous_countries = frozenset(coverage.seen)
         endpoint = (
             f"https://api.smartrecruiters.com/v1/companies/{config.board}/postings"
         )
         for page in range(1, config.max_pages + 1):
-            root = await requests.json(
-                endpoint, params={"limit": config.page_size, "offset": pages.offset}
-            )
+            params = {"limit": config.page_size, "offset": pages.offset}
+            if country:
+                params["country"] = country.lower()
+            root = await requests.json(endpoint, params=params)
             rows = require_list(root, "content")
             if root.get("offset", pages.offset) != pages.offset:
                 coverage.warn("response_offset_mismatch")
@@ -53,9 +78,36 @@ class SmartRecruitersAdapter:
                     coverage.add(None)
                     continue
                 detail = None
+                if identity in previous_countries:
+                    continue  # Same posting can legitimately match two country queries.
                 info = item
                 sections = mapping(mapping(item.get("jobAd")).get("sections"))
                 if not sections:
+                    summary_url = bound_url(
+                        item.get("jobAdUrl") or item.get("applyUrl"),
+                        "https://jobs.smartrecruiters.com",
+                        prefix=f"/{config.board}/",
+                    ) or bound_url(
+                        item.get("ref"),
+                        "https://api.smartrecruiters.com",
+                        prefix=f"/v1/companies/{config.board}/postings/",
+                    )
+                    summary = project(
+                        source,
+                        item,
+                        identity=identity,
+                        url=summary_url,
+                        title=item.get("name"),
+                        location=location(item.get("location")),
+                        country_code=mapping(item.get("location")).get("country"),
+                        employment_type=employment(
+                            mapping(item.get("typeOfEmployment")).get("label")
+                        ),
+                        published_at=exact_date(item.get("releasedDate")),
+                        provider={"list": item, "detail": None},
+                    )
+                    if defer_detail(summary, coverage):
+                        continue
                     detail = await requests.json(f"{endpoint}/{identity}")
                     if posting_identity(detail.get("id")) != identity:
                         coverage.add(None)
@@ -127,6 +179,4 @@ class SmartRecruitersAdapter:
                 )
             if not pages.advance(rows, root.get("totalFound"), coverage, page):
                 break
-        return coverage.result(
-            pages.exhausted and pages.total is not None, requests, total=pages.total
-        )
+        return pages

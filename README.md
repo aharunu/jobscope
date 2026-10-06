@@ -38,7 +38,7 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 1. **Source Registry & Multi-ATS Crawlers:**
    - Acquisition adapters for **Lever, Greenhouse, Ashby, Workday, SmartRecruiters, Recruitee, Personio, Teamtailor, Workable, Hirex, BambooHR and Oracle**. Hosted/widget providers with unverified coverage return PARTIAL and cannot close absent jobs. See [A3 acquisition guide](docs/development/acquisition_a3.md).
    - Crawl orchestration, content hashing, deduplication, and crawl run history auditing.
-   - **Ingestion Control Center (`/ingestion`):** preview or persist accepted jobs using post-acquisition country policies, global defaults and Source/run overrides. Filtered ingestion cannot close absent jobs. See [ingestion control guide](docs/development/ingestion-control.md).
+   - **Ingestion Control Center (`/ingestion`):** preview or persist accepted jobs using country policies, global defaults and Source/run overrides. SmartRecruiters sends selected countries to its API; Workday resolves country facets from each board before fetching filtered pages. This optimization applies when unknown countries are excluded; unsupported/unproven endpoints retain local filtering. SmartRecruiters/Workday preview lists defer expensive per-job details until persist. Accepted persisted jobs still require full provider details. Filtered or PARTIAL ingestion cannot close absent jobs. See [ingestion control guide](docs/development/ingestion-control.md) and [provider country filtering](docs/development/provider-country-filtering.md).
    - Shared per-host request pacing defaults to one second between request starts (`CRAWLER_MIN_REQUEST_INTERVAL_SECONDS=1.0`). Source delays can increase waiting; a zero Source delay does not disable the shared minimum.
 
 2. **Deterministic Match Engine:**
@@ -595,6 +595,9 @@ Migration `0009_ai_details` saves previously unsupported strengths/gaps/risks, b
 ## Ingestion and Deduplication Operations
 
 At `/ingestion`, select Sources/providers and a country policy, then Preview.
+Kariyer.net and `custom` entries remain in the Source Registry/catalog but are excluded from ingestion
+choices and all-source runs; explicit requests for it return 422 because no
+acquisition adapter exists for either type.
 Country codes such as `TR` and `ES` resolve to Turkey and Spain; country names
 and supported location evidence use the same resolver. Unknown-country inclusion
 is explicit. Acquisition remains board-wide; geographic filtering happens after

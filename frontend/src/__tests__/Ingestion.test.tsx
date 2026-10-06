@@ -32,6 +32,26 @@ async function ready() {
 }
 
 describe('Ingestion control center', () => {
+  it('explains that preview lists are enriched when persisting', async () => {
+    await ready();
+    expect(screen.getByText(/Preview checks listing information/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Mode'), { target: { value: 'PERSIST' } });
+    expect(screen.queryByText(/Preview checks listing information/)).not.toBeInTheDocument();
+  });
+  it.each(['kariyer_net', 'custom'])('excludes %s from source, ATS and policy selections', async ats_type => {
+    api.catalog.mockResolvedValue([
+      { id: 'source1', name: 'Board', ats_type: 'lever', active: true },
+      { id: 'unsupported1', name: 'Unsupported employer', ats_type, active: true },
+    ]);
+    await ready();
+    expect(within(screen.getByLabelText('Policy target')).queryByRole('option', { name: 'Unsupported employer' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'sources' } });
+    expect(screen.getByLabelText('Selected sources')).toHaveTextContent('Board');
+    expect(screen.getByLabelText('Selected sources')).not.toHaveTextContent('Unsupported employer');
+    fireEvent.change(screen.getByLabelText('Scope'), { target: { value: 'ats' } });
+    expect(within(screen.getByLabelText('ATS type')).queryByRole('option', { name: ats_type })).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText('ATS type')).getByRole('option', { name: 'lever' })).toBeInTheDocument();
+  });
   it('persists a completed preview from history using its ID, not the edited form', async () => {
     api.runs.mockResolvedValue({ items: [run], total: 1 });
     await ready();

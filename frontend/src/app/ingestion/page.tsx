@@ -59,7 +59,7 @@ export default function IngestionPage() {
     let mounted = true;
     Promise.all([ingestionApi.catalog(), ingestionApi.runs(), ingestionApi.defaultPolicy()]).then(([sources, runs, saved]) => {
       if (!mounted) return;
-      setCatalog(sources); setHistory(runs.items);
+      setCatalog(sources.filter(source => !['kariyer_net', 'custom'].includes(source.ats_type))); setHistory(runs.items);
       if (runs.items.length) setRunId(runs.items[0].id);
       if (saved) { setPolicy(saved); setHasPolicy(true); setPolicyMode('USE_SAVED_POLICIES'); }
     }).catch(err => { if (mounted) reportError(err); });
@@ -118,7 +118,8 @@ export default function IngestionPage() {
 
   return <main className="container ingestion-page">
     <h1>Ingestion Control Center</h1>
-    <p className="text-muted">Acquire complete boards, then decide which jobs enter JobScope. Preview changes no canonical jobs.</p>
+    <p className="text-muted">Collect board listings, then decide which jobs enter JobScope. Preview changes no canonical jobs.</p>
+    {mode === 'PREVIEW' && <p className="text-muted">Preview checks listing information. Full details for accepted jobs are fetched when you persist; country decisions may change when details reveal more precise locations.</p>}
     {error && <Alert variant="danger">{error}</Alert>}
     {notice && <Alert>{notice}</Alert>}
     <section className="ingestion-card" aria-label="Run configuration">

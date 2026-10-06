@@ -259,6 +259,64 @@ async def test_preview_zero_canonical_mutations_and_compact_decisions(db):
     ] == "PREVIEW_MODE"
 
 
+async def test_persist_rejects_unenriched_accepted_summary_atomically(db):
+    run, unit = await create(db, "PERSIST")
+    before = await counts(db[1])
+    summary = job()
+    summary.metadata["acquisition_detail_deferred"] = "PREVIEW"
+    with pytest.raises(JobScopeError) as caught:
+        await complete(db, run, unit, [summary])
+    assert caught.value.code == "INGESTION_DETAILS_REQUIRED"
+    assert await counts(db[1]) == before
+    await db[3].finish(run["id"], "FAILED")
+
+
+async def test_country_rejected_summary_is_audited_without_persisting(db):
+    run, unit = await create(db, "PERSIST")
+    before = await counts(db[1])
+    rejected = job("France", "fr")
+    rejected.metadata["acquisition_detail_deferred"] = "COUNTRY_POLICY"
+    result = await complete(db, run, unit, [rejected])
+    # A crawl audit is allowed; canonical/provider history remains unchanged.
+    assert (await counts(db[1]))[:7] == before[:7]
+    assert result["jobs_accepted"] == 0 and result["jobs_rejected"] == 1
+    rows = await db[3].sources(run["id"])
+    assert not rows["items"][0]["closure_authorized"]
+
+
+@pytest.mark.parametrize("mode", ["PREVIEW", "PERSIST"])
+@pytest.mark.parametrize("ats_type", ["kariyer_net", "custom"])
+async def test_ineligible_sources_rejected_explicitly_and_excluded_from_all_scope(
+    db, mode, ats_type
+):
+    factory, sources, store, ids = db[1], db[2], db[3], db[4]
+    async with factory() as session, session.begin():
+        source = await session.get(SourceModel, sources[1].id)
+        source.ats_type, source.active = ats_type, True
+    before = await counts(factory)
+    for selection in (
+        request(sources[1:], mode, active_sources_only=False),
+        # Store also rejects excluded types defensively; API schema already
+        # rejects custom ATS selectors before reaching persistence.
+        {**request([], mode, source_ids=None), "ats_types": [ats_type]},
+    ):
+        with pytest.raises(JobScopeError) as error:
+            await store.create_run(selection)
+        assert error.value.code == "INVALID_INGESTION_SCOPE"
+        assert error.value.status_code == 422
+    run, units = await store.create_run(
+        request([], mode, source_ids=None, active_sources_only=False)
+    )
+    ids.append(run["id"])
+    assert sources[0].id in {unit[1].id for unit in units}
+    assert all(unit[1].ats_type not in ("kariyer_net", "custom") for unit in units)
+    assert run["sources_total"] == len(units)
+    await store.finish(run["id"], "FAILED")
+    assert await counts(factory) == before
+    async with factory() as session:
+        assert (await session.get(SourceModel, sources[1].id)).ats_type == ats_type
+
+
 async def test_persist_from_preview_reuses_frozen_scope_and_policy(db):
     preview, unit = await create(db)
     await complete(db, preview, unit, [job("TR", "preview-tr")])
@@ -504,7 +562,11 @@ async def test_background_prompt_busy_cancel_and_live_worker_recovery_guard(db):
     registry = ATSAdapterRegistry()
     registry.register(Adapter())
     runner = IngestionRunner(
-        store, registry, PostgreSQLCrawlAdmissionGuard(engine), AcquisitionBudget
+        store,
+        registry,
+        PostgreSQLCrawlAdmissionGuard(engine),
+        AcquisitionBudget,
+        max_concurrent_sources=1,
     )
     app = create_app(engine=engine)
     app.state.ingestion_runner = runner

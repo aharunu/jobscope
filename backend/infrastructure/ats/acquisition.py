@@ -12,6 +12,8 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 
+from backend.application.job_discovery.budget import current_budget
+from backend.application.job_discovery.detail_plan import current_detail_plan
 from backend.application.job_discovery.dtos import (
     CrawlResultDTO,
     DiscoveredJobDTO,
@@ -327,6 +329,33 @@ class Coverage:
             },
             proven and not self.warnings,
         )
+
+
+def retain_partial(coverage: Coverage, requests: AcquisitionRequests):
+    """Register validated observations before any budget can interrupt acquisition."""
+    budget = current_budget.get()
+    if budget is None:
+        return
+
+    def snapshot():
+        if not coverage.jobs:
+            return None
+        coverage.warn("acquisition_budget_exhausted_partial_results")
+        return coverage.result(False, requests)
+
+    budget.partial_snapshot = snapshot
+
+
+def defer_detail(summary: DiscoveredJobDTO | None, coverage: Coverage) -> bool:
+    plan = current_detail_plan.get()
+    reason = plan.defer(summary) if plan else None
+    if reason is None:
+        return False
+    summary.metadata["acquisition_detail_deferred"] = reason
+    coverage.add(summary)
+    if reason == "PREVIEW":
+        coverage.warn("preview_details_deferred_until_persist")
+    return True
 
 
 @dataclass

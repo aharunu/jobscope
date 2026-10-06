@@ -386,6 +386,15 @@ class PolicySnapshot:
             return "ACCEPTED", "COUNTRY_ALLOWED", country
         return "REJECTED", "COUNTRY_NOT_ALLOWED", country
 
+    def rejects_known_country(self, job: DiscoveredJobDTO) -> bool:
+        """Skip expensive enrichment only when list geography proves rejection."""
+        country = CountryResolver().resolve(job)
+        return (
+            self.active
+            and country is not None
+            and country not in self.allowed_country_codes
+        )
+
 
 def resolve_policy(
     request: dict, source_policy: dict | None, global_policy: dict | None
