@@ -81,6 +81,13 @@ class Settings(BaseSettings):
     )
 
     # Source Health Probe Configuration
+    crawler_min_request_interval_seconds: float = Field(
+        default=1.0,
+        ge=0.25,
+        le=60,
+        allow_inf_nan=False,
+        description="Minimum interval between crawler request starts on the same host",
+    )
     crawler_max_response_bytes: int = Field(
         default=15 * 1024 * 1024, ge=1024, le=64 * 1024 * 1024
     )

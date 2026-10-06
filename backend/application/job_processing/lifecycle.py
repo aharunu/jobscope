@@ -72,6 +72,10 @@ class JobLifecycleService:
         3. Job-level ingestion or normalization errors must never close jobs.
         4. Zero-job crawls on populated sources must be guarded against mass deletion.
         """
+        if crawl_result.closure_suppression_reason:
+            return AbsenceClosureEvaluation(
+                is_eligible=False, reason=crawl_result.closure_suppression_reason
+            )
         # Rule 1: Crawl execution status check
         if crawl_status in (CrawlStatus.FAILED, CrawlStatus.PARTIAL):
             return AbsenceClosureEvaluation(

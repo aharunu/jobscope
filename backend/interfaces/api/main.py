@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from types import SimpleNamespace
 
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -16,7 +17,10 @@ from backend.interfaces.api.routes.applications import (
     router as applications_router,
 )
 from backend.interfaces.api.routes.crawl import router as crawl_router
+from backend.interfaces.api.routes.dedup import router as dedup_router
 from backend.interfaces.api.routes.health import router as health_router
+from backend.interfaces.api.routes.ingestion import get_runner
+from backend.interfaces.api.routes.ingestion import router as ingestion_router
 from backend.interfaces.api.routes.jobs import router as jobs_router
 from backend.interfaces.api.routes.matching import router as matching_router
 from backend.interfaces.api.routes.profile import router as profile_router
@@ -39,13 +43,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Startup: ensure managed HttpSafeClient and ATSAdapterRegistry are initialized
     if getattr(app.state, "http_safe_client", None) is None:
         app.state.http_safe_client = HttpSafeClient(
-            max_response_bytes=settings.crawler_max_response_bytes
+            max_response_bytes=settings.crawler_max_response_bytes,
+            min_request_interval_seconds=settings.crawler_min_request_interval_seconds,
         )
 
     if getattr(app.state, "adapter_registry", None) is None:
         app.state.adapter_registry = create_adapter_registry(app.state.http_safe_client)
 
-    yield
+    runner = get_runner(SimpleNamespace(app=app))
+    await runner.reconcile()
+    try:
+        yield
+    finally:
+        await runner.shutdown()
 
     # Shutdown: cleanly close HTTP safe client
     client = getattr(app.state, "http_safe_client", None)
@@ -94,9 +104,11 @@ def create_app(
 
     # Crawl execution endpoint
     app.include_router(crawl_router, prefix="/api")
+    app.include_router(ingestion_router, prefix="/api")
 
     # Canonical Jobs query endpoint
     app.include_router(jobs_router, prefix="/api")
+    app.include_router(dedup_router, prefix="/api")
 
     # Deterministic matching endpoint
     app.include_router(matching_router, prefix="/api")

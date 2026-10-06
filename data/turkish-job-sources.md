@@ -1703,7 +1703,7 @@ Two new readable ATS platforms now have harvester fetchers: **Hirex** (parsed fr
 - **Mobven** — `https://app.gethirex.com/o/mobven/` (Hirex) — open — mobile & fintech software house, İstanbul; verified roles incl. Product Manager, Senior Backend Developer (Java), QA Engineer; email: none found
 - **SabancıDx** — `https://app.gethirex.com/o/sabancidx/` (Hirex) — open — data/AI & digital tech services (Sabancı Holding), İstanbul/Ankara; verified roles incl. Data & AI Architect, Digital Financial Solutions Manager, Sec Ops & Security Specialist; email: none found
 - **Scorp** — `https://app.gethirex.com/o/scorp/` (Hirex) — open — social / creator-tech app, İstanbul; verified roles incl. BI Engineer / Analytics Engineer, AI / ML Engineer; email: none found
-- **Invent Analytics** — `https://app.gethirex.com/o/invent-analytics/` (Hirex) — open — retail supply-chain & pricing analytics SaaS (Turkish-founded), İstanbul / remote; verified roles incl. Senior/Staff Software Engineer; email: none found
+- **Invent Analytics** — `https://app.gethirex.com/o/invent-ai/` (Hirex) — open — retail supply-chain & pricing analytics SaaS (Turkish-founded), İstanbul / remote; verified roles incl. Senior/Staff Software Engineer; email: none found
 - **Bruin** — `https://app.gethirex.com/o/bruin/` (Hirex) — open — data platform / developer tooling, İstanbul; verified roles incl. Senior Software Engineer (Golang - Data Platform); email: none found
 - **Koton** — `https://app.gethirex.com/o/koton/` (Hirex) — open — retail / fast-fashion, İstanbul HQ + nationwide; verified roles incl. Senior Merchandise Planner, Strategic Finance Manager, Buying Manager; email: none found
 - **WorqCompany** — `https://app.gethirex.com/o/worqcompany/` (Hirex) — open — e-commerce marketplace / online-store enablement, Üsküdar İstanbul; verified roles incl. Marketing Analyst, Budget & Controlling Specialist; email: none found
@@ -2260,7 +2260,7 @@ Additive union of the three finalized TR discovery lanes (docs/TR-Upgrade/TR-Job
 **Istanbul**
 
 - **Accor** — `https://careers.smartrecruiters.com/AccorHotel` — open — retail & FMCG, Istanbul, SmartRecruiters API; email: none found
-- **Invent Analytics** — `https://app.gethirex.com/o/invent-analytics/` — open — retail & FMCG, Istanbul, Hirex API; email: none found
+- **Invent Analytics** — `https://app.gethirex.com/o/invent-ai/` — open — retail & FMCG, Istanbul, Hirex API; email: none found
 - **Koton** — `https://app.gethirex.com/o/koton/` — open — retail & FMCG, Istanbul, Hirex API; email: none found
 - **Red Bull** — `https://careers.smartrecruiters.com/RedBull` — open — retail & FMCG, Istanbul, SmartRecruiters API; email: none found
 - **Invent Analytics** — `https://www.kariyer.net/firma-profil/invent-analytics` — open — retail & FMCG, Istanbul, Company Career Site; email: none found

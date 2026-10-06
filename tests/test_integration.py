@@ -18,12 +18,15 @@ async def test_application_lifespan_initialization_and_disposal() -> None:
     """Verify that lifespan initializes db_engine and disposes on shutdown."""
     mock_engine = AsyncMock(spec=AsyncEngine)
     test_app = create_app(engine=mock_engine)
+    test_app.state.ingestion_runner = AsyncMock()
 
     async with lifespan(test_app):
         assert test_app.state.db_engine is mock_engine
 
     # Ensure engine disposal was called on exit
     mock_engine.dispose.assert_awaited_once()
+    test_app.state.ingestion_runner.reconcile.assert_awaited_once()
+    test_app.state.ingestion_runner.shutdown.assert_awaited_once()
 
 
 def test_database_readiness_success(client: TestClient, app: FastAPI) -> None:

@@ -75,6 +75,7 @@ class JobDetailResponse(BaseModel):
     """Complete canonical job detail projection for inspection."""
 
     model_config = ConfigDict(from_attributes=True)
+    occurrences: list[dict[str, Any]] = Field(default_factory=list)
 
     id: uuid.UUID = Field(description="Unique job identifier")
     source_id: uuid.UUID = Field(description="Originating source identifier")

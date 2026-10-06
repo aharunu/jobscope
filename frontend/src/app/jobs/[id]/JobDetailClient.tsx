@@ -294,6 +294,13 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
       {!loadingJob && job && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }} data-testid="job-detail-content">
           <JobDetailHeader job={job} />
+          {!!job.occurrences?.length && <section className="card" style={{ padding: '1.25rem' }} aria-label="Sources / Occurrences">
+            <h2>Sources / Occurrences</h2>
+            {job.occurrences.map(occurrence => <div key={occurrence.id} style={{ marginTop: '0.75rem' }}>
+              <strong>{occurrence.source} · {occurrence.ats_type}</strong> · {occurrence.status} · Last seen {new Date(occurrence.last_seen_at).toLocaleString()}
+              <p>{/^(https?):\/\//.test(occurrence.url) && <a href={occurrence.url} target="_blank" rel="noreferrer">View source posting</a>}{occurrence.external_job_id && ` · Provider ID: ${occurrence.external_job_id}`}</p>
+            </div>)}
+          </section>}
 
           {profilesError && (
             <Alert variant="warning" title="Candidate Profiles Notice">

@@ -26,6 +26,8 @@ class JobIngestionResultDTO:
     error_count: int
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    closure_authorized: bool = False
+    closure_suppression_reason: str | None = None
 
 
 @dataclass(slots=True)
@@ -98,3 +100,4 @@ class JobDetailDTO:
     ats_type: str | None = None
     source_url: str | None = None
     requirements: list[dict[str, Any]] = field(default_factory=list)
+    occurrences: list[dict[str, Any]] = field(default_factory=list)

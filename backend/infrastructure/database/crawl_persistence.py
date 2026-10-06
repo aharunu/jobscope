@@ -18,6 +18,7 @@ from backend.application.job_processing.normalizer import JobNormalizer
 from backend.application.job_processing.services import JobIngestionService
 from backend.domain.crawl.entities import CrawlRun
 from backend.domain.crawl.enums import CrawlStatus
+from backend.infrastructure.database.occurrence_store import SQLAlchemyOccurrenceStore
 from backend.infrastructure.database.repositories.crawl_run_repository import (
     SQLAlchemyCrawlRunRepository,
 )
@@ -34,6 +35,19 @@ from backend.infrastructure.extraction.deterministic_extractor import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def build_ingestion_service(session: AsyncSession) -> JobIngestionService:
+    """Use the same canonical ingestion pipeline in every entry point."""
+    return JobIngestionService(
+        job_repo=SQLAlchemyJobRepository(session),
+        raw_job_repo=SQLAlchemyRawJobRepository(session),
+        crawl_run_repo=SQLAlchemyCrawlRunRepository(session),
+        job_requirement_repo=SQLAlchemyJobRequirementRepository(session),
+        requirement_extractor=DeterministicRequirementExtractor(),
+        normalizer=JobNormalizer(),
+        occurrence_store=SQLAlchemyOccurrenceStore(session),
+    )
 
 
 class SQLAlchemyCrawlPersistenceManager(CrawlPersistenceManager):
@@ -108,19 +122,7 @@ class SQLAlchemyCrawlPersistenceManager(CrawlPersistenceManager):
         """Transaction B: Ingest crawl result and finalize CrawlRun atomically."""
         async with self._session_factory() as session:
             try:
-                job_repo = SQLAlchemyJobRepository(session)
-                raw_job_repo = SQLAlchemyRawJobRepository(session)
-                crawl_run_repo = SQLAlchemyCrawlRunRepository(session)
-                job_requirement_repo = SQLAlchemyJobRequirementRepository(session)
-                requirement_extractor = DeterministicRequirementExtractor()
-                ingestion_service = JobIngestionService(
-                    job_repo=job_repo,
-                    raw_job_repo=raw_job_repo,
-                    crawl_run_repo=crawl_run_repo,
-                    job_requirement_repo=job_requirement_repo,
-                    requirement_extractor=requirement_extractor,
-                    normalizer=JobNormalizer(),
-                )
+                ingestion_service = build_ingestion_service(session)
                 result = await ingestion_service.ingest_crawl_result(
                     source=source,
                     crawl_result=crawl_result,

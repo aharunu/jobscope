@@ -47,6 +47,17 @@ unknown keys are retained but never forwarded as provider filters. Pagination
 mode offset/none is accepted for storage compatibility; it does not disable
 required traversal. Other modes and arbitrary base_url overrides are rejected.
 
+Normal application crawls additionally share a same-host HTTP pacing gate:
+`CRAWLER_MIN_REQUEST_INTERVAL_SECONDS=1.0` by default (allowed 0.25–60 seconds).
+It applies to every physical page/detail/read-POST/retry/redirect request across
+Sources using the managed client, including concurrent requests to that host.
+Source-specific delays still apply and cannot disable this minimum. A provider's
+429/503 `Retry-After` (seconds or HTTP date) postpones subsequent same-host calls;
+429 is not automatically retried. Waiting counts against the acquisition time
+budget; insufficient time fails safely without early requests or closure.
+Provider terms may require a larger interval; configure it accordingly. This
+limit is per application process, not a distributed limiter across workers.
+
 PARTIAL snapshots carry warnings and can ingest useful jobs, but never close
 absent jobs. Fatal root/network/body/budget/detail errors discard acquisition and
 produce FAILED. Supported full-board proofs are conditional, never a claim of a

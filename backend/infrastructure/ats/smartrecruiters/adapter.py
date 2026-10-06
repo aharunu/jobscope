@@ -106,6 +106,9 @@ class SmartRecruitersAdapter:
                         ),
                         location=location(info.get("location"))
                         or location(item.get("location")),
+                        country_code=mapping(
+                            info.get("location") or item.get("location")
+                        ).get("country"),
                         employment_type=employment(
                             mapping(info.get("typeOfEmployment")).get("label")
                             or mapping(item.get("typeOfEmployment")).get("label")

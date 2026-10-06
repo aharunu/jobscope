@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { listSourcePlatforms } from '../../lib/api/sources';
 import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -23,6 +24,38 @@ export const JobFilters: React.FC<JobFiltersProps> = ({
   onChange,
   onReset,
 }) => {
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  const [platformError, setPlatformError] = useState(false);
+  useEffect(() => {
+    let controller: AbortController | undefined;
+    let mounted = true;
+    const refresh = async () => {
+      controller?.abort();
+      const request = new AbortController();
+      controller = request;
+      try {
+        const values = await listSourcePlatforms(request.signal);
+        if (mounted && !request.signal.aborted) { setPlatforms(values); setPlatformError(false); }
+      } catch {
+        if (mounted && !request.signal.aborted) setPlatformError(true);
+      }
+    };
+    const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    void refresh();
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      mounted = false; controller?.abort();
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, []);
+  const platformOptions = [
+    ...ATS_TYPE_OPTIONS,
+    ...[...new Set([...platforms, filters.ats_type || ''])]
+      .filter(value => value && !ATS_TYPE_OPTIONS.some(option => option.value === value))
+      .sort().map(value => ({ value, label: value === 'kariyer_net' ? 'Kariyer.net' : value })),
+  ];
   const hasActiveFilters = Boolean(
     filters.status ||
       filters.work_mode ||
@@ -101,10 +134,12 @@ export const JobFilters: React.FC<JobFiltersProps> = ({
 
         <Select
           label="Source Platform"
-          options={ATS_TYPE_OPTIONS}
+          options={platformOptions}
           value={filters.ats_type || ''}
           onChange={(e) => onChange({ ats_type: e.target.value || undefined })}
         />
+
+        {platformError && <p role="status">Platform list could not be refreshed. Existing options remain available.</p>}
 
         <Input
           label="Company"

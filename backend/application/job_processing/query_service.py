@@ -181,4 +181,5 @@ class JobQueryService:
             ats_type=job.ats_type or "unknown",
             source_url=job.source_url or "",
             requirements=requirements,
+            occurrences=job.occurrences,
         )

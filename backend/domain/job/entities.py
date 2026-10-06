@@ -44,6 +44,7 @@ class Job:
     ats_type: str | None = None
     source_url: str | None = None
     requirements: list[JobRequirement] = field(default_factory=list)
+    occurrences: list[dict] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -59,6 +60,25 @@ class RawJob:
     content_type: str
     id: uuid.UUID = field(default_factory=uuid.uuid4)
     fetched_at: datetime | None = None
+    occurrence_id: uuid.UUID | None = None
+
+
+@dataclass(slots=True)
+class JobOccurrence:
+    """Source-owned exposure of a logical vacancy; independent lifecycle."""
+
+    job_id: uuid.UUID
+    source_id: uuid.UUID
+    canonical_url: str
+    first_seen_at: datetime
+    last_seen_at: datetime
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    external_job_id: str | None = None
+    status: JobStatus = JobStatus.ACTIVE
+    content_hash: str | None = None
+    closed_at: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass(slots=True)

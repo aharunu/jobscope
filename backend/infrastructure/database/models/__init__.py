@@ -14,6 +14,17 @@ from backend.infrastructure.database.models.crawl_run import (
     CrawlRunModel,
 )
 from backend.infrastructure.database.models.cv import CVModel
+from backend.infrastructure.database.models.dedup import (
+    DedupCandidateModel,
+    JobMergeRecordModel,
+    JobOccurrenceModel,
+)
+from backend.infrastructure.database.models.ingestion import (
+    IngestionDecisionModel,
+    IngestionPolicyModel,
+    IngestionRunModel,
+    IngestionSourceRunModel,
+)
 from backend.infrastructure.database.models.job import (
     JobModel,
     JobRequirementModel,
@@ -32,6 +43,13 @@ from backend.infrastructure.database.models.source import SourceModel
 from backend.infrastructure.database.models.user import UserModel
 
 __all__ = [
+    "DedupCandidateModel",
+    "JobMergeRecordModel",
+    "JobOccurrenceModel",
+    "IngestionPolicyModel",
+    "IngestionRunModel",
+    "IngestionSourceRunModel",
+    "IngestionDecisionModel",
     "AIAnalysisModel",
     "AIEvidenceModel",
     "ApplicationModel",

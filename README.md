@@ -15,7 +15,7 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 - **Framework:** FastAPI (RESTful API & OpenAPI docs)
 - **Database:** PostgreSQL 16 + SQLAlchemy 2.x (async engine, mapped domain models)
 - **Migrations:** Alembic
-- **Testing:** pytest, pytest-asyncio, httpx (800+ automated tests)
+- **Testing:** pytest, pytest-asyncio, httpx, including PostgreSQL integration tests
 - **Code Quality:** Ruff (linting & formatting)
 - **Logging:** Structured logging supporting console and JSON formats with automatic secret & credential masking
 - **Architecture Layers:**
@@ -29,7 +29,7 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 - **Language:** TypeScript 5.7 (strict typing)
 - **Styling:** Custom Vanilla CSS Design System (dark-themed, CSS variables/tokens, glassmorphism, responsive micro-animations)
 - **API Communication:** Same-origin Next.js rewrites (`/api/:path*` -> FastAPI backend)
-- **Testing:** Vitest 3 + React Testing Library (130+ automated tests)
+- **Testing:** Vitest 3 + React Testing Library
 
 ---
 
@@ -38,6 +38,8 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 1. **Source Registry & Multi-ATS Crawlers:**
    - Acquisition adapters for **Lever, Greenhouse, Ashby, Workday, SmartRecruiters, Recruitee, Personio, Teamtailor, Workable, Hirex, BambooHR and Oracle**. Hosted/widget providers with unverified coverage return PARTIAL and cannot close absent jobs. See [A3 acquisition guide](docs/development/acquisition_a3.md).
    - Crawl orchestration, content hashing, deduplication, and crawl run history auditing.
+   - **Ingestion Control Center (`/ingestion`):** preview or persist accepted jobs using post-acquisition country policies, global defaults and Source/run overrides. Filtered ingestion cannot close absent jobs. See [ingestion control guide](docs/development/ingestion-control.md).
+   - Shared per-host request pacing defaults to one second between request starts (`CRAWLER_MIN_REQUEST_INTERVAL_SECONDS=1.0`). Source delays can increase waiting; a zero Source delay does not disable the shared minimum.
 
 2. **Deterministic Match Engine:**
    - 100% deterministic, explainable scoring algorithm across 6 evaluation categories:
@@ -59,7 +61,7 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
 4. **Interactive Discovery & Match UI:**
    - `/jobs`: Searchable job board with live filtering (keyword, location, remote mode, ATS source), pagination, and URL query synchronization.
    - `/jobs/[id]`: Comprehensive job detail view with interactive deterministic Match Panel, radial score gauges, blocker alerts, category breakdowns, and real-time SearchProfile switcher.
-   - `/search-profiles`: Dedicated management interface for creating, viewing, and configuring search profiles.
+   - `/search-profiles`: Create, edit and delete search profiles. Seniority remains a single persisted selection.
    - `/profile`: Candidate summary and repeatable skills, experience, education and project editors using the existing BaseProfile API.
    - MatchPanel reads the saved result for the selected Job + SearchProfile on opening or switching profiles. Calculation and re-evaluation require an explicit button click.
 
@@ -67,6 +69,14 @@ JobScope is built as a **Modular Monolith** adhering to Clean / Hexagonal Archit
    - Track a job from Job Detail, then manage it at `/applications` and `/applications/[id]`.
    - Six status badges, server status filters, pagination, private notes, persisted chronological history and confirmed removal.
    - Matching and AI are optional. Low scores, blockers and closed jobs never prevent tracking or application management.
+
+6. **Hybrid Deduplication & Job Occurrences (`/dedup`):**
+   - A Logical Job represents the vacancy; source-owned JobOccurrences preserve provider IDs, URLs, raw provenance and independent lifecycle state.
+   - Bounded, deterministic cross-source scoring attaches only strong duplicates. Ambiguous pairs remain separate Jobs with explainable review candidates; no AI is used for deduplication.
+   - Job Detail lists Sources / Occurrences. `/dedup` provides comparison, confirmed Merge and durable Keep Separate actions.
+   - Applications survive safe merges; conflicting same-user Applications block merging. Historical matches remain valid but are invalidated as current results until explicit recalculation.
+   - A Logical Job stays ACTIVE while any occurrence is ACTIVE. PARTIAL or geographically filtered ingestion cannot close missing occurrences.
+   - See [hybrid deduplication guide](docs/development/hybrid-deduplication.md).
 
 ---
 
@@ -94,18 +104,20 @@ jobscope/
 │   └── interfaces/           # FastAPI application, route handlers, Pydantic schemas
 ├── frontend/
 │   ├── src/
-│   │   ├── app/              # Next.js pages (/, /jobs, /jobs/[id], /profile, /search-profiles)
+│   │   ├── app/              # Jobs, profiles, applications, ingestion and dedup review
 │   │   ├── components/       # UI components (jobs, matching, profile, search_profile, ui)
 │   │   ├── lib/              # API client, contracts, formatters, constants
 │   │   ├── styles/           # Design system tokens and globals.css
 │   │   └── tests/            # Vitest unit, component, and user flow tests
 │   ├── next.config.mjs       # Next.js config with backend API proxy rewrites
 │   └── vitest.config.ts      # Vitest test configuration
-├── tests/                    # Backend pytest suite (700+ tests)
+├── tests/                    # Backend unit/API/PostgreSQL regression suites
 ├── scripts/
-│   └── dev.py                # Zero-dependency Python developer CLI runner
+│   ├── dev.py                # Zero-dependency Python developer CLI runner
+│   └── analyze_historical_dedup.py # Dry-run historical candidate analysis
 ├── docs/
-│   └── design/               # Architecture decision records and specifications
+│   ├── design/               # Architecture decision records and specifications
+│   └── development/          # Acquisition, ingestion and dedup operation guides
 ├── .github/
 │   └── workflows/ci.yml      # Automated GitHub Actions CI workflow
 ├── compose.yaml              # Full local Docker development stack
@@ -322,7 +334,12 @@ continues to work when the provider is unavailable.
 5. **Run database migrations:**
    ```powershell
    alembic upgrade head
+   alembic check
    ```
+   Apply the latest migration before starting updated backend code. Revision
+   `0011_hybrid_dedup` backfills one occurrence per existing Job without merging
+   historical Jobs or changing their count. Docker startup applies migrations
+   automatically; native development requires this step explicitly.
 
 6. **Start the FastAPI backend server:**
    ```powershell
@@ -365,10 +382,11 @@ Optional frontend overrides belong in `frontend/.env.local`: `BACKEND_API_URL=ht
 JobScope maintains an extensive test suite across both backend and frontend layers:
 
 ### Backend Testing (Pytest & Ruff)
-Run from the repository root after configuring PostgreSQL and running `alembic upgrade head`. Database integration fixtures use the application's `DATABASE_URL` and roll back test transactions; use a dedicated development/test database. Without a reachable migrated database, some integration tests skip. CI sets `JOBSCOPE_REQUIRE_DATABASE=1` so any skip fails the quality gate.
+Run from the repository root after configuring PostgreSQL and running `alembic upgrade head`. Database integration fixtures use the application's `DATABASE_URL`; use a dedicated development/test database. Fixtures use rollback or explicit cleanup. Without a reachable migrated database, some integration tests skip. Set `JOBSCOPE_REQUIRE_DATABASE=1` locally, as CI does, to fail rather than skip required database coverage.
 
 ```powershell
-# Run all backend tests (700+ tests)
+# Run the complete backend suite, requiring PostgreSQL
+$env:JOBSCOPE_REQUIRE_DATABASE = "1"
 pytest -v
 
 # Run linter
@@ -382,7 +400,7 @@ ruff format --check .
 ```powershell
 cd frontend
 
-# Run automated component & flow tests (80+ tests)
+# Run automated component & flow tests
 npm test
 
 # Check TypeScript types
@@ -418,8 +436,12 @@ All application routes are served under `/api` (or at root for health checks):
 |---|---|---|---|
 | **Health** | `/health` | GET | System liveness probe |
 | **Health** | `/health/ready` | GET | Database connectivity readiness probe |
-| **Jobs** | `/api/jobs` | GET | Paginated canonical job list with search & filter params (`company`, `location`, `work_mode`, `employment_type`, `status`) |
-| **Jobs** | `/api/jobs/{id}` | GET | Canonical job details including structured requirements |
+| **Jobs** | `/api/jobs` | GET | Paginated Logical Jobs with search/filter params; Source/ATS filters include alternate occurrences |
+| **Jobs** | `/api/jobs/{id}` | GET | Logical job, requirements and compact occurrences; retired IDs resolve the survivor |
+| **Dedup** | `/api/dedup/candidates` | GET | Paginated pending review pairs, scores and signals |
+| **Dedup** | `/api/dedup/candidates/{id}` | GET | Side-by-side candidate details |
+| **Dedup** | `/api/dedup/candidates/{id}/merge` | POST | Atomic manual merge; requires `{"confirm": true}` |
+| **Dedup** | `/api/dedup/candidates/{id}/keep-separate` | POST | Persist a durable separate resolution |
 | **Sources** | `/api/sources` | GET | List registered ATS and career sources |
 | **Sources** | `/api/sources/stats` | GET | Sources breakdown and health summary |
 | **Sources** | `/api/sources/sync` | POST | Sync sources from canonical Markdown catalog into DB |
@@ -427,7 +449,14 @@ All application routes are served under `/api` (or at root for health checks):
 | **Sources** | `/api/sources/{id}` | GET, PATCH | Retrieve or update a source |
 | **Sources** | `/api/sources/{id}/status` | PATCH | Update source active status |
 | **Sources** | `/api/sources/{id}/probe` | POST | Probe specific source health |
-| **Crawl** | `/api/crawl/run` | POST | Trigger ingestion run for a source or all sources |
+| **Ingestion** | `/api/ingestion/runs` | POST / GET | Start background preview/persist; `from_preview_run_id` persists a completed preview through fresh acquisition |
+| **Ingestion** | `/api/ingestion/runs/{id}` | GET | Persisted progress and counters |
+| **Ingestion** | `/api/ingestion/runs/{id}/sources` | GET | Per-Source acquisition, policy and closure audit |
+| **Ingestion** | `/api/ingestion/runs/{id}/decisions` | GET | Paginated accepted/rejected decisions |
+| **Ingestion** | `/api/ingestion/runs/{id}/cancel` | POST | Cooperative cancellation |
+| **Ingestion** | `/api/ingestion/policies/default` | GET / PUT | Global geographic policy |
+| **Ingestion** | `/api/ingestion/policies/sources/{id}` | GET / PUT / DELETE | Source policy override |
+| **Crawl** | `/api/crawl/run` | POST | Low-level crawl/debug path; does not apply ingestion policies |
 | **Crawl** | `/api/crawl/runs` | GET | List historical crawl runs |
 | **Crawl** | `/api/crawl/runs/{id}` | GET | Get specific crawl run details |
 | **Crawl** | `/api/crawl/runs/{id}/jobs` | GET | Discovered job audit records for a crawl run |
@@ -495,6 +524,8 @@ Status, notes and removal requests share a synchronous mutation guard; authorita
 | Optional AI Matching | COMPLETE |
 | Application Tracking backend/frontend | COMPLETE |
 | Core JobScope workflow | COMPLETE |
+| Ingestion Control Center (A4) | COMPLETE |
+| Hybrid Deduplication / Occurrences / Review (A5) | COMPLETE |
 
 Validation combines real PostgreSQL/API workflow tests and frontend behavioral tests, with targeted desktop/tablet/mobile browser smoke checks. This is not a full automated browser E2E suite or production authentication/deployment certification.
 
@@ -508,7 +539,7 @@ Experience company, role title and start date are required. Native date controls
 
 `GET /api/matches/job/{job_id}?search_profile_id={id}` is the canonical detail lookup. It returns the same persisted representation as POST, including scores, category breakdowns, requirement evidence, blockers and explanation. Missing saved results return `404 MATCH_RESULT_NOT_FOUND`; missing jobs or inaccessible SearchProfiles return their resource 404s. GET never calls the match engine or writes results. Collection GET returns `items`, `total`, `limit`, `offset`, ordered by `updated_at` descending then ID descending; `limit` is 1–100 and `offset` is non-negative.
 
-Each `(job_id, base_profile_id, search_profile_id)` stores one latest snapshot. Explicit POST re-evaluation overwrites that snapshot, retaining its ID and creation timestamp. Profile/job edits do not automatically invalidate or recalculate it; MatchPanel displays its saved timestamp and offers explicit re-evaluation.
+Each `(job_id, base_profile_id, search_profile_id)` stores one current snapshot. Explicit POST re-evaluation overwrites that snapshot, retaining its ID and creation timestamp. Profile edits do not automatically recalculate it. A5 canonical content changes and manual merges invalidate affected saved matches so stale results are not exposed as current. Historical merge records, requirements and match/AI evidence remain referentially valid; explicit deterministic recalculation restores a current result without calling AI. MatchPanel displays the saved timestamp and offers explicit re-evaluation.
 
 Run `alembic upgrade head` before using retrieval. Migration `0008_match_snapshot` persists category scores and explanation that previously existed only in the POST response. Legacy rows retain their stored scalar scores and requirement evidence with `{}` category scores and a null explanation. GET does not invent or backfill missing evidence; explicitly re-evaluate to obtain a complete current snapshot.
 
@@ -561,6 +592,48 @@ Migration `0009_ai_details` saves previously unsupported strengths/gaps/risks, b
 
 **Privacy:** An explicit AI request sends the current job's description/responsibilities/requirements and fit metadata, candidate summary/skills/experience/education/projects, search preferences and deterministic scores/evidence to the configured provider (hosted OpenAI by default, or the configured OpenAI-compatible server). Candidate root name/IDs, project URLs, internal settings, keys, headers, application notes and unrelated users are omitted. Prompts/responses are not logged; SQL debug parameters are hidden. Job/profile text is delimited as untrusted JSON data with instructions against prompt injection and invented evidence; this is defensive separation, not perfect injection immunity. Provider costs, terms and account/model availability apply. No real-provider call is part of normal tests.
 
+## Ingestion and Deduplication Operations
+
+At `/ingestion`, select Sources/providers and a country policy, then Preview.
+Country codes such as `TR` and `ES` resolve to Turkey and Spain; country names
+and supported location evidence use the same resolver. Unknown-country inclusion
+is explicit. Acquisition remains board-wide; geographic filtering happens after
+acquisition and SearchProfiles never filter the crawler.
+
+Preview records run progress and compact decisions but creates no Jobs,
+occurrences, raw observations, requirements or dedup candidates. A completed
+preview offers **Persist this preview**. This creates a new PERSIST run using the
+preview's selected Sources and frozen policy, with fresh provider requests;
+preview payloads are not stored for exact replay. Progress, cancellation and
+per-Source acquisition/closure reasons remain available in run history.
+
+Persist does not reset or delete the database. It updates Source occurrences,
+creates/attaches accepted vacancies and preserves Applications. Only complete,
+warning-free, unfiltered authoritative acquisition can close absent Source
+occurrences, subject to the existing zero-result anomaly guard. A vacancy closes
+only when all occurrences close; closed Jobs remain stored and queryable.
+
+The next stage is optional historical analysis, not a mass merge. From the
+repository root with the virtual environment active and migrations applied:
+
+```powershell
+python -m scripts.analyze_historical_dedup --limit 1000
+```
+
+The default is a non-mutating dry run. `--record-candidates` explicitly stores
+review suggestions only; it still never merges Jobs. Resolve candidates through
+`/dedup`. Same company/title/location is insufficient for automatic merging:
+additional reliable reference or posting-URL evidence is required. Local A5
+calibration found no cross-source pairs, so real positive-match precision has
+not been established; conservative guards remain enabled.
+
+Generated reports/calibration JSON stay local under `docs/agent-reports/`.
+Prompt attachments under `.codex-remote-attachments/`, PostgreSQL `.dump` /
+`.backup` files and root `backups/` are ignored. Implementation, migrations,
+tests and reusable `docs/development/` guides remain versionable. Safe
+`.env.example` and `.env.docker.example` templates remain allowed; real `.env*`
+configuration stays ignored.
+
 ### Planned Endpoints (Future Phases)
 The following capabilities are specified in design documentation and scheduled for subsequent implementation phases:
 - **CV Import & Parse (`/api/cv/upload`, `/api/cv/{id}/approve`)**: PDF/DOCX resume parsing.
@@ -575,3 +648,6 @@ Detailed architecture specifications and design records are available in `docs/`
 - [MVP Technical Design](docs/design/01_mvp_technical_design.md): Architectural decisions and foundational choices.
 - [Database & API Design](docs/design/02_database_and_api_design.md): Schemas, relational integrity, and API specs.
 - [Data Model & Architecture](docs/design/03_data_model_and_architecture.md): Entity relationships and Clean Architecture boundaries.
+- [Multi-ATS Acquisition](docs/development/acquisition_a3.md): Provider contracts, coverage and closure safety.
+- [Ingestion Control Center](docs/development/ingestion-control.md): Preview/persist, policy snapshots, progress and cancellation.
+- [Hybrid Deduplication](docs/development/hybrid-deduplication.md): Logical Jobs, occurrences, scoring, lifecycle and safe review/merge.

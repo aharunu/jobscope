@@ -1,0 +1,22 @@
+.ingestion-page { padding-block: 2rem; display: grid; gap: 1rem; }
+.ingestion-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 1.5rem; display: grid; gap: 1rem; }
+.ingestion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+.ingestion-page label { display: grid; gap: .5rem; font-size: .9rem; }
+.ingestion-page label:has(input[type=checkbox]) { display: flex; align-items: center; }
+.ingestion-page select { color: var(--text-primary); background: var(--bg-surface); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: .6rem; width: 100%; }
+.ingestion-page select[multiple] { min-height: 9rem; }
+.ingestion-policy { display: grid; gap: .8rem; max-width: 650px; }
+.ingestion-actions, .ingestion-counts { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+.ingestion-counts span { padding: .4rem .6rem; background: var(--bg-surface); border-radius: var(--radius-md); }
+.ingestion-page progress { width: 100%; accent-color: var(--primary); }
+.ingestion-page details { border-top: 1px solid var(--border-card); padding: .8rem 0; }
+.ingestion-page summary { cursor: pointer; }
+.ingestion-table { overflow-x: auto; }
+.ingestion-page table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.ingestion-page th, .ingestion-page td { text-align: left; padding: .7rem; border-bottom: 1px solid var(--border-card); }
+.ingestion-status { display: inline-block; border-radius: var(--radius-md); padding: .15rem .5rem; font-size: .85rem; background: var(--bg-surface); color: var(--text-secondary); }
+.ingestion-status-completed { background: var(--status-active-bg); color: var(--status-active-text); }
+.ingestion-status-partial, .ingestion-status-completed_with_warnings { background: var(--mode-onsite-bg); color: var(--mode-onsite-text); }
+.ingestion-status-failed, .ingestion-status-interrupted { background: var(--danger-bg); color: var(--danger-text); }
+.ingestion-status-running, .ingestion-status-pending { background: var(--mode-remote-bg); color: var(--mode-remote-text); }
+.ingestion-status-cancelled { background: var(--status-closed-bg); color: var(--status-closed-text); }

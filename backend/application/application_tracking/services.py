@@ -57,6 +57,7 @@ class ApplicationTrackingService:
         job = await self.job_repo.get_by_id(job_id)
         if job is None:
             raise JobNotFoundError(f"Job '{job_id}' not found.")
+        job_id = job.id
 
         # 2. Check for duplicate application
         existing = await self.app_repo.get_by_job_and_user(

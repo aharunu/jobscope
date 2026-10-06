@@ -168,6 +168,7 @@ class DiscoveredJobDTO:
     content_type: str
     metadata: dict[str, Any] = field(default_factory=dict)
     discovered_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    country_code: str | None = None
 
 
 @dataclass(slots=True)
@@ -193,6 +194,7 @@ class CrawlResultDTO:
     warnings: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     is_complete: bool = False
+    closure_suppression_reason: str | None = None
 
 
 @dataclass(slots=True)

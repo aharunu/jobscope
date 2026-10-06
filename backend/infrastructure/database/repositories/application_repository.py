@@ -153,6 +153,21 @@ class SQLAlchemyApplicationRepository(ApplicationRepository):
             orm_app.notes = application.notes
             orm_app.updated_at = application.updated_at or now
         else:
+            # Serialize with merge, then resolve an old ID before insertion.
+            job = await self.session.scalar(
+                select(JobModel)
+                .where(JobModel.id == application.job_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            while job is not None and job.merged_into_id:
+                job = await self.session.scalar(
+                    select(JobModel)
+                    .where(JobModel.id == job.merged_into_id)
+                    .with_for_update()
+                )
+            if job is not None:
+                application.job_id = job.id
             orm_app = ApplicationModel(
                 id=application.id,
                 job_id=application.job_id,

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
+import time
 import urllib.parse
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
@@ -33,10 +37,24 @@ class HttpSafeClient(SafeHttpClient):
         retry_delay: float = 0.5,
         client: httpx.AsyncClient | None = None,
         max_response_bytes: int = 15 * 1024 * 1024,
+        min_request_interval_seconds: float = 0.0,
     ) -> None:
         if type(max_response_bytes) is not int or max_response_bytes <= 0:
             raise ValueError("max_response_bytes must be a positive integer")
         self._max_response_bytes = max_response_bytes
+        if (
+            isinstance(min_request_interval_seconds, bool)
+            or not isinstance(min_request_interval_seconds, (int, float))
+            or not math.isfinite(min_request_interval_seconds)
+            or min_request_interval_seconds < 0
+        ):
+            raise ValueError("Request interval must be a finite nonnegative number")
+        # Application wiring supplies the nonzero operational minimum. Zero is
+        # available for isolated clients/offline tests, not normal app settings.
+        self._min_request_interval = min_request_interval_seconds
+        self._clock = time.monotonic
+        self._host_locks: dict[str, asyncio.Lock] = {}
+        self._host_next_request: dict[str, float] = {}
         self._timeout_seconds = timeout_seconds
         self._user_agent = user_agent
         self._max_redirects = max_redirects
@@ -44,6 +62,43 @@ class HttpSafeClient(SafeHttpClient):
         self._retry_delay = retry_delay
         self._injected_client = client
         self._local_client: httpx.AsyncClient | None = None
+
+    async def _pace_request(self, url: str) -> None:
+        host = urllib.parse.urlsplit(url).hostname or ""
+        lock = self._host_locks.setdefault(host, asyncio.Lock())
+        async with lock:
+            delay = self._host_next_request.get(host, 0.0) - self._clock()
+            budget = current_budget.get()
+            if budget is not None and max(delay, 0) >= budget.remaining_seconds():
+                budget.exhausted("duration")
+            if delay > 0:
+                await asyncio.sleep(delay)
+            if budget is not None:
+                budget.remaining_seconds()
+            self._host_next_request[host] = self._clock() + self._min_request_interval
+
+    def _respect_retry_after(self, response: SafeHttpResponseDTO) -> None:
+        if response.status_code not in {429, 503}:
+            return
+        value = response.headers.get("retry-after")
+        if not value:
+            return
+        try:
+            if value.strip().isdigit():
+                delay = float(value.strip())
+            else:
+                until = parsedate_to_datetime(value)
+                if until.tzinfo is None:
+                    return
+                delay = (until - datetime.now(UTC)).total_seconds()
+        except (ValueError, TypeError, OverflowError):
+            return
+        if not math.isfinite(delay) or delay <= 0:
+            return
+        host = urllib.parse.urlsplit(response.url).hostname or ""
+        self._host_next_request[host] = max(
+            self._host_next_request.get(host, 0), self._clock() + delay
+        )
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Return the active HTTP client instance, creating a managed one if needed."""
@@ -190,6 +245,7 @@ class HttpSafeClient(SafeHttpClient):
                         },
                     )
 
+                await self._pace_request(current_url)
                 if budget is not None:
                     budget.before_request()
                     req_timeout = min(req_timeout, budget.remaining_seconds())
@@ -205,6 +261,7 @@ class HttpSafeClient(SafeHttpClient):
                         request, stream=True, follow_redirects=False
                     )
                     response = await self._read_response(streamed)
+                    self._respect_retry_after(response)
                     if (
                         response.status_code in TRANSIENT_STATUS_CODES
                         and attempt < self._max_retries

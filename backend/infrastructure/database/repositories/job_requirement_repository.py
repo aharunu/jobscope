@@ -32,7 +32,10 @@ class SQLAlchemyJobRequirementRepository(JobRequirementRepository):
         """
         stmt = (
             select(JobRequirementModel)
-            .where(JobRequirementModel.job_id == job_id)
+            .where(
+                JobRequirementModel.job_id == job_id,
+                JobRequirementModel.archived.is_(False),
+            )
             .order_by(
                 JobRequirementModel.type,
                 JobRequirementModel.normalized_skill,
@@ -55,7 +58,8 @@ class SQLAlchemyJobRequirementRepository(JobRequirementRepository):
         """
         # 1. Remove existing requirements for this job
         stmt = sa.delete(JobRequirementModel).where(
-            JobRequirementModel.job_id == job_id
+            JobRequirementModel.job_id == job_id,
+            JobRequirementModel.archived.is_(False),
         )
         await self.session.execute(stmt)
 

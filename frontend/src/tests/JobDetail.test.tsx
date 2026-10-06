@@ -93,6 +93,19 @@ const mockProfiles: SearchProfileResponse[] = [
 ];
 
 describe('JobDetail Components', () => {
+  it('renders source occurrences with independent status and safe links', async () => {
+    mockGetJobById.mockResolvedValue({ ...mockJobDetail, occurrences: [
+      { id: 'occ1', source_id: 's1', source: 'Employer Workday', ats_type: 'workday', external_job_id: 'R1', url: 'https://example.com/workday', status: 'CLOSED', first_seen_at: '2026-10-01', last_seen_at: '2026-10-04' },
+      { id: 'occ2', source_id: 's2', source: 'Employer Greenhouse', ats_type: 'greenhouse', external_job_id: '123', url: 'https://example.com/greenhouse', status: 'ACTIVE', first_seen_at: '2026-10-01', last_seen_at: '2026-10-05' },
+    ] });
+    mockListSearchProfiles.mockResolvedValue([]);
+    render(<JobDetailClient jobId="job-123" />);
+    await screen.findByRole('region', { name: 'Sources / Occurrences' });
+    expect(screen.getByText('Employer Workday · workday')).toBeInTheDocument();
+    expect(screen.getByText('Employer Greenhouse · greenhouse')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'View source posting' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'View source posting' })[0]).toHaveAttribute('rel', 'noreferrer');
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();

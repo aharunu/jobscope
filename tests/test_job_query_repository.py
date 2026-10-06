@@ -104,8 +104,8 @@ async def test_get_job_detail_found_with_source_projection() -> None:
     assert result.source_url == "https://jobs.lever.co/acme"
 
     # Verify query had where clause for job_id
-    mock_session.execute.assert_awaited_once()
-    called_stmt = mock_session.execute.call_args[0][0]
+    assert mock_session.execute.await_count == 2  # Logical Job plus occurrences.
+    called_stmt = mock_session.execute.call_args_list[0][0][0]
     compiled = str(called_stmt.compile(compile_kwargs={"literal_binds": False}))
     assert "WHERE jobs.id =" in compiled
 
@@ -178,7 +178,7 @@ async def test_list_jobs_with_all_filters() -> None:
     compiled = str(called_stmt.compile(compile_kwargs={"literal_binds": False}))
 
     # Verify join with sources on source_id
-    assert "JOIN sources" in compiled
+    assert "EXISTS" in compiled
     assert "sources.ats_type =" in compiled
     assert "jobs.status =" in compiled
     assert "jobs.source_id =" in compiled
@@ -229,7 +229,7 @@ async def test_count_jobs_with_identical_filters() -> None:
     compiled = str(called_stmt.compile(compile_kwargs={"literal_binds": False}))
 
     assert "count(jobs.id)" in compiled
-    assert "JOIN sources" in compiled
+    assert "EXISTS" in compiled
     assert "sources.ats_type =" in compiled
     assert "jobs.status =" in compiled
     assert "jobs.source_id =" in compiled

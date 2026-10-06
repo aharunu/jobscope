@@ -11,6 +11,7 @@ from backend.infrastructure.ats.acquisition import (
     employment,
     exact_date,
     location,
+    mapping,
     project,
     require_list,
     runtime_config,
@@ -70,6 +71,7 @@ class WorkableAdapter:
                     url=posting_url(item, base, config.board),
                     title=item.get("title"),
                     description=description,
+                    country_code=mapping(item.get("location")).get("countryCode"),
                     location=location(item.get("location"))
                     or ", ".join(
                         v

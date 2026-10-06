@@ -96,6 +96,11 @@ logs/
 *.db-wal
 *.db-shm
 
+# Local PostgreSQL backups (may contain candidate/application data)
+/backups/
+*.dump
+*.backup
+
 # Node.js / Frontend dependencies & artifacts
 node_modules/
 .next/
@@ -115,5 +120,9 @@ lerna-debug.log*
 # Vercel deployment
 .vercel/
 
-# Agent reports
+# Local prompt attachments, not application source
+/.codex-remote-attachments/
+
+# Local agent reports and generated calibration/backfill/analysis evidence
+# Keep reusable guides under docs/development/ versioned.
 docs/agent-reports/
