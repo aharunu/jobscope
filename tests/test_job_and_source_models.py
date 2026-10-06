@@ -278,7 +278,7 @@ def test_job_model_columns() -> None:
     # canonical_url
     assert isinstance(table.c.canonical_url.type, Text)
     assert not table.c.canonical_url.nullable
-    assert table.c.canonical_url.unique
+    assert not table.c.canonical_url.unique  # URLs are now Source-scoped occurrences.
 
     # company & title
     assert isinstance(table.c.company.type, String)
@@ -369,7 +369,7 @@ def test_job_unique_constraints() -> None:
     table = JobModel.__table__
 
     # canonical_url is unique
-    assert table.c.canonical_url.unique
+    assert not table.c.canonical_url.unique
 
     # Composite unique constraint
     composite_uqs = [
@@ -430,8 +430,8 @@ def test_foreign_keys_and_ondelete_rules() -> None:
     """Verify FKs and ondelete rules: RESTRICT for job->source, CASCADE for raw_job."""
     # jobs.source_id -> sources.id ON DELETE RESTRICT
     job_fks = list(JobModel.__table__.foreign_keys)
-    assert len(job_fks) == 1
-    fk = job_fks[0]
+    assert len(job_fks) == 2
+    fk = next(fk for fk in job_fks if fk.parent.name == "source_id")
     assert fk.column.table.name == "sources"
     assert fk.column.name == "id"
     assert fk.ondelete == "RESTRICT"

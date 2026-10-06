@@ -54,10 +54,11 @@ class MatchingService:
         )
         if profile is None:
             raise SearchProfileNotFoundError()
-        if await self.job_repo.get_by_id(job_id) is None:
+        job = await self.job_repo.get_by_id(job_id)
+        if job is None:
             raise JobNotFoundError()
         result = await self.match_result_repo.get_by_job_and_search_profile(
-            job_id, search_profile_id
+            job.id, search_profile_id
         )
         if result is None or result.base_profile_id != base.id:
             raise MatchResultNotFoundError()
@@ -73,6 +74,10 @@ class MatchingService:
     ) -> tuple[list[MatchResult], int]:
         if not 1 <= limit <= 100 or offset < 0:
             raise MatchingError("Invalid pagination", status_code=422)
+        if job_id is not None:
+            job = await self.job_repo.get_by_id(job_id)
+            if job is not None:
+                job_id = job.id
         return await self.match_result_repo.list_by_user_id(
             user_id, job_id, search_profile_id, limit, offset
         )

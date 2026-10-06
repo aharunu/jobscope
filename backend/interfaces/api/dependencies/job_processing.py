@@ -20,6 +20,7 @@ from backend.domain.job.repositories import (
     JobRequirementRepository,
     RawJobRepository,
 )
+from backend.infrastructure.database.occurrence_store import SQLAlchemyOccurrenceStore
 from backend.infrastructure.database.repositories.crawl_run_repository import (
     SQLAlchemyCrawlRunRepository,
 )
@@ -121,6 +122,7 @@ JobLifecycleServiceDep = Annotated[
 
 
 def get_job_ingestion_service(
+    session: DbSession,
     job_repo: JobRepositoryDep,
     raw_job_repo: RawJobRepositoryDep,
     crawl_run_repo: CrawlRunRepositoryDep,
@@ -138,6 +140,7 @@ def get_job_ingestion_service(
         job_requirement_repo=job_requirement_repo,
         requirement_service=requirement_service,
         lifecycle_service=lifecycle_service,
+        occurrence_store=SQLAlchemyOccurrenceStore(session),
     )
 
 

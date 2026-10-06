@@ -193,7 +193,8 @@ async def test_repository_omitted_company_and_location_adds_no_filter(
     called_stmt = mock_session.execute.call_args[0][0]
     compiled = str(called_stmt.compile(compile_kwargs={"literal_binds": False}))
 
-    assert "WHERE" not in compiled
+    assert "jobs.merged_into_id IS NULL" in compiled
+    assert "jobs.company LIKE" not in compiled and "jobs.location LIKE" not in compiled
     assert "LIKE" not in compiled
     assert "ILIKE" not in compiled
 

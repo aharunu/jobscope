@@ -56,6 +56,9 @@ class MatchResultModel(BaseModel):
     """SQLAlchemy ORM model for the match_results table."""
 
     __tablename__ = "match_results"
+    invalidated: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa.text("false")
+    )
 
     job_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("jobs.id", ondelete="CASCADE"),

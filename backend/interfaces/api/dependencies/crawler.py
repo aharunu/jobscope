@@ -35,7 +35,10 @@ def get_safe_http_client(request: Request) -> SafeHttpClient:
     if client is None:
         # Fallback for isolated unit tests or non-lifespan contexts
         settings = getattr(request.app.state, "settings", None) or get_settings()
-        return HttpSafeClient(max_response_bytes=settings.crawler_max_response_bytes)
+        return HttpSafeClient(
+            max_response_bytes=settings.crawler_max_response_bytes,
+            min_request_interval_seconds=settings.crawler_min_request_interval_seconds,
+        )
     return client
 
 

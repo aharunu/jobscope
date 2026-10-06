@@ -67,7 +67,6 @@ class JobModel(BaseModel):
     canonical_url: Mapped[str] = mapped_column(
         Text,
         nullable=False,
-        unique=True,
     )
     company: Mapped[str] = mapped_column(
         String(255),
@@ -125,6 +124,15 @@ class JobModel(BaseModel):
         index=True,
     )
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    dedup_company: Mapped[str] = mapped_column(
+        Text, default="", server_default="", index=True
+    )
+    dedup_title: Mapped[str] = mapped_column(
+        Text, default="", server_default="", index=True
+    )
+    merged_into_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("jobs.id", ondelete="SET NULL")
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -177,7 +185,7 @@ class JobModel(BaseModel):
 
         requirements = []
         if "requirements" in self.__dict__ and self.requirements is not None:
-            requirements = [r.to_domain() for r in self.requirements]
+            requirements = [r.to_domain() for r in self.requirements if not r.archived]
 
         return Job(
             id=self.id,
@@ -227,6 +235,10 @@ class JobModel(BaseModel):
             "status": job.status,
             "content_hash": job.content_hash,
         }
+        from backend.domain.job.dedup import normalize
+
+        kwargs["dedup_company"] = normalize(job.company)
+        kwargs["dedup_title"] = normalize(job.title)
         if job.first_seen_at is not None:
             kwargs["first_seen_at"] = job.first_seen_at
         if job.last_seen_at is not None:
@@ -245,6 +257,9 @@ class RawJobModel(Base, UUIDPrimaryKeyMixin):
     """SQLAlchemy ORM model for the immutable raw_jobs table."""
 
     __tablename__ = "raw_jobs"
+    occurrence_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("job_occurrences.id", ondelete="SET NULL"), index=True
+    )
 
     job_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("jobs.id", ondelete="CASCADE"),
@@ -281,6 +296,7 @@ class RawJobModel(Base, UUIDPrimaryKeyMixin):
             raw_content=self.raw_content,
             content_type=self.content_type,
             fetched_at=self.fetched_at,
+            occurrence_id=self.occurrence_id,
         )
 
     @classmethod
@@ -292,6 +308,7 @@ class RawJobModel(Base, UUIDPrimaryKeyMixin):
             "source_id": raw_job.source_id,
             "raw_content": raw_job.raw_content,
             "content_type": raw_job.content_type,
+            "occurrence_id": raw_job.occurrence_id,
         }
         if raw_job.fetched_at is not None:
             kwargs["fetched_at"] = raw_job.fetched_at
@@ -305,6 +322,9 @@ class JobRequirementModel(BaseModel):
     """SQLAlchemy ORM model for the job_requirements table."""
 
     __tablename__ = "job_requirements"
+    archived: Mapped[bool] = mapped_column(
+        sa.Boolean, default=False, server_default=sa.text("false")
+    )
 
     job_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("jobs.id", ondelete="CASCADE"),

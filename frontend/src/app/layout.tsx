@@ -39,6 +39,8 @@ export default function RootLayout({
             </Link>
 
             <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <Link href="/ingestion" style={{fontSize: '0.875rem', fontWeight: 600}}>Ingestion</Link>
+              <Link href="/dedup" style={{fontSize: '0.875rem', fontWeight: 600}}>Duplicate Review</Link>
               <Link href="/applications" style={{fontSize: '0.875rem', fontWeight: 600}}>Applications</Link>
               <Link href="/profile" style={{fontSize: '0.875rem', fontWeight: 600}}>Profile</Link>
               <Link

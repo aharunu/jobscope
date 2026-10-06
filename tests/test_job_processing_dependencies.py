@@ -77,6 +77,7 @@ def test_dependency_providers() -> None:
     assert isinstance(req_service, RequirementExtractionService)
 
     service = get_job_ingestion_service(
+        session=mock_session,
         job_repo=job_repo,
         raw_job_repo=raw_repo,
         crawl_run_repo=crawl_repo,

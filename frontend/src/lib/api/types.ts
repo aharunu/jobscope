@@ -31,6 +31,7 @@ export interface JobSummaryResponse {
 }
 
 export interface JobDetailResponse extends JobSummaryResponse {
+  occurrences?: { id: string; source_id: string; source: string; ats_type: string; external_job_id: string | null; url: string; status: string; first_seen_at: string; last_seen_at: string }[];
   description: string;
   content_hash: string;
   responsibilities: string | null;

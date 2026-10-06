@@ -85,6 +85,7 @@ class RecruiteeAdapter:
                     url=bound_url(item.get("careers_url"), base),
                     title=item.get("title"),
                     description=description,
+                    country_code=item.get("country_code"),
                     location=", ".join(
                         v
                         for v in (item.get("city"), item.get("country"))

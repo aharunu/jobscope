@@ -23,6 +23,7 @@ from backend.application.job_processing.extraction import (
 )
 from backend.application.job_processing.lifecycle import JobLifecycleService
 from backend.application.job_processing.normalizer import JobNormalizer
+from backend.application.job_processing.occurrences import OccurrenceStore
 from backend.domain.crawl.entities import CrawlRun
 from backend.domain.crawl.enums import CrawlJobAction, CrawlStatus
 from backend.domain.crawl.repositories import CrawlRunRepository
@@ -49,6 +50,8 @@ class JobIngestionService:
     requirement_service: RequirementExtractionService | None = None
     normalizer: JobNormalizer = field(default_factory=JobNormalizer)
     lifecycle_service: JobLifecycleService | None = None
+    occurrence_store: OccurrenceStore | None = None
+    seen_occurrence_ids: set[uuid.UUID] = field(default_factory=set)
 
     def __post_init__(self) -> None:
         if self.lifecycle_service is None:
@@ -79,6 +82,7 @@ class JobIngestionService:
         invoke session.flush() only; the outer transaction owner commits/rolls back.
         """
         now = datetime.now(UTC)
+        self.seen_occurrence_ids = set()
 
         # 1. Initialize or load CrawlRun record
         if crawl_run_id is not None:
@@ -113,6 +117,10 @@ class JobIngestionService:
         if not crawl_result.is_complete and not warnings:
             warnings.append("acquisition_incomplete")
         seen_job_ids: set[uuid.UUID] = set()
+        if self.occurrence_store:
+            await self.occurrence_store.prepare(
+                [self.normalizer.normalize(item, source) for item in crawl_result.jobs]
+            )
 
         # 2. Process each discovered job
         for discovered in crawl_result.jobs:
@@ -153,8 +161,11 @@ class JobIngestionService:
             interim_status = CrawlStatus.COMPLETED
 
         # 4. Safe absence-based closure evaluation & execution
-        active_jobs = await self.job_repo.get_active_jobs_by_source(source.id)
-        active_count = len(active_jobs)
+        active_count = (
+            await self.occurrence_store.active_count(source.id)
+            if self.occurrence_store
+            else len(await self.job_repo.get_active_jobs_by_source(source.id))
+        )
 
         evaluation = self.lifecycle_service.evaluate_crawl_completeness(
             source=source,
@@ -168,12 +179,21 @@ class JobIngestionService:
             warnings.append(evaluation.warning)
 
         if evaluation.is_eligible:
-            closed_jobs = await self.lifecycle_service.close_absent_jobs(
-                source_id=source.id,
-                crawl_run_id=crawl_run.id,
-                seen_job_ids=seen_job_ids,
-                now=now,
-            )
+            if self.occurrence_store:
+                closed_jobs = await self.occurrence_store.close_absent(
+                    source.id, self.seen_occurrence_ids, now
+                )
+                for job_id in closed_jobs:
+                    await self.crawl_run_repo.record_job_action(
+                        run_id=crawl_run.id, job_id=job_id, action=CrawlJobAction.CLOSED
+                    )
+            else:
+                closed_jobs = await self.lifecycle_service.close_absent_jobs(
+                    source_id=source.id,
+                    crawl_run_id=crawl_run.id,
+                    seen_job_ids=seen_job_ids,
+                    now=now,
+                )
             jobs_closed = len(closed_jobs)
         else:
             logger.info(
@@ -219,6 +239,10 @@ class JobIngestionService:
             error_count=error_count,
             warnings=warnings,
             errors=errors,
+            closure_authorized=evaluation.is_eligible,
+            closure_suppression_reason=None
+            if evaluation.is_eligible
+            else evaluation.reason,
         )
 
     async def _process_discovered_job(
@@ -231,6 +255,15 @@ class JobIngestionService:
     ) -> tuple[CrawlJobAction, uuid.UUID]:
         """Normalize, deduplicate, persist, and record action for discovered job."""
         canonical = self.normalizer.normalize(discovered, source)
+        if self.occurrence_store:
+            action, job_id, occurrence_id = await self.occurrence_store.observe(
+                canonical, discovered, now
+            )
+            self.seen_occurrence_ids.add(occurrence_id)
+            await self.crawl_run_repo.record_job_action(
+                run_id=run_id, job_id=job_id, action=action
+            )
+            return action, job_id
 
         # Mandatory Deduplication Identity Lookup:
         # If external_job_id is present, lookup MUST use only

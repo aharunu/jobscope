@@ -13,6 +13,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from backend.domain.job.entities import Job, RawJob
 from backend.domain.job.enums import JobStatus
 from backend.domain.job.repositories import JobRepository, RawJobRepository
+from backend.infrastructure.database.models.dedup import JobOccurrenceModel
 from backend.infrastructure.database.models.job import JobModel, RawJobModel
 from backend.infrastructure.database.models.source import SourceModel
 
@@ -26,6 +27,12 @@ class SQLAlchemyJobRepository(JobRepository):
     async def get_by_id(self, job_id: uuid.UUID) -> Job | None:
         """Retrieve a canonical job by its primary key ID."""
         orm_job = await self.session.get(JobModel, job_id)
+        visited = {job_id}
+        while orm_job is not None and orm_job.merged_into_id is not None:
+            if orm_job.merged_into_id in visited or len(visited) >= 64:
+                return None  # Defensive cycle guard; review merge never creates cycles.
+            visited.add(orm_job.merged_into_id)
+            orm_job = await self.session.get(JobModel, orm_job.merged_into_id)
         return orm_job.to_domain() if orm_job is not None else None
 
     async def get_by_source_and_external_id(
@@ -35,8 +42,18 @@ class SQLAlchemyJobRepository(JobRepository):
     ) -> Job | None:
         """Retrieve a job by its source and external ATS identifier."""
         stmt = select(JobModel).where(
-            JobModel.source_id == source_id,
-            JobModel.external_job_id == external_job_id,
+            JobModel.merged_into_id.is_(None),
+            sa.or_(
+                sa.and_(
+                    JobModel.source_id == source_id,
+                    JobModel.external_job_id == external_job_id,
+                ),
+                sa.exists().where(
+                    JobOccurrenceModel.job_id == JobModel.id,
+                    JobOccurrenceModel.source_id == source_id,
+                    JobOccurrenceModel.external_job_id == external_job_id,
+                ),
+            ),
         )
         result = await self.session.execute(stmt)
         orm_job = result.scalars().first()
@@ -72,9 +89,21 @@ class SQLAlchemyJobRepository(JobRepository):
         status: JobStatus | None = None,
     ) -> int:
         """Count jobs matching optional source and status filters."""
-        stmt = select(func.count()).select_from(JobModel)
+        stmt = (
+            select(func.count())
+            .select_from(JobModel)
+            .where(JobModel.merged_into_id.is_(None))
+        )
         if source_id is not None:
-            stmt = stmt.where(JobModel.source_id == source_id)
+            stmt = stmt.where(
+                sa.or_(
+                    JobModel.source_id == source_id,
+                    sa.exists().where(
+                        JobOccurrenceModel.job_id == JobModel.id,
+                        JobOccurrenceModel.source_id == source_id,
+                    ),
+                )
+            )
         if status is not None:
             stmt = stmt.where(JobModel.status == status)
         result = await self.session.execute(stmt)
@@ -92,7 +121,37 @@ class SQLAlchemyJobRepository(JobRepository):
         )
         result = await self.session.execute(stmt)
         orm_job = result.scalars().first()
-        return orm_job.to_domain() if orm_job is not None else None
+        if orm_job is None:
+            return None
+        if orm_job.merged_into_id is not None:
+            resolved = await self.get_by_id(job_id)
+            if resolved is None:
+                return None
+            return await self.get_job_detail(resolved.id)
+        job = orm_job.to_domain()
+        rows = (
+            await self.session.execute(
+                select(JobOccurrenceModel, SourceModel)
+                .join(SourceModel, SourceModel.id == JobOccurrenceModel.source_id)
+                .where(JobOccurrenceModel.job_id == job.id)
+                .order_by(JobOccurrenceModel.first_seen_at, JobOccurrenceModel.id)
+            )
+        ).all()
+        job.occurrences = [
+            {
+                "id": row.id,
+                "source_id": row.source_id,
+                "source": source.name,
+                "ats_type": source.ats_type,
+                "external_job_id": row.external_job_id,
+                "url": row.canonical_url,
+                "status": row.status,
+                "first_seen_at": row.first_seen_at,
+                "last_seen_at": row.last_seen_at,
+            }
+            for row, source in rows
+        ]
+        return job
 
     async def list_jobs(
         self,
@@ -108,16 +167,39 @@ class SQLAlchemyJobRepository(JobRepository):
         offset: int = 0,
     ) -> list[Job]:
         """List canonical jobs matching filter criteria with deterministic ordering."""
-        stmt = select(JobModel).options(joinedload(JobModel.source))
+        stmt = (
+            select(JobModel)
+            .options(joinedload(JobModel.source))
+            .where(JobModel.merged_into_id.is_(None))
+        )
         if ats_type is not None:
-            stmt = stmt.join(SourceModel, JobModel.source_id == SourceModel.id)
-            stmt = stmt.where(SourceModel.ats_type == ats_type)
+            stmt = stmt.where(
+                sa.or_(
+                    sa.exists().where(
+                        JobOccurrenceModel.job_id == JobModel.id,
+                        JobOccurrenceModel.source_id == SourceModel.id,
+                        SourceModel.ats_type == ats_type,
+                    ),
+                    sa.exists().where(
+                        JobModel.source_id == SourceModel.id,
+                        SourceModel.ats_type == ats_type,
+                    ),
+                )
+            )
 
         if status is not None:
             stmt = stmt.where(JobModel.status == status)
 
         if source_id is not None:
-            stmt = stmt.where(JobModel.source_id == source_id)
+            stmt = stmt.where(
+                sa.or_(
+                    JobModel.source_id == source_id,
+                    sa.exists().where(
+                        JobOccurrenceModel.job_id == JobModel.id,
+                        JobOccurrenceModel.source_id == source_id,
+                    ),
+                )
+            )
 
         if company is not None and company.strip():
             c_pat = f"%{company.strip()}%"
@@ -164,16 +246,35 @@ class SQLAlchemyJobRepository(JobRepository):
         search_query: str | None = None,
     ) -> int:
         """Count canonical jobs matching filter criteria."""
-        stmt = select(func.count(JobModel.id))
+        stmt = select(func.count(JobModel.id)).where(JobModel.merged_into_id.is_(None))
         if ats_type is not None:
-            stmt = stmt.join(SourceModel, JobModel.source_id == SourceModel.id)
-            stmt = stmt.where(SourceModel.ats_type == ats_type)
+            stmt = stmt.where(
+                sa.or_(
+                    sa.exists().where(
+                        JobOccurrenceModel.job_id == JobModel.id,
+                        JobOccurrenceModel.source_id == SourceModel.id,
+                        SourceModel.ats_type == ats_type,
+                    ),
+                    sa.exists().where(
+                        JobModel.source_id == SourceModel.id,
+                        SourceModel.ats_type == ats_type,
+                    ),
+                )
+            )
 
         if status is not None:
             stmt = stmt.where(JobModel.status == status)
 
         if source_id is not None:
-            stmt = stmt.where(JobModel.source_id == source_id)
+            stmt = stmt.where(
+                sa.or_(
+                    JobModel.source_id == source_id,
+                    sa.exists().where(
+                        JobOccurrenceModel.job_id == JobModel.id,
+                        JobOccurrenceModel.source_id == source_id,
+                    ),
+                )
+            )
 
         if company is not None and company.strip():
             c_pat = f"%{company.strip()}%"

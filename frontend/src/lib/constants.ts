@@ -27,6 +27,16 @@ export const ATS_TYPE_OPTIONS = [
   { value: '', label: 'All Platforms' },
   { value: 'lever', label: 'Lever' },
   { value: 'greenhouse', label: 'Greenhouse' },
+  { value: 'ashby', label: 'Ashby' },
+  { value: 'workday', label: 'Workday' },
+  { value: 'smartrecruiters', label: 'SmartRecruiters' },
+  { value: 'recruitee', label: 'Recruitee' },
+  { value: 'personio', label: 'Personio' },
+  { value: 'teamtailor', label: 'Teamtailor' },
+  { value: 'workable', label: 'Workable' },
+  { value: 'hirex', label: 'Hirex' },
+  { value: 'bamboohr', label: 'BambooHR' },
+  { value: 'oracle', label: 'Oracle' },
 ] as const;
 
 export const DEFAULT_PAGE_SIZE = 50;

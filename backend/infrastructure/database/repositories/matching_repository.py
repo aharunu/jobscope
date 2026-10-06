@@ -10,9 +10,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.application.matching.exceptions import MatchingError
 from backend.domain.matching.entities import AIAnalysis, MatchResult
 from backend.domain.matching.repositories import MatchResultRepository
 from backend.infrastructure.database.models.base_profile import BaseProfileModel
+from backend.infrastructure.database.models.job import JobModel
 from backend.infrastructure.database.models.matching import (
     AIAnalysisModel,
     AIEvidenceModel,
@@ -61,6 +63,7 @@ class SQLAlchemyMatchResultRepository(MatchResultRepository):
             )
             .where(
                 MatchResultModel.id == match_result_id,
+                MatchResultModel.invalidated.is_(False),
                 BaseProfileModel.user_id == user_id,
             )
             .options(*self._loads())
@@ -104,7 +107,10 @@ class SQLAlchemyMatchResultRepository(MatchResultRepository):
         stmt = (
             select(MatchResultModel)
             .options(*self._loads())
-            .where(MatchResultModel.id == match_result_id)
+            .where(
+                MatchResultModel.id == match_result_id,
+                MatchResultModel.invalidated.is_(False),
+            )
             .execution_options(populate_existing=True)
         )
         result = await self.session.execute(stmt)
@@ -132,7 +138,10 @@ class SQLAlchemyMatchResultRepository(MatchResultRepository):
                     SearchProfileModel.base_profile_id == BaseProfileModel.id,
                 ),
             )
-            .where(BaseProfileModel.user_id == user_id)
+            .where(
+                BaseProfileModel.user_id == user_id,
+                MatchResultModel.invalidated.is_(False),
+            )
         )
         if job_id is not None:
             stmt = stmt.where(MatchResultModel.job_id == job_id)
@@ -163,6 +172,7 @@ class SQLAlchemyMatchResultRepository(MatchResultRepository):
             .where(
                 MatchResultModel.job_id == job_id,
                 MatchResultModel.search_profile_id == search_profile_id,
+                MatchResultModel.invalidated.is_(False),
             )
         )
         result = await self.session.execute(stmt)
@@ -176,6 +186,16 @@ class SQLAlchemyMatchResultRepository(MatchResultRepository):
         - Unique constraint uq_match_results_job_base_search is honored.
         - Previous requirement matches are atomically replaced.
         """
+        job = await self.session.scalar(
+            select(JobModel)
+            .where(JobModel.id == match_result.job_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if job is not None and job.merged_into_id:
+            raise MatchingError(
+                "Job was merged; recalculate against the survivor", status_code=409
+            )
         # 1. Check for existing record matching (job, base_profile, search_profile)
         stmt = (
             select(MatchResultModel)
@@ -194,6 +214,7 @@ class SQLAlchemyMatchResultRepository(MatchResultRepository):
         snapshot = MatchResultModel.from_domain(match_result)
 
         if existing is not None:
+            existing.invalidated = False
             # Recalculation resets the AI projection and cache in the same transaction.
             await self.session.execute(
                 sa.delete(AIAnalysisModel).where(
