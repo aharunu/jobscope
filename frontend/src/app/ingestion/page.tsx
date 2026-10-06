@@ -9,7 +9,12 @@ import './ingestion.css';
 
 const active = (run: Run | null) => !!run && ['PENDING', 'RUNNING'].includes(run.status);
 const initialPolicy: Policy = { allowed_country_codes: ['TR'], include_unknown_country: false, enabled: true };
-const countryNames = new Intl.DisplayNames(['en'], { type: 'region' });
+function useCountryNames() {
+  const [names, setNames] = useState<Intl.DisplayNames | null>(null);
+  // Node and browser ICU data can disagree; keep initial hydration labels stable.
+  useEffect(() => { setNames(new Intl.DisplayNames(['en'], { type: 'region' })); }, []);
+  return names;
+}
 const counts = ['discovered', 'accepted', 'rejected', 'created', 'updated', 'unchanged', 'closed'] as const;
 
 function Status({ value }: { value: string }) {
@@ -17,9 +22,10 @@ function Status({ value }: { value: string }) {
 }
 
 function PolicyFields({ value, onChange }: { value: Policy; onChange: (v: Policy) => void }) {
+  const countryNames = useCountryNames();
   return <div className="ingestion-policy">
     <label>Allowed countries<select aria-label="Allowed countries" multiple value={value.allowed_country_codes} onChange={e => onChange({ ...value, allowed_country_codes: Array.from(e.target.selectedOptions, o => o.value) })}>
-      {COUNTRY_CODES.map(code => <option key={code} value={code}>{countryNames.of(code)} ({code})</option>)}
+      {COUNTRY_CODES.map(code => <option key={code} value={code}>{countryNames?.of(code) ?? code} ({code})</option>)}
     </select></label>
     <p className="text-muted">Use Ctrl/Cmd to select several countries. Empty selection means no country filter.</p>
     <label><input type="checkbox" checked={value.include_unknown_country} onChange={e => onChange({ ...value, include_unknown_country: e.target.checked })} /> Include jobs with unknown country</label>
@@ -28,6 +34,7 @@ function PolicyFields({ value, onChange }: { value: Policy; onChange: (v: Policy
 }
 
 export default function IngestionPage() {
+  const countryNames = useCountryNames();
   const [catalog, setCatalog] = useState<Source[]>([]);
   const [history, setHistory] = useState<Run[]>([]);
   const [runId, setRunId] = useState('');
@@ -38,6 +45,7 @@ export default function IngestionPage() {
   const [mode, setMode] = useState<Mode>('PREVIEW');
   const [policyMode, setPolicyMode] = useState<PolicyMode>('OVERRIDE_SELECTED_SOURCES');
   const [policy, setPolicy] = useState<Policy>(initialPolicy);
+  const [runPolicy, setRunPolicy] = useState<Policy>(initialPolicy);
   const [policyTarget, setPolicyTarget] = useState('');
   const [hasPolicy, setHasPolicy] = useState(false);
   const [scope, setScope] = useState('all');
@@ -54,6 +62,26 @@ export default function IngestionPage() {
   const [notice, setNotice] = useState('');
   const submission = useRef(false);
   const reportError = (err: unknown) => setError(err instanceof Error ? err.message : 'Request failed. Please try again.');
+  const runningHistoryId = history.find(item => active(item))?.id;
+  const anyRunActive = active(run) || !!runningHistoryId;
+
+  useEffect(() => {
+    if (!runningHistoryId) return;
+    let mounted = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const pollHistory = async () => {
+      try {
+        const result = await ingestionApi.runs();
+        if (!mounted) return;
+        setHistory(result.items);
+        if (result.items.some(item => active(item))) timer = setTimeout(pollHistory, 1500);
+      } catch (err) {
+        if (mounted) { reportError(err); timer = setTimeout(pollHistory, 3000); }
+      }
+    };
+    timer = setTimeout(pollHistory, 1500);
+    return () => { mounted = false; clearTimeout(timer); };
+  }, [runningHistoryId]);
 
   useEffect(() => {
     let mounted = true;
@@ -111,12 +139,12 @@ export default function IngestionPage() {
     await action(async () => {
       const started = await ingestionApi.start({ mode, policy_mode: policyMode, active_sources_only: activeOnly,
         ...(scope === 'sources' ? { source_ids: selectedSources } : {}), ...(scope === 'ats' ? { ats_types: [ats] } : {}),
-        ...(policyMode === 'OVERRIDE_SELECTED_SOURCES' ? { allowed_country_codes: policy.enabled ? policy.allowed_country_codes : [], include_unknown_country: policy.include_unknown_country } : {}) });
+        ...(policyMode === 'OVERRIDE_SELECTED_SOURCES' ? { allowed_country_codes: runPolicy.enabled ? runPolicy.allowed_country_codes : [], include_unknown_country: runPolicy.include_unknown_country } : {}) });
       setRun(started); setRunId(started.id); setHistory(old => [started, ...old]);
     });
   }
 
-  return <main className="container ingestion-page">
+  return <div className="container ingestion-page">
     <h1>Ingestion Control Center</h1>
     <p className="text-muted">Collect board listings, then decide which jobs enter JobScope. Preview changes no canonical jobs.</p>
     {mode === 'PREVIEW' && <p className="text-muted">Preview checks listing information. Full details for accepted jobs are fetched when you persist; country decisions may change when details reveal more precise locations.</p>}
@@ -132,10 +160,11 @@ export default function IngestionPage() {
         <label>Policy mode<select aria-label="Policy mode" value={policyMode} onChange={e => setPolicyMode(e.target.value as PolicyMode)}><option value="OVERRIDE_SELECTED_SOURCES">Override for this run</option><option value="USE_SAVED_POLICIES">Use saved policies</option></select></label>
       </div>
       <label><input type="checkbox" checked={activeOnly} onChange={e => setActiveOnly(e.target.checked)} /> Active sources only</label>
-      {policyMode === 'OVERRIDE_SELECTED_SOURCES' && <PolicyFields value={policy} onChange={setPolicy} />}
+      {policyMode === 'OVERRIDE_SELECTED_SOURCES' && <PolicyFields value={runPolicy} onChange={setRunPolicy} />}
       {policyMode === 'USE_SAVED_POLICIES' && <p>Source override → global default → no filter. Saved policies are snapshotted when the run starts.</p>}
       {mode === 'PERSIST' && <Alert variant="warning">Accepted jobs will be persisted. An active country filter suppresses absence closure; historical jobs are retained.</Alert>}
-      <Button onClick={start} isLoading={busy} disabled={active(run) || (scope === 'sources' && !selectedSources.length) || (scope === 'ats' && !ats)}>Start {mode === 'PREVIEW' ? 'preview' : 'persist'}</Button>
+      {runningHistoryId && runningHistoryId !== runId && <p>A run is active. Select it in Run history to monitor or cancel it.</p>}
+      <Button onClick={start} isLoading={busy} disabled={anyRunActive || (scope === 'sources' && !selectedSources.length) || (scope === 'ats' && !ats)}>Start {mode === 'PREVIEW' ? 'preview' : 'persist'}</Button>
     </section>
     <section className="ingestion-card" aria-label="Policy editor">
       <h2>Saved policies</h2>
@@ -154,9 +183,11 @@ export default function IngestionPage() {
         <p>{run.sources_completed} / {run.sources_total} sources · {run.progress?.percentage || 0}% · {run.progress?.current_source_name || 'No current source'}</p>
         <p>Succeeded {run.progress?.sources_succeeded || 0} · Partial {run.progress?.sources_partial || 0} · Failed {run.progress?.sources_failed || 0}</p>
         <div className="ingestion-counts">{counts.map(k => <span key={k}>{k}: <strong>{run[`jobs_${k}`]}</strong></span>)}</div>
+        <p className="text-muted">Accepted counts policy decisions. Created, updated and unchanged count successfully processed postings.</p>
+        {run.mode === 'PERSIST' && run.jobs_accepted > run.jobs_created + run.jobs_updated + run.jobs_unchanged && <Alert variant="warning">{run.jobs_accepted - run.jobs_created - run.jobs_updated - run.jobs_unchanged} accepted posting(s) were not processed. Inspect source errors below.</Alert>}
         {run.mode === 'PREVIEW' && ['COMPLETED', 'COMPLETED_WITH_WARNINGS'].includes(run.status) && <>
           <p>The same sources will be fetched again using this preview’s saved policy snapshots. Live jobs may have changed. Accepted jobs will be persisted; existing closure safeguards apply.</p>
-          <Button disabled={busy} onClick={() => action(async () => {
+          <Button disabled={busy || anyRunActive} onClick={() => action(async () => {
             const started = await ingestionApi.start({ mode: 'PERSIST', from_preview_run_id: run.id });
             setRun(started); setRunId(started.id); setHistory(old => [started, ...old]);
           })}>Persist this preview</Button>
@@ -169,6 +200,7 @@ export default function IngestionPage() {
         <p>Closure: {s.closure_suppression_reason || 'Authorized by existing lifecycle guards'}</p>
         <p>Policy: {s.policy_snapshot.origin} · {s.policy_snapshot.enabled ? s.policy_snapshot.allowed_country_codes.join(', ') || 'No filter' : 'Disabled'} · unknown included: {String(s.policy_snapshot.include_unknown_country)}</p>
         <p>Warnings ({s.warning_count}): {s.warnings.join('; ') || 'None'}</p>{s.error_type && <Alert variant="danger">{s.error_type}: {s.error_message}</Alert>}
+        {s.status === 'FAILED' && !s.error_type && <Alert variant="danger">Source processing failed. No accepted postings were processed; this historical run has no saved item error details.</Alert>}
       </details>)}
     </section>
     {runId && <section className="ingestion-card">
@@ -177,10 +209,11 @@ export default function IngestionPage() {
         <label>Decision<select aria-label="Decision filter" value={decisionFilter} onChange={e => { setDecisionFilter(e.target.value); setOffset(0); }}><option value="">All</option><option>ACCEPTED</option><option>REJECTED</option></select></label>
         <label>Source<select aria-label="Decision source" value={decisionSource} onChange={e => { setDecisionSource(e.target.value); setOffset(0); }}><option value="">All</option>{sourceRuns.map(s => <option key={s.id} value={s.source_id}>{s.source_name}</option>)}</select></label>
         <label>Reason<select aria-label="Reason filter" value={reason} onChange={e => { setReason(e.target.value); setOffset(0); }}><option value="">All</option>{['COUNTRY_ALLOWED', 'COUNTRY_NOT_ALLOWED', 'COUNTRY_UNKNOWN', 'UNKNOWN_INCLUDED', 'NO_COUNTRY_FILTER', 'INVALID_DISCOVERED_JOB'].map(r => <option key={r}>{r}</option>)}</select></label>
-        <label>Country<select aria-label="Decision country" value={country} onChange={e => { setCountry(e.target.value); setOffset(0); }}><option value="">All</option>{COUNTRY_CODES.map(c => <option key={c} value={c}>{countryNames.of(c)}</option>)}</select></label>
+        <label>Country<select aria-label="Decision country" value={country} onChange={e => { setCountry(e.target.value); setOffset(0); }}><option value="">All</option>{COUNTRY_CODES.map(c => <option key={c} value={c}>{countryNames?.of(c) ?? c}</option>)}</select></label>
       </div>
       <div className="ingestion-table"><table><thead><tr><th>Job</th><th>Source</th><th>Location</th><th>Country</th><th>Decision</th><th>Reason</th></tr></thead><tbody>{decisions.map(d => <tr key={d.id}><td>{d.canonical_url.startsWith('https://') || d.canonical_url.startsWith('http://') ? <a href={d.canonical_url} target="_blank" rel="noreferrer">{d.title || 'Untitled'}</a> : d.title || 'Untitled'}</td><td>{sourceRuns.find(s => s.source_id === d.source_id)?.source_name || d.source_id}</td><td>{d.location || 'Unknown'}</td><td>{d.resolved_country || 'UNKNOWN'}</td><td>{d.decision}</td><td>{d.reason}</td></tr>)}</tbody></table></div>
+      {!decisions.length && <p>No decisions match the selected filters.</p>}
       <div className="ingestion-actions"><Button variant="secondary" disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 25))}>Previous</Button><span>{total} decisions · page {Math.floor(offset / 25) + 1}</span><Button variant="secondary" disabled={offset + 25 >= total} onClick={() => setOffset(offset + 25)}>Next</Button></div>
     </section>}
-  </main>;
+  </div>;
 }

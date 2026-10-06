@@ -11,8 +11,15 @@ from backend.application.job_discovery.dtos import DiscoveredJobDTO
 from backend.application.job_processing.errors import JobURLConflictError
 from backend.application.job_processing.normalizer import JobNormalizer
 from backend.domain.crawl.enums import CrawlJobAction
-from backend.domain.job.dedup import guard_decision, normalize, project, score_pair
+from backend.domain.job.dedup import (
+    DedupDecision,
+    guard_decision,
+    normalize,
+    project,
+    score_pair,
+)
 from backend.domain.job.enums import JobStatus
+from backend.infrastructure.ats.identity import provider_namespace
 from backend.infrastructure.database.models.dedup import (
     DedupCandidateModel as Candidate,
 )
@@ -21,6 +28,7 @@ from backend.infrastructure.database.models.dedup import (
 )
 from backend.infrastructure.database.models.job import JobModel, RawJobModel
 from backend.infrastructure.database.models.matching import MatchResultModel
+from backend.infrastructure.database.models.source import SourceModel
 from backend.infrastructure.database.repositories.job_requirement_repository import (
     SQLAlchemyJobRequirementRepository,
 )
@@ -124,6 +132,37 @@ class SQLAlchemyOccurrenceStore:
             ).all()
         )
 
+    async def same_provider_posting(self, owner, canonical, reference):
+        """URL alone or catalog company aliases alone cannot prove identity."""
+        if not canonical.external_job_id or normalize(owner.title) != normalize(
+            canonical.title
+        ):
+            return False
+        incoming = await self.session.get(SourceModel, canonical.source_id)
+        namespace = provider_namespace(incoming) if incoming else None
+        if not namespace:
+            return False
+        exposures = (
+            await self.session.execute(
+                select(Occurrence, SourceModel)
+                .join(SourceModel, SourceModel.id == Occurrence.source_id)
+                .where(
+                    Occurrence.job_id == owner.id,
+                    Occurrence.canonical_url == canonical.canonical_url,
+                    Occurrence.external_job_id == canonical.external_job_id,
+                )
+            )
+        ).all()
+        return any(
+            provider_namespace(source) == namespace
+            and not (
+                reference
+                and exposure.reference
+                and normalize(reference) != normalize(exposure.reference)
+            )
+            for exposure, source in exposures
+        )
+
     async def observe(self, canonical, discovered, now):
         await block_lock(self.session, canonical.company, canonical.title)
         # Source identity lock protects updates even when the normalized block changes.
@@ -154,9 +193,15 @@ class SQLAlchemyOccurrenceStore:
                 JobModel.merged_into_id.is_(None),
             )
         )
+        verified_owner = bool(
+            not occurrence
+            and global_owner
+            and await self.same_provider_posting(global_owner, canonical, reference)
+        )
         if (
             not occurrence
             and global_owner
+            and not verified_owner
             and (
                 normalize(global_owner.company) != normalize(canonical.company)
                 or normalize(global_owner.title) != normalize(canonical.title)
@@ -173,7 +218,7 @@ class SQLAlchemyOccurrenceStore:
             )
             decision = None
         else:
-            rows = await self.candidates(canonical)
+            rows = [] if verified_owner else await self.candidates(canonical)
             evaluated = []
             for row in rows[:50]:
                 refs = (
@@ -200,6 +245,23 @@ class SQLAlchemyOccurrenceStore:
                     multiple_references=len(known) > 1,
                 )
                 evaluated.append((row, decision))
+            if verified_owner:
+                evaluated = [
+                    (
+                        global_owner,
+                        DedupDecision(
+                            100,
+                            "AUTO_MERGE",
+                            {
+                                "same_provider_posting": True,
+                                "provider_namespace_verified": True,
+                                "same_external_job_id": True,
+                                "same_posting_url": True,
+                                "title_exact": True,
+                            },
+                        ),
+                    )
+                ]
             automatic = [(row, d) for row, d in evaluated if d.outcome == "AUTO_MERGE"]
             if len(automatic) == 1:
                 logical, decision = automatic[0]

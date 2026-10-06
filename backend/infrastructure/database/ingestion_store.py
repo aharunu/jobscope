@@ -411,6 +411,15 @@ class SQLAlchemyIngestionStore:
                 unit.closure_authorized = ingested.closure_authorized
                 unit.closure_suppression_reason = ingested.closure_suppression_reason
                 warnings = ingested.warnings
+                if ingested.errors:
+                    # Ingestion errors are central safe codes, never provider prose.
+                    safe_errors = sorted(set(ingested.errors))
+                    warnings = [*warnings, *safe_errors]
+                    unit.error_type = "INGESTION_ITEM_FAILURE"
+                    unit.error_message = (
+                        f"{ingested.error_count} accepted posting(s) "
+                        "could not be processed: " + "; ".join(safe_errors)
+                    )
             unit.warnings, unit.warning_count = warnings[:50], len(warnings)
             unit.finished_at, unit.duration_ms = datetime.now(UTC), duration
             logger.info(

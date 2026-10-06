@@ -259,6 +259,23 @@ async def test_preview_zero_canonical_mutations_and_compact_decisions(db):
     ] == "PREVIEW_MODE"
 
 
+async def test_persist_item_conflict_is_visible_in_source_audit(db):
+    first, unit = await create(db, "PERSIST")
+    await complete(db, first, unit, [job("Istanbul", "conflict")])
+    second, units = await db[3].create_run(
+        request(db[2][1:], "PERSIST", active_sources_only=False)
+    )
+    db[4].append(second["id"])
+    await complete(db, second, units[0], [job("Istanbul", "conflict")])
+    row = (await db[3].sources(second["id"]))["items"][0]
+    assert row["status"] == "FAILED"
+    assert row["error_type"] == "INGESTION_ITEM_FAILURE"
+    assert "JOB_URL_OWNERSHIP_CONFLICT" in row["error_message"]
+    assert "JOB_URL_OWNERSHIP_CONFLICT" in row["warnings"]
+    assert row["jobs_accepted"] == 1 and row["jobs_created"] == 0
+    assert not row["closure_authorized"]
+
+
 async def test_persist_rejects_unenriched_accepted_summary_atomically(db):
     run, unit = await create(db, "PERSIST")
     before = await counts(db[1])
