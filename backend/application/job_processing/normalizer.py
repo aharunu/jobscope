@@ -71,6 +71,14 @@ class JobNormalizer:
         )
         if location is not None:
             location = str(location).strip() or None
+        if location and len(location) > 255:
+            # Full provider locations remain in DTO/raw history and policy audit.
+            # The canonical display projection must fit the existing column.
+            preview = location[:254]
+            if "; " in preview:
+                preview = preview.rsplit("; ", 1)[0]
+            location = preview.rstrip(" ,;") + "…"
+            logger.warning("Canonical job location abbreviated; full raw data retained")
 
         work_mode = discovered.metadata.get("work_mode") or discovered.metadata.get(
             "workplace_type"

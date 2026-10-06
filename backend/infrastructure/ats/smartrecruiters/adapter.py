@@ -1,5 +1,7 @@
 """Public SmartRecruiters Posting API with offset/total reconciliation."""
 
+from urllib.parse import unquote, urlsplit
+
 from backend.application.job_discovery.detail_plan import acquisition_countries
 from backend.application.job_discovery.ports import SafeHttpClient
 from backend.infrastructure.ats.acquisition import (
@@ -20,6 +22,24 @@ from backend.infrastructure.ats.acquisition import (
     work_mode,
 )
 from backend.infrastructure.ats.posting import posting_identity, text_value
+
+
+def posting_url(value, board):
+    """Provider board names are case-insensitive; posting paths are not."""
+    for origin in (
+        "https://jobs.smartrecruiters.com",
+        "https://www.smartrecruiters.com",
+    ):
+        url = bound_url(value, origin)
+        if url:
+            parts = urlsplit(url).path.split("/")
+            if (
+                len(parts) >= 3
+                and unquote(parts[1]).casefold() == board.casefold()
+                and parts[2]
+            ):
+                return url
+    return None
 
 
 class SmartRecruitersRuntimeConfig(ProviderRuntimeConfig):
@@ -83,10 +103,9 @@ class SmartRecruitersAdapter:
                 info = item
                 sections = mapping(mapping(item.get("jobAd")).get("sections"))
                 if not sections:
-                    summary_url = bound_url(
+                    summary_url = posting_url(
                         item.get("jobAdUrl") or item.get("applyUrl"),
-                        "https://jobs.smartrecruiters.com",
-                        prefix=f"/{config.board}/",
+                        config.board,
                     ) or bound_url(
                         item.get("ref"),
                         "https://api.smartrecruiters.com",
@@ -126,23 +145,13 @@ class SmartRecruitersAdapter:
                     coverage.add(None)
                     coverage.warn("required_detail_description_missing")
                     continue
-                url = bound_url(
+                url = posting_url(
                     info.get("jobAdUrl")
                     or info.get("applyUrl")
                     or item.get("jobAdUrl")
                     or item.get("applyUrl"),
-                    "https://jobs.smartrecruiters.com",
-                    prefix=f"/{config.board}/",
+                    config.board,
                 )
-                if not url:
-                    url = bound_url(
-                        info.get("jobAdUrl")
-                        or info.get("applyUrl")
-                        or item.get("jobAdUrl")
-                        or item.get("applyUrl"),
-                        "https://www.smartrecruiters.com",
-                        prefix=f"/{config.board}/",
-                    )
                 coverage.add(
                     project(
                         source,
