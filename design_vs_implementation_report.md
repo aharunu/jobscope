@@ -1,5 +1,7 @@
 # Tasarım Dokümanları vs. Gerçek İmplementasyon — Uyum Analizi
 
+> Historical audit of 2026-10-01. Findings and implementation counts describe that date, not the current repository. See the [current documentation index](docs/development/README.md) and [product backlog](docs/roadmap/post_mvp_product_backlog.md) for maintained guidance. Original evidence is retained below.
+
 **Tarih:** 2026-10-01  
 **Kapsam:** `docs/design/` altındaki 3 tasarım dokümanı vs. gerçek kod tabanı  
 **Analiz Yöntemi:** Her tasarım maddesi tek tek gerçek implementasyonla karşılaştırıldı

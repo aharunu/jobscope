@@ -142,7 +142,9 @@ Conflicting country names remain unknown. Remote, Worldwide, Anywhere, EMEA,
 Europe and Global do not establish a country. Company/Source country, job titles,
 SearchProfiles, network geocoding and raw provider payloads are not consulted.
 Structured country metadata is retained where already supplied by
-SmartRecruiters, Recruitee and Workable; their requests are unchanged.
+SmartRecruiters, Recruitee and Workable. Provider-side country query optimization
+is documented in [provider country filtering](provider-country-filtering.md);
+unsupported or unproven paths keep local filtering.
 Non-Turkish city-only locations can remain unknown. This deliberately conservative
 resolver can be expanded later with reviewed, unambiguous location data.
 
@@ -165,8 +167,9 @@ Complete source success is `COMPLETED`; coverage or ingestion warnings result in
 
 ## Background execution and cancellation
 
-`POST /api/ingestion/runs` returns `202` with a persisted run promptly. Sequential
-in-process tasks perform bounded acquisition. PostgreSQL advisory leases enforce
+`POST /api/ingestion/runs` returns `202` with a persisted run promptly. Bounded
+in-process Source concurrency performs acquisition under shared host pacing,
+with serialized short database finalization as described above. PostgreSQL advisory leases enforce
 one active top-level run across workers and reuse existing per-Source exclusion.
 A partial unique database index also prevents simultaneous active run records.
 Busy requests return `409 INGESTION_RUN_BUSY`.
@@ -176,8 +179,8 @@ AUTOCOMMIT advisory connections remain held. Decisions, canonical persistence,
 source results and progress commit atomically in a short source transaction.
 Failures roll back that unit and are recorded using a fresh transaction.
 
-Cancel records a durable timestamp, finishes the current safe source unit, then
-marks remaining units cancelled. Completed work remains valid. Shutdown uses the
+Cancel records a durable timestamp, finishes the already-running safe Source
+units, then marks queued units cancelled. Completed work remains valid. Shutdown uses the
 same cooperative path. Crash/restart recovery marks stale active runs
 `INTERRUPTED`; recovery must first acquire the top-level lease and cannot interrupt
 a different live worker. Start also reconciles abandoned runs under that lease.
@@ -240,5 +243,6 @@ $env:JOBSCOPE_REQUIRE_DATABASE='1'
 From `frontend`: `npx tsc --noEmit`, `npm test`, `npm run build`.
 Automated acquisition uses fake adapters; CI does not depend on public boards.
 Live evidence and acceptance results are in the local A4 agent report.
-Scheduler, Hybrid Deduplication, historical cleanup and provider-side geographic
-query optimization remain outside A4.
+Scheduler remains planned. The implemented [occurrence/dedup model](hybrid-deduplication.md)
+and [provider-side country optimization](provider-country-filtering.md) extend the
+original A4 scope without weakening its Preview or closure guarantees.

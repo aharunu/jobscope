@@ -126,3 +126,6 @@ lerna-debug.log*
 # Local agent reports and generated calibration/backfill/analysis evidence
 # Keep reusable guides under docs/development/ versioned.
 docs/agent-reports/
+
+# Generated editor code-count snapshots
+/.VSCodeCounter/

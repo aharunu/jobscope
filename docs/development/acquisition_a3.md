@@ -1,8 +1,10 @@
 # A3 provider acquisition
 
 The factory registers Lever, Greenhouse and ten new adapters. All use the managed
-A2 SafeHttpClient and source-wide acquisition budget. Crawls remain sequential;
-PostgreSQL admission, transactions, RawJob timing and lifecycle are unchanged.
+A2 SafeHttpClient and source-wide acquisition budget. Product ingestion now uses
+bounded Source concurrency; see [ingestion control](ingestion-control.md).
+PostgreSQL admission and short transactions remain authoritative;
+[occurrences](hybrid-deduplication.md) own provenance and Source lifecycle.
 No database migration or credential is required by these public acquisition paths.
 
 | Provider | Example Source URL | Runtime contract | Coverage policy |
@@ -60,8 +62,10 @@ limit is per application process, not a distributed limiter across workers.
 
 PARTIAL snapshots carry warnings and can ingest useful jobs, but never close
 absent jobs. Fatal root/network/body/budget/detail errors discard acquisition and
-produce FAILED. Supported full-board proofs are conditional, never a claim of a
-live board snapshot; all live provider validation is NOT RUN.
+produce FAILED unless the provider explicitly retains a bounded partial result
+with warnings, as documented in [ingestion control](ingestion-control.md).
+Supported full-board proofs are conditional; historical A3.1 public-board checks
+do not remove hosted/feed coverage limitations or guarantee future availability.
 
 Descriptions and individual raw objects remain full length. Workday and
 SmartRecruiters required detail use versioned list/detail envelopes; BambooHR
@@ -85,6 +89,7 @@ References verified during A3: [Ashby public API](https://developers.ashbyhq.com
 [Workable widget](https://help.workable.com/hc/en-us/articles/115012801727-How-to-embed-jobs-on-your-website-job-widget),
 [Oracle CE endpoint classification](https://docs.oracle.com/en/cloud/saas/human-resources/farws/api-recruiting-ce-job-requisitions.html).
 
-Hybrid Deduplication, Scheduler, provider credentials, additional detail/host
-variants and manual live-contract checks require separate review. No new phase
-starts automatically after A3.
+Hybrid Deduplication is implemented; see [its contract](hybrid-deduplication.md).
+Country query optimization is described in [provider country filtering](provider-country-filtering.md).
+Scheduler, provider credentials and additional detail/host variants remain planned
+work. Public-board probes are manual and read-only; CI uses offline fixtures.

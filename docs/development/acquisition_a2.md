@@ -30,8 +30,11 @@ mutation HTTP API, unsafe option or provider bypass. GET/POST stream through the
 same TLS/SSRF/timeout/retry layer. POST rejects 301/302/303 and cross-origin
 redirects; same-origin 307/308 preserve JSON and method. Cross-origin GET drops
 caller headers. Only existing connection failures and 502/503/504 are retried;
-429/Retry-After and read-timeout retry remain deferred. Body/budget overflow fails
-the source; acquired earlier pages are not ingested or treated as an empty board.
+429 and read-timeout automatic retry remain deferred. Shared host pacing now
+respects 429/503 Retry-After cooldowns; see [provider pacing](acquisition_a3.md).
+The original Lever/Greenhouse body/budget overflow fails the source; provider-specific
+bounded partial retention is documented in [ingestion control](ingestion-control.md)
+and never permits closure or treats an interrupted board as empty.
 This bounds response payload retention, not the entire Python object heap.
 
 ## Admission and transactions
@@ -54,9 +57,10 @@ optional no-persistence/no-guard constructor remains for isolated unit tests.
 Expected URL ownership conflicts are checked before mutation/flush, recorded as
 JOB_URL_OWNERSHIP_CONFLICT, and skipped. Safe later items can commit; the run is
 PARTIAL if any item succeeded, otherwise FAILED, and absence closure is disabled.
-Source-scoped provider identity remains authoritative. There is no URL fallback
-when a provider ID exists; the additional global URL lookup is a uniqueness
-precheck, never identity reassignment or merging. Unexpected SQL failures,
+Source-scoped provider identity remains authoritative. When a provider ID exists,
+URL equality alone is not identity. A5 introduced occurrences and conservative
+cross-source attachment; the narrow verified provider-alias exception is documented
+in [hybrid deduplication](hybrid-deduplication.md). Unexpected SQL failures,
 including concurrent uniqueness races, abort the whole ingestion transaction.
 Earlier writes roll back and a fresh transaction records FAILED. No savepoints
 or attempts to continue with a poisoned session are introduced.
@@ -81,7 +85,7 @@ Missing/empty optional enrichment preserves previous canonical values. Available
 Source company remains authoritative fallback. Provider title/description presence
 flags distinguish actual text from adapter fallback labels; missing descriptions
 cannot replace rich text with raw JSON. There is no authoritative clear contract
-in the two current providers, so none is invented. RawJob still stores the actual
+in the original two reference providers, so none is invented. RawJob still stores the actual
 incoming individual object only on create/update/reopen; it never contains the
 merged effective canonical projection.
 

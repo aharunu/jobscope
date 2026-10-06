@@ -93,10 +93,11 @@ absence closure is suppressed. Fatal network/root errors return no authoritative
 snapshot. Complete warning-free crawls retain existing closure rules, including
 the zero-result anomaly guard.
 
-RawJob is still saved only on create/update/reopen. No unchanged snapshots or
-RawJob→CrawlRun link are added. The existing four-field content hash is unchanged:
-an employment-type-only change can remain undetected until A2. Rich mapped fields
-are saved on creation or when an existing hashed field genuinely changes.
+RawJob is saved only on occurrence create/update/reopen. No unchanged snapshots
+or RawJob→CrawlRun link are added. A2 superseded the original four-field hash:
+employment type, responsibilities, salary and company now participate in meaningful
+change detection. See [crawler foundation](acquisition_a2.md) and the current
+[occurrence model](hybrid-deduplication.md) for persistence authority.
 
 Reference contracts: [Lever postings API](https://github.com/lever/postings-api)
 and [Greenhouse Job Board API](https://docs.greenhouse.io/job-board.html).
