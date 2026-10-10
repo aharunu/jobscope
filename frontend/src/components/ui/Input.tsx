@@ -17,9 +17,9 @@ export const Input: React.FC<InputProps> = ({
   const errorId = error ? `${inputId}-error` : undefined;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '100%' }}>
+    <div className="form-field">
       {label && (
-        <label htmlFor={inputId} style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+        <label htmlFor={inputId} >
           {label}
         </label>
       )}
@@ -32,7 +32,7 @@ export const Input: React.FC<InputProps> = ({
         {...props}
       />
       {error && (
-        <span id={errorId} role="alert" style={{ fontSize: '0.75rem', color: 'var(--danger-text)' }}>
+        <span id={errorId} role="alert" className="form-error">
           {error}
         </span>
       )}

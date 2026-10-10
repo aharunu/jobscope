@@ -1,14 +1,12 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { JobCard } from '../components/jobs/JobCard';
 import { JobSummaryResponse } from '../lib/api/types';
 
-// Mock Next.js router
+const navigation = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
+  useRouter: () => navigation,
 }));
 
 const mockJob: JobSummaryResponse = {
@@ -62,5 +60,14 @@ describe('JobCard Component', () => {
     render(<JobCard job={closedJob} />);
 
     expect(screen.getByText('Closed')).toBeInTheDocument();
+  });
+
+  it('opens the job with the keyboard without hijacking the nested Apply link', () => {
+    navigation.push.mockClear();
+    render(<JobCard job={mockJob} />);
+    fireEvent.keyDown(screen.getByRole('link', {name: /apply on company website/i}), {key: 'Enter'});
+    expect(navigation.push).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole('link', {name: /view details for/i}), {key: 'Enter'});
+    expect(navigation.push).toHaveBeenCalledWith(`/jobs/${mockJob.id}`);
   });
 });

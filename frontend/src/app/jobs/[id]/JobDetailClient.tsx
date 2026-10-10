@@ -1,5 +1,7 @@
 'use client';
 
+import { WarningCircleIcon } from '@/components/ui/icons';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,6 +12,7 @@ import { JobDetailHeader } from '@/components/jobs/JobDetailHeader';
 import { JobDetailBody } from '@/components/jobs/JobDetailBody';
 import { MatchPanel } from '@/components/matching/MatchPanel';
 import { Alert } from '@/components/ui/Alert';
+import { Badge } from '@/components/ui/Badge';
 import { ApplicationTrackingPanel } from '@/components/applications/ApplicationTrackingPanel';
 
 interface JobDetailClientProps {
@@ -196,7 +199,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
               backgroundColor: 'var(--color-surface)',
               borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--color-border)',
-              animation: 'pulse 1.5s ease-in-out infinite',
+              animation: 'skeleton-pulse 1.8s ease-in-out infinite',
             }}
           />
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '1.5rem' }}>
@@ -206,7 +209,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
                 backgroundColor: 'var(--color-surface)',
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--color-border)',
-                animation: 'pulse 1.5s ease-in-out infinite',
+                animation: 'skeleton-pulse 1.8s ease-in-out infinite',
               }}
             />
             <div
@@ -215,7 +218,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
                 backgroundColor: 'var(--color-surface)',
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--color-border)',
-                animation: 'pulse 1.5s ease-in-out infinite',
+                animation: 'skeleton-pulse 1.8s ease-in-out infinite',
               }}
             />
           </div>
@@ -234,7 +237,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
               width: '3.5rem',
               height: '3.5rem',
               borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.1)',
+              background: 'var(--danger-bg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -242,11 +245,7 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
               color: 'var(--danger-text)',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <WarningCircleIcon size={24} aria-hidden="true" />
           </div>
           <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
             Job Posting Not Found
@@ -294,10 +293,13 @@ export function JobDetailClient({ jobId, initialProfileQuery }: JobDetailClientP
       {!loadingJob && job && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }} data-testid="job-detail-content">
           <JobDetailHeader job={job} />
-          {!!job.occurrences?.length && <section className="card" style={{ padding: '1.25rem' }} aria-label="Sources / Occurrences">
+          {!!job.occurrences?.length && <section className="card occurrence-section" aria-label="Sources / Occurrences">
             <h2>Sources / Occurrences</h2>
-            {job.occurrences.map(occurrence => <div key={occurrence.id} style={{ marginTop: '0.75rem' }}>
-              <strong>{occurrence.source} · {occurrence.ats_type}</strong> · {occurrence.status} · Last seen {new Date(occurrence.last_seen_at).toLocaleString()}
+            {job.occurrences.map(occurrence => <div key={occurrence.id} className="occurrence-row">
+              <div className="occurrence-heading"><strong>{occurrence.source} · {occurrence.ats_type}</strong>
+                <Badge variant={occurrence.status === 'ACTIVE' ? 'active' : 'closed'}>{occurrence.status}</Badge>
+                <span>Last seen {new Date(occurrence.last_seen_at).toLocaleString()}</span>
+              </div>
               <p>{/^(https?):\/\//.test(occurrence.url) && <a href={occurrence.url} target="_blank" rel="noreferrer">View source posting</a>}{occurrence.external_job_id && ` · Provider ID: ${occurrence.external_job_id}`}</p>
             </div>)}
           </section>}

@@ -49,7 +49,7 @@ export default function ProfileClient() {
   });
   const blank = !profile || (profile.name === 'Candidate Profile' && !profile.summary && !profile.skills.length && !profile.experiences.length && !profile.educations.length && !profile.projects.length);
   return <div className="container profile-page">
-    <header><h1>Candidate Profile</h1><p className="text-muted">Your experience and evidence for deterministic matching.</p><Link href="/search-profiles">Configure Search Profiles →</Link></header>
+    <header className="page-header"><div><h1>Candidate Profile</h1><p className="text-muted">Your experience and evidence for deterministic matching.</p></div><Link href="/search-profiles" className="btn btn-secondary">Configure Search Profiles →</Link></header>
     {loading ? <p role="status">Loading profile...</p> : <>
       {error && <Alert variant="danger">{error}</Alert>}
       {error && !editing && <Button variant="secondary" onClick={() => setAttempt(a => a + 1)}>Retry Profile</Button>}
@@ -61,7 +61,7 @@ export default function ProfileClient() {
         <Input label="Profile name" required maxLength={255} value={name} onChange={e => setName(e.target.value)}/>
         <label>Summary<textarea className="input" value={summary} onChange={e => setSummary(e.target.value)}/></label>
       </fieldset><div className="profile-actions"><Button type="submit" disabled={busy}>{busy ? 'Saving...' : 'Save Profile'}</Button><Button type="button" variant="secondary" disabled={busy} onClick={() => {setEditing(false); setError(null);}}>Cancel</Button></div></form>}
-      {profile && (['skills', 'experiences', 'educations', 'projects'] as ProfileSectionName[]).map(section => <ProfileSection key={section} section={section} entries={profile[section]} onSaved={(entry, deletedId) => changed(section, entry, deletedId)}/>)}
+      {profile && <div className="profile-sections">{(['skills', 'experiences', 'educations', 'projects'] as ProfileSectionName[]).map(section => <ProfileSection key={section} section={section} entries={profile[section]} onSaved={(entry, deletedId) => changed(section, entry, deletedId)}/>)}</div>}
     </>}
   </div>;
 }

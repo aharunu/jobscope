@@ -149,7 +149,7 @@ export const JobDetailBody: React.FC<JobDetailBodyProps> = ({ job }) => {
       {/* Technical Metadata Footer */}
       <Card
         style={{
-          backgroundColor: 'rgba(14, 21, 38, 0.4)',
+          backgroundColor: 'var(--bg-subtle)',
           borderStyle: 'dashed',
           padding: '1.25rem',
         }}
@@ -169,7 +169,7 @@ export const JobDetailBody: React.FC<JobDetailBodyProps> = ({ job }) => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
             gap: '0.65rem',
             fontSize: '0.75rem',
             color: 'var(--text-muted)',

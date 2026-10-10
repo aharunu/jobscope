@@ -36,7 +36,7 @@ export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, overallScore, con
         gap: '1rem',
         padding: '1.25rem',
         borderRadius: 'var(--radius-lg)',
-        background: 'rgba(255, 255, 255, 0.03)',
+        background: 'var(--bg-subtle)',
         border: '1px solid var(--border-subtle)',
       }}
     >

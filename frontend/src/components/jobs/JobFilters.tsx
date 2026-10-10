@@ -1,5 +1,6 @@
 'use client';
 
+import { SlidersHorizontalIcon } from '../ui/icons';
 import React, { useEffect, useState } from 'react';
 import { listSourcePlatforms } from '../../lib/api/sources';
 import { Select } from '../ui/Select';
@@ -66,51 +67,12 @@ export const JobFilters: React.FC<JobFiltersProps> = ({
   );
 
   return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span
-          style={{
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          Filters
-        </span>
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            onClick={onReset}
-            style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', color: 'var(--primary-light)' }}
-          >
-            Reset Filters
-          </Button>
-        )}
+    <div className="card filters-panel">
+      <div className="filters-heading">
+        <span><SlidersHorizontalIcon size={16} aria-hidden="true" />Filters</span>
+        {hasActiveFilters && <Button variant="ghost" onClick={onReset}>Reset Filters</Button>}
       </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '0.85rem',
-        }}
-      >
+      <div className="filters-grid">
         <Select
           label="Status"
           options={STATUS_OPTIONS}

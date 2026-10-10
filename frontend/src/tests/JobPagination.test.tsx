@@ -19,7 +19,7 @@ describe('JobPagination Component', () => {
     );
 
     expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
-    expect(screen.getByText(/showing/i)).toHaveTextContent('Showing 1–50 of 120 jobs');
+    expect(screen.getByText(/showing/i)).toHaveTextContent('Showing 1-50 of 120 jobs');
   });
 
   it('disables previous button on first page and enables next button', () => {

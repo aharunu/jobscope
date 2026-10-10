@@ -27,6 +27,7 @@ function PolicyFields({ value, onChange }: { value: Policy; onChange: (v: Policy
     <label>Allowed countries<select aria-label="Allowed countries" multiple value={value.allowed_country_codes} onChange={e => onChange({ ...value, allowed_country_codes: Array.from(e.target.selectedOptions, o => o.value) })}>
       {COUNTRY_CODES.map(code => <option key={code} value={code}>{countryNames?.of(code) ?? code} ({code})</option>)}
     </select></label>
+    <p className="ingestion-selected-countries">Selected: {value.allowed_country_codes.length ? value.allowed_country_codes.map(code => `${countryNames?.of(code) ?? code} (${code})`).join(', ') : 'All countries'}</p>
     <p className="text-muted">Use Ctrl/Cmd to select several countries. Empty selection means no country filter.</p>
     <label><input type="checkbox" checked={value.include_unknown_country} onChange={e => onChange({ ...value, include_unknown_country: e.target.checked })} /> Include jobs with unknown country</label>
     <label><input type="checkbox" checked={value.enabled} onChange={e => onChange({ ...value, enabled: e.target.checked })} /> Enable policy</label>
@@ -145,11 +146,13 @@ export default function IngestionPage() {
   }
 
   return <div className="container ingestion-page">
-    <h1>Ingestion Control Center</h1>
-    <p className="text-muted">Collect board listings, then decide which jobs enter JobScope. Preview changes no canonical jobs.</p>
-    {mode === 'PREVIEW' && <p className="text-muted">Preview checks listing information. Full details for accepted jobs are fetched when you persist; country decisions may change when details reveal more precise locations.</p>}
+    <header className="page-header"><div><h1>Ingestion Control Center</h1>
+      <p>Collect board listings, then decide which jobs enter JobScope. Preview changes no canonical jobs.</p>
+    </div></header>
+    {mode === 'PREVIEW' && <Alert>Preview checks listing information. Full details for accepted jobs are fetched when you persist; country decisions may change when details reveal more precise locations.</Alert>}
     {error && <Alert variant="danger">{error}</Alert>}
     {notice && <Alert>{notice}</Alert>}
+    <div className="ingestion-setup">
     <section className="ingestion-card" aria-label="Run configuration">
       <h2>New run</h2>
       <div className="ingestion-grid">
@@ -164,7 +167,7 @@ export default function IngestionPage() {
       {policyMode === 'USE_SAVED_POLICIES' && <p>Source override → global default → no filter. Saved policies are snapshotted when the run starts.</p>}
       {mode === 'PERSIST' && <Alert variant="warning">Accepted jobs will be persisted. An active country filter suppresses absence closure; historical jobs are retained.</Alert>}
       {runningHistoryId && runningHistoryId !== runId && <p>A run is active. Select it in Run history to monitor or cancel it.</p>}
-      <Button onClick={start} isLoading={busy} disabled={anyRunActive || (scope === 'sources' && !selectedSources.length) || (scope === 'ats' && !ats)}>Start {mode === 'PREVIEW' ? 'preview' : 'persist'}</Button>
+      <div className="ingestion-actions"><Button onClick={start} isLoading={busy} disabled={anyRunActive || (scope === 'sources' && !selectedSources.length) || (scope === 'ats' && !ats)}>Start {mode === 'PREVIEW' ? 'preview' : 'persist'}</Button></div>
     </section>
     <section className="ingestion-card" aria-label="Policy editor">
       <h2>Saved policies</h2>
@@ -174,6 +177,7 @@ export default function IngestionPage() {
       <div className="ingestion-actions"><Button disabled={busy} onClick={() => action(async () => { const saved = policyTarget ? await ingestionApi.saveSource(policyTarget, policy) : await ingestionApi.saveDefault(policy); setPolicy(saved); setHasPolicy(true); setNotice('Policy saved'); })}>Save policy</Button>
       {policyTarget && <Button variant="secondary" disabled={busy || !hasPolicy} onClick={() => action(async () => { await ingestionApi.deleteSource(policyTarget); setHasPolicy(false); setPolicy(initialPolicy); setNotice('Override removed. This source now inherits the global default.'); })}>Remove override</Button>}</div>
     </section>
+    </div>
     <section className="ingestion-card">
       <h2>Run monitor</h2>
       <label>Run history<select aria-label="Run history" value={runId} onChange={e => setRunId(e.target.value)}><option value="">Choose run</option>{history.map(r => <option key={r.id} value={r.id}>{r.mode} · {r.status} · {new Date(r.created_at).toLocaleString()}</option>)}</select></label>

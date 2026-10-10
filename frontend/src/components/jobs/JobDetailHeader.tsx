@@ -1,5 +1,7 @@
 'use client';
 
+import { ArrowUpRightIcon, MapPinIcon } from '@/components/ui/icons';
+
 import React from 'react';
 import { JobDetailResponse } from '../../lib/api/types';
 import { Badge } from '../ui/Badge';
@@ -43,7 +45,7 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({ job }) => {
             fontSize: '1rem',
             fontWeight: 700,
             color: 'var(--primary-light)',
-            textTransform: 'uppercase',
+            textTransform: 'none',
             letterSpacing: '0.04em',
           }}
         >
@@ -77,7 +79,7 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({ job }) => {
         <h1
           style={{
             fontSize: '1.75rem',
-            fontWeight: 800,
+            fontWeight: 650,
             lineHeight: 1.25,
             color: 'var(--text-primary)',
             letterSpacing: '-0.02em',
@@ -99,16 +101,11 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({ job }) => {
               padding: '0.75rem 1.5rem',
               fontSize: '0.9375rem',
               gap: '0.5rem',
-              boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
             }}
             aria-label={`Apply on company website for ${job.title} at ${job.company}`}
           >
             <span>Apply on Company Site</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
+            <ArrowUpRightIcon size={15} aria-hidden="true" />
           </a>
         ) : (
           <button
@@ -138,13 +135,12 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({ job }) => {
               fontSize: '0.875rem',
               color: 'var(--text-secondary)',
               marginRight: '0.5rem',
+              minWidth: 0,
+              overflowWrap: 'anywhere',
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            {job.location}
+            <MapPinIcon size={15} style={{flexShrink: 0}} aria-hidden="true" />
+            <span>{job.location}</span>
           </span>
         )}
 
