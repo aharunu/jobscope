@@ -58,13 +58,13 @@ export const JobPagination: React.FC<JobPaginationProps> = ({
     >
       {/* Range Display */}
       <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-        Showing <strong style={{ color: 'var(--text-primary)' }}>{startRecord}</strong>–
+        Showing <strong style={{ color: 'var(--text-primary)' }}>{startRecord}</strong>-
         <strong style={{ color: 'var(--text-primary)' }}>{endRecord}</strong> of{' '}
         <strong style={{ color: 'var(--text-primary)' }}>{total}</strong> jobs
       </div>
 
       {/* Pagination Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="job-pagination-controls">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Per page:</span>
           <div style={{ width: '80px' }}>

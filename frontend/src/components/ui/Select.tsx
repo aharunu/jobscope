@@ -24,9 +24,9 @@ export const Select: React.FC<SelectProps> = ({
   const errorId = error ? `${selectId}-error` : undefined;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '100%' }}>
+    <div className="form-field">
       {label && (
-        <label htmlFor={selectId} style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+        <label htmlFor={selectId} >
           {label}
         </label>
       )}
@@ -44,7 +44,7 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <span id={errorId} role="alert" style={{ fontSize: '0.75rem', color: 'var(--danger-text)' }}>
+        <span id={errorId} role="alert" className="form-error">
           {error}
         </span>
       )}

@@ -57,7 +57,7 @@ export function RequirementMatchesList({ requirements }: RequirementMatchesListP
               backgroundColor: 'var(--color-surface-hover)',
               borderRadius: 'var(--radius-md)',
               border: req.is_blocker && req.match_status === 'NOT_MATCHED' 
-                ? '1px solid rgba(239, 68, 68, 0.4)' 
+                ? '1px solid var(--danger-border)'
                 : '1px solid var(--color-border)',
               display: 'flex',
               flexDirection: 'column',
@@ -79,9 +79,9 @@ export function RequirementMatchesList({ requirements }: RequirementMatchesListP
                       letterSpacing: '0.05em',
                       padding: '0.15rem 0.45rem',
                       borderRadius: 'var(--radius-sm)',
-                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                      backgroundColor: 'var(--danger-bg)',
                       color: 'var(--color-danger)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      border: '1px solid var(--danger-border)',
                     }}
                   >
                     Mandatory Blocker

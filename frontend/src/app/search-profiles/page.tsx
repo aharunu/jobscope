@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { SearchProfilesClient } from './SearchProfilesClient';
 
 export const metadata = {
-  title: 'Search Profiles — JobScope',
+  title: 'Search Profiles - JobScope',
   description: 'Manage candidate search profiles and criteria for job matching.',
 };
 

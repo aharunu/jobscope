@@ -125,7 +125,7 @@ export function ProfileSection({section, entries, onSaved}: {section: ProfileSec
     {entries.map(entry => {
       const values = Object.fromEntries(Object.entries(entry));
       return <article key={entry.id} className="profile-entry">
-        <div>{config.fields.map(field => <p key={field.key}><strong>{field.label}: </strong>{field.type === 'checkbox' ? values[field.key] ? 'Yes' : 'No' : field.type === 'date' && values[field.key] && String(values[field.key]) < minimumDate ? 'Invalid saved date — edit to correct' : Array.isArray(values[field.key]) ? values[field.key].join(', ') : String(values[field.key] ?? '—')}</p>)}</div>
+        <div>{config.fields.map(field => <p key={field.key}><strong>{field.label}: </strong>{field.type === 'checkbox' ? values[field.key] ? 'Yes' : 'No' : field.type === 'date' && values[field.key] && String(values[field.key]) < minimumDate ? 'Invalid saved date - edit to correct' : Array.isArray(values[field.key]) ? values[field.key].join(', ') : String(values[field.key] ?? '-')}</p>)}</div>
         <div className="profile-actions"><Button variant="secondary" disabled={busy || editing !== null} onClick={() => begin(entry)}>Edit {config.singular}</Button><Button variant="ghost" disabled={busy || editing !== null} onClick={() => remove(entry)}>Remove {config.singular}</Button></div>
       </article>;
     })}

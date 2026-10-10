@@ -34,13 +34,12 @@ export const Spinner: React.FC<SpinnerProps> = ({
           display: 'inline-block',
           width: sizeMap[size],
           height: sizeMap[size],
-          border: '2px solid rgba(255, 255, 255, 0.2)',
+          border: '2px solid var(--border-card)',
           borderTopColor: 'var(--primary)',
           borderRadius: '50%',
           animation: 'spin 0.7s linear infinite',
         }}
       />
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{label}</span>
     </div>
   );

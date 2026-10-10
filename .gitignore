@@ -129,3 +129,6 @@ docs/agent-reports/
 
 # Generated editor code-count snapshots
 /.VSCodeCounter/
+
+# Local historical public-board benchmark data (lossless evidence archive)
+/docs/archive/external-comparison-20261006/

@@ -9,7 +9,28 @@ import { JobSearchInput } from '../../components/jobs/JobSearchInput';
 import { JobFilters } from '../../components/jobs/JobFilters';
 import { JobList } from '../../components/jobs/JobList';
 import { JobPagination } from '../../components/jobs/JobPagination';
-import { Spinner } from '../../components/ui/Spinner';
+
+function JobsHeading() {
+  return <header className="page-header">
+    <div><h1>Job Discovery</h1><p>Explore verified canonical job postings crawled from integrated ATS platforms.</p></div>
+  </header>;
+}
+
+function JobsLoading() {
+  // Reserve the real page geometry while URL-dependent content hydrates.
+  return <div className="container" style={{paddingTop: '2rem'}} aria-busy="true" aria-label="Loading Job Discovery">
+    <JobsHeading />
+    <div className="discovery-search"><div className="skeleton" style={{height: 48}} /></div>
+    <div className="card filters-panel">
+      <div className="filters-heading"><span>Filters</span></div>
+      <div className="filters-grid" aria-hidden="true">{Array.from({length: 6}, (_, index) => <div className="form-field" key={index}>
+        <div className="skeleton" style={{height: 20, width: '45%'}} /><div className="skeleton" style={{height: 42}} />
+      </div>)}</div>
+    </div>
+    <div className="results-heading" role="status">Loading job postings...</div>
+    <JobList jobs={[]} isLoading={true} error={null} hasActiveFilters={false} onRetry={() => {}} onResetFilters={() => {}} />
+  </div>;
+}
 
 function JobsContent() {
   const router = useRouter();
@@ -183,7 +204,8 @@ function JobsContent() {
       ...prev,
       offset: newOffset,
     }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const reducedMotion = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
   };
 
   const handleLimitChange = (newLimit: number) => {
@@ -206,32 +228,11 @@ function JobsContent() {
 
   return (
     <div className="container" style={{ paddingTop: '2rem' }}>
-      {/* Page Title & Search Bar */}
-      <section style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <h1
-            style={{
-              fontSize: '2rem',
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              color: 'var(--text-primary)',
-              marginBottom: '0.4rem',
-            }}
-          >
-            Job Discovery
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
-            Explore verified canonical job postings crawled from integrated ATS platforms.
-          </p>
-        </div>
-
-        <div style={{ maxWidth: '720px' }}>
-          <JobSearchInput value={filters.q || ''} onChange={handleSearchChange} />
-        </div>
-      </section>
+      <JobsHeading />
+      <div className="discovery-search"><JobSearchInput value={filters.q || ''} onChange={handleSearchChange} /></div>
 
       {/* Multi-attribute Filters */}
-      <section style={{ marginBottom: '1.75rem' }}>
+      <section>
         <JobFilters
           filters={filters}
           onChange={handleFilterChange}
@@ -239,8 +240,12 @@ function JobsContent() {
         />
       </section>
 
-      {/* Jobs Grid or Empty/Loading/Error View */}
+      {/* Authoritative backend count; no invented dashboard metrics. */}
       <section>
+        {!error && <div className="results-heading" role="status">
+          <strong>{isLoading ? 'Loading job postings...' : `${total.toLocaleString()} jobs found`}</strong>
+          <span>{hasActiveFilters ? 'Filtered results' : 'All postings'}</span>
+        </div>}
         <JobList
           jobs={jobs}
           isLoading={isLoading}
@@ -267,13 +272,7 @@ function JobsContent() {
 
 export default function JobsPage() {
   return (
-    <Suspense
-      fallback={
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem 0' }}>
-          <Spinner size="lg" label="Loading Job Discovery..." />
-        </div>
-      }
-    >
+    <Suspense fallback={<JobsLoading />}>
       <JobsContent />
     </Suspense>
   );

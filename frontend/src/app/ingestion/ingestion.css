@@ -1,17 +1,24 @@
-.ingestion-page { padding-block: 2rem; display: grid; gap: 1rem; }
-.ingestion-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 1.5rem; display: grid; gap: 1rem; }
-.ingestion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
-.ingestion-page label { display: grid; gap: .5rem; font-size: .9rem; }
+.ingestion-page { padding-top: 2rem; display: grid; gap: 1.25rem; }
+.ingestion-page .page-header { margin-bottom: .5rem; }
+.ingestion-setup { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.ingestion-card { min-width: 0; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); padding: 1.5rem; display: grid; align-content: start; gap: 1rem; box-shadow: var(--shadow-sm); }
+.ingestion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 1rem; }
+.ingestion-page label { display: grid; gap: .5rem; font-size: .8125rem; color: var(--text-secondary); }
+.ingestion-page p { font-size: .875rem; color: var(--text-secondary); overflow-wrap: anywhere; }
 .ingestion-page label:has(input[type=checkbox]) { display: flex; align-items: center; }
-.ingestion-page select { color: var(--text-primary); background: var(--bg-surface); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: .6rem; width: 100%; }
+.ingestion-page select { min-width: 0; min-height: 42px; color: var(--text-primary); background: var(--bg-surface); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: .6rem; width: 100%; }
 .ingestion-page select[multiple] { min-height: 9rem; }
 .ingestion-policy { display: grid; gap: .8rem; max-width: 650px; }
 .ingestion-actions, .ingestion-counts { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
 .ingestion-counts span { padding: .4rem .6rem; background: var(--bg-surface); border-radius: var(--radius-md); }
 .ingestion-page progress { width: 100%; accent-color: var(--primary); }
 .ingestion-page details { border-top: 1px solid var(--border-card); padding: .8rem 0; }
-.ingestion-page summary { cursor: pointer; }
-.ingestion-table { overflow-x: auto; }
+.ingestion-page summary { cursor: pointer; line-height: 1.7; font-size: .875rem; overflow-wrap: anywhere; }
+.ingestion-table { overflow-x: auto; min-width: 0; border: 1px solid var(--border-card); border-radius: var(--radius-sm); }
+.ingestion-page th { font-weight: 550; color: var(--text-secondary); background: var(--bg-subtle); }
+.ingestion-page td { color: var(--text-secondary); }
+.ingestion-page td a { color: var(--primary-light); }
+.ingestion-page td a:hover { text-decoration: underline; }
 .ingestion-page table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 .ingestion-page th, .ingestion-page td { text-align: left; padding: .7rem; border-bottom: 1px solid var(--border-card); }
 .ingestion-status { display: inline-block; border-radius: var(--radius-md); padding: .15rem .5rem; font-size: .85rem; background: var(--bg-surface); color: var(--text-secondary); }
@@ -20,3 +27,5 @@
 .ingestion-status-failed, .ingestion-status-interrupted { background: var(--danger-bg); color: var(--danger-text); }
 .ingestion-status-running, .ingestion-status-pending { background: var(--mode-remote-bg); color: var(--mode-remote-text); }
 .ingestion-status-cancelled { background: var(--status-closed-bg); color: var(--status-closed-text); }
+@media (min-width: 1280px) { .ingestion-setup { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); } }
+@media (max-width: 640px) { .ingestion-card { padding: 1rem; } .ingestion-page select { min-height: 44px; } }

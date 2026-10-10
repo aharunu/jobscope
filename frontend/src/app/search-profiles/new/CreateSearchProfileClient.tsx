@@ -1,5 +1,7 @@
 'use client';
 
+import { ArrowLeftIcon } from '@/components/ui/icons';
+
 import React, { useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -225,9 +227,7 @@ export function CreateSearchProfileClient({initialProfile, onSaved, onCancel}: {
             textDecoration: 'none',
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ArrowLeftIcon size={16} aria-hidden="true" />
           <span>{returnUrl ? 'Back to Job Detail' : 'Back to Search Profiles'}</span>
         </Link>}
       </div>
@@ -325,8 +325,8 @@ export function CreateSearchProfileClient({initialProfile, onSaved, onCancel}: {
                     padding: '0.2rem 0.5rem',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-subtle)',
-                    backgroundColor: seniority === preset ? 'var(--primary)' : 'rgba(255, 255, 255, 0.04)',
-                    color: seniority === preset ? '#ffffff' : 'var(--text-secondary)',
+                    backgroundColor: seniority === preset ? 'var(--primary)' : 'var(--bg-subtle)',
+                    color: seniority === preset ? 'var(--on-primary)' : 'var(--text-secondary)',
                     cursor: 'pointer',
                   }}
                 >
@@ -402,7 +402,7 @@ export function CreateSearchProfileClient({initialProfile, onSaved, onCancel}: {
                       padding: '0.4rem 0.85rem',
                       borderRadius: 'var(--radius-full)',
                       border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-card)'}`,
-                      backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                      backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--bg-subtle)',
                       color: isSelected ? 'var(--primary-light)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       transition: 'all var(--transition-fast)',

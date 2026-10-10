@@ -1,5 +1,7 @@
 'use client';
 
+import { PlusIcon, UserCircleIcon, MapPinIcon, CurrencyDollarIcon, TrashIcon } from '@/components/ui/icons';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { listSearchProfiles, deleteSearchProfile } from '@/lib/api/search_profiles';
@@ -11,7 +13,7 @@ import { CreateSearchProfileClient } from './new/CreateSearchProfileClient';
 
 function formatSalaryRange(min: number | null, max: number | null): string | null {
   if (min != null && max != null) {
-    return `$${min.toLocaleString()} – $${max.toLocaleString()}`;
+    return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
   }
   if (min != null) {
     return `From $${min.toLocaleString()}`;
@@ -80,27 +82,9 @@ export function SearchProfilesClient() {
     <div className="container" style={{ paddingTop: '2rem', paddingBottom: '3rem' }}>
       {success && <p role="status">{success}</p>}
       {/* Header section */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '2rem',
-        }}
-      >
+      <header className="page-header">
         <div>
-          <h1
-            style={{
-              fontSize: '1.75rem',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            Search Profiles
-          </h1>
+          <h1>Search Profiles</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
             Manage candidate profiles used for deterministic job match evaluation.
           </p>
@@ -118,22 +102,10 @@ export function SearchProfilesClient() {
           }}
           data-testid="create-profile-header-btn"
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <PlusIcon size={18} aria-hidden="true" />
           Create Search Profile
         </Link>
-      </div>
+      </header>
 
       {/* Action / Global Error Alert */}
       {actionError && (
@@ -150,7 +122,7 @@ export function SearchProfilesClient() {
           data-testid="profiles-loading"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))',
             gap: '1.25rem',
           }}
         >
@@ -205,26 +177,14 @@ export function SearchProfilesClient() {
               width: '3.5rem',
               height: '3.5rem',
               borderRadius: '50%',
-              backgroundColor: 'rgba(99, 102, 241, 0.12)',
+              backgroundColor: 'var(--accent-soft)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--primary-light)',
             }}
           >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <UserCircleIcon size={28} aria-hidden="true" />
           </div>
           <div>
             <h2
@@ -261,10 +221,7 @@ export function SearchProfilesClient() {
             }}
             data-testid="create-profile-empty-btn"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <PlusIcon size={16} aria-hidden="true" />
             Create Search Profile
           </Link>
         </Card>
@@ -276,7 +233,7 @@ export function SearchProfilesClient() {
           data-testid="profiles-list"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 360px), 1fr))',
             gap: '1.5rem',
           }}
         >
@@ -339,7 +296,7 @@ export function SearchProfilesClient() {
                               fontSize: '0.8125rem',
                               padding: '0.2rem 0.5rem',
                               borderRadius: 'var(--radius-sm)',
-                              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                              backgroundColor: 'var(--bg-subtle)',
                               color: 'var(--text-primary)',
                             }}
                           >
@@ -364,9 +321,9 @@ export function SearchProfilesClient() {
                               fontSize: '0.75rem',
                               padding: '0.15rem 0.45rem',
                               borderRadius: 'var(--radius-sm)',
-                              backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                              backgroundColor: 'var(--accent-soft)',
                               color: 'var(--primary-light)',
-                              border: '1px solid rgba(99, 102, 241, 0.2)',
+                              border: '1px solid var(--mode-remote-border)',
                             }}
                           >
                             {skill}
@@ -395,20 +352,14 @@ export function SearchProfilesClient() {
 
                     {profile.locations && profile.locations.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-muted)' }}>
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
+                        <MapPinIcon size={14} aria-hidden="true" />
                         <span>{profile.locations.join(', ')}</span>
                       </div>
                     )}
 
                     {salaryText && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--status-active-text)' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <line x1="12" y1="1" x2="12" y2="23" />
-                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                        </svg>
+                        <CurrencyDollarIcon size={14} aria-hidden="true" />
                         <span>{salaryText}</span>
                       </div>
                     )}
@@ -480,10 +431,7 @@ export function SearchProfilesClient() {
                       data-testid={`delete-profile-btn-${profile.id}`}
                       aria-label={`Delete ${profile.name}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
+                      <TrashIcon size={14} aria-hidden="true" />
                       Delete
                     </button>
                     </>

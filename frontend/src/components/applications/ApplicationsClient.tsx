@@ -25,8 +25,7 @@ export function ApplicationsClient() {
     return () => controller.abort();
   }, [status, offset, retry]);
   return <div className="container application-page">
-    <h1>Applications</h1>
-    <p className="application-muted">Manage your tracked jobs, notes and application progress.</p>
+    <header className="page-header"><div><h1>Applications</h1><p>Manage your tracked jobs, notes and application progress.</p></div></header>
     <label className="application-field">Filter by status
       <select value={status} onChange={e => { setStatus(e.target.value as ApplicationStatus | ''); setOffset(0); }}>
         <option value="">All statuses</option>
@@ -36,7 +35,7 @@ export function ApplicationsClient() {
     {loading && <p role="status">Loading applications…</p>}
     {error && <><Alert variant="danger">{error}</Alert><Button onClick={() => setRetry(v => v + 1)}>Retry applications</Button></>}
     {!loading && data && <>
-      {data.items.length === 0 ? <section className="card application-section">
+      {data.items.length === 0 ? <section className="empty-state">
         <h2>{status ? 'No applications with this status.' : 'No applications tracked yet.'}</h2>
         <p>Browse jobs and use “Track Application” to add one.</p>
         <Link href="/jobs" className="btn btn-primary">Browse jobs</Link>

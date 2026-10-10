@@ -1,5 +1,7 @@
 'use client';
 
+import { PlusIcon } from '@/components/ui/icons';
+
 import React from 'react';
 import Link from 'next/link';
 import { SearchProfileResponse } from '../../lib/api/types';
@@ -67,19 +69,7 @@ export const SearchProfileSelector: React.FC<SearchProfileSelectorProps> = ({
             }}
             data-testid="create-search-profile-btn"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <PlusIcon size={16} aria-hidden="true" />
             Create Search Profile
           </Link>
         </div>

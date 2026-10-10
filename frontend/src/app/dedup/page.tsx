@@ -38,15 +38,14 @@ export default function DedupPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Review action failed. Please try again.'); }
     finally { submission.current = false; setBusy(false); }
   }
-  return <div className="container" style={{ paddingTop: '2rem' }}>
-    <h1>Duplicate review</h1>
-    <p>Uncertain vacancies remain separate until reviewed. Compare evidence before merging.</p>
+  return <div className="container dedup-page">
+    <header className="page-header"><div><h1>Duplicate review</h1><p>Uncertain vacancies remain separate until reviewed. Compare evidence before merging.</p></div></header>
     {error && <Alert variant="danger">{error}</Alert>}
     {notice && <Alert>{notice}</Alert>}
-    {loading ? <p>Loading candidates…</p> : !items.length && <p>No pending candidates.</p>}
+    {loading ? <p>Loading candidates…</p> : !items.length && <div className="empty-state"><h2>No pending candidates.</h2><p>New uncertain duplicates appear here for review. Jobs stay separate until you decide.</p></div>}
     {items.map(item => <section key={item.id} className="card" style={{ padding: '1.5rem', marginBottom: '1rem' }} aria-label={`Candidate ${item.id}`}>
       <h2>{item.outcome} · Score {item.score} / 100</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
+      <div className="dedup-grid">
         {item.jobs.map(job => <article key={job.id}>
           <h3><Link href={`/jobs/${job.id}`}>{job.title}</Link></h3>
           <p>{job.company} · {job.location || 'Unknown location'}</p>

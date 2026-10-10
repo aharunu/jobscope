@@ -21,18 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {isLoading ? (
         <>
-          <span
-            style={{
-              display: 'inline-block',
-              width: '1rem',
-              height: '1rem',
-              border: '2px solid currentColor',
-              borderRightColor: 'transparent',
-              borderRadius: '50%',
-              animation: 'spin 0.6s linear infinite',
-            }}
-          />
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <span className="button-spinner" aria-hidden="true" />
           <span>Loading...</span>
         </>
       ) : (

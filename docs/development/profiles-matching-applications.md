@@ -59,3 +59,27 @@ Experience company, role title and start date are required. Native date controls
 Each `(job_id, base_profile_id, search_profile_id)` stores one current snapshot. Explicit POST re-evaluation overwrites that snapshot, retaining its ID and creation timestamp. Profile edits do not automatically recalculate it. A5 canonical content changes and manual merges invalidate affected saved matches so stale results are not exposed as current. Historical merge records, requirements and match/AI evidence remain referentially valid; explicit deterministic recalculation restores a current result without calling AI. MatchPanel displays the saved timestamp and offers explicit re-evaluation.
 
 Run `alembic upgrade head` before using retrieval. Migration `0008_match_snapshot` persists category scores and explanation that previously existed only in the POST response. Legacy rows retain their stored scalar scores and requirement evidence with `{}` category scores and a null explanation. GET does not invent or backfill missing evidence; explicitly re-evaluate to obtain a complete current snapshot.
+
+## Validation and PATCH boundaries
+
+BaseProfile summary PATCH has five distinct cases: omission preserves the value;
+explicit null, empty string and whitespace-only text clear it; nonempty text is
+trimmed. Root metadata changes preserve the owned child collections. If legacy
+data contains multiple BaseProfiles for one user, repository lookup chooses
+created_at ascending then ID ascending; it does not select an arbitrary row.
+
+SearchProfile salary bounds are finite nonnegative values up to 9999999999.99,
+consistent with NUMERIC(12,2); the service enforces this as well as the API.
+Relevant SearchProfile string lists and experience/project skills_used are bounded
+to 50 entries and 150 characters per entry. Excess data is rejected, not silently
+truncated. Omitting fields during PATCH is different from explicitly clearing them.
+Shared BaseProfile resolution across child services remains a possible future
+internal refactor, not an authorization to change ownership or behavior here.
+
+The frontend uses same-origin /api rewrites and a typed API client. X-User-Id is
+sent only when NEXT_PUBLIC_USER_ID is explicitly configured; there is no embedded
+candidate ID in the client. Loading, empty data, safe API failure and UNKNOWN match
+evidence have distinct meanings. Intentional AbortError is distinguishable from
+failure so stale navigation requests cannot be shown as a successful mutation.
+See [the API contract](api.md), [database boundaries](database-contracts.md) and
+[deterministic scoring](requirements-and-deterministic-matching.md).
