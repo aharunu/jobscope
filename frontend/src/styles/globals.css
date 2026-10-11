@@ -12,6 +12,7 @@
   --bg-subtle: #f0f1f5;
   --border-subtle: #e6e7ed;
   --border-card: #dddfe8;
+  --border-control: #858b9a;
   --border-card-hover: #b5b1d6;
   --border-focus: #6358bc;
   --text-primary: #242632;
@@ -77,6 +78,7 @@
   --bg-subtle: #23252f;
   --border-subtle: #2d2f3b;
   --border-card: #373947;
+  --border-control: #737a91;
   --border-card-hover: #6a628e;
   --border-focus: #aca1f0;
   --text-primary: #edeef4;
@@ -117,6 +119,7 @@
   --bg-subtle: #23252f;
   --border-subtle: #2d2f3b;
   --border-card: #373947;
+  --border-control: #737a91;
   --border-card-hover: #6a628e;
   --border-focus: #aca1f0;
   --text-primary: #edeef4;
@@ -182,7 +185,7 @@ h3 { font-size: 1rem; font-weight: 600; }
 .header-context { display: flex; align-items: center; gap: .65rem; font-size: .8125rem; color: var(--text-secondary); }
 .header-context strong { font-weight: 500; color: var(--text-primary); }
 .header-tools { display: flex; align-items: center; gap: .75rem; }
-.appearance-select { width: auto; min-width: 110px; font-size: .75rem; padding: .4rem .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); color: var(--text-secondary); background: var(--bg-surface); }
+.appearance-select { width: auto; min-width: 110px; font-size: .75rem; padding: .4rem .6rem; border-radius: var(--radius-sm); border: 1px solid var(--border-control); color: var(--text-secondary); background: var(--bg-surface); }
 .mobile-logo, .nav-toggle { display: none; }
 .app-main { flex: 1; padding-bottom: 2rem; min-width: 0; }
 .app-footer { padding-block: 1.5rem; color: var(--text-muted); font-size: .75rem; }
@@ -203,9 +206,10 @@ h3 { font-size: 1rem; font-weight: 600; }
 .btn-secondary:hover:not(:disabled) { background: var(--bg-subtle); border-color: var(--border-card-hover); }
 .btn-ghost { color: var(--text-secondary); }
 .btn-ghost:hover:not(:disabled) { background: var(--bg-subtle); color: var(--text-primary); }
-.input, .select { width: 100%; min-width: 0; min-height: 42px; padding: .6rem .8rem; border: 1px solid var(--border-card); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font-size: .875rem; transition: border-color var(--transition-fast); }
+.input, .select { width: 100%; min-width: 0; min-height: 42px; padding: .6rem .8rem; border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font-size: .875rem; transition: border-color var(--transition-fast); }
 .input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
 .input:focus, .select:focus { border-color: var(--border-focus); }
+.input[aria-invalid=true], .select[aria-invalid=true] { border-color: var(--danger-text); }
 .select option { background: var(--bg-surface); color: var(--text-primary); }
 .form-field { display: grid; gap: .45rem; min-width: 0; width: 100%; }
 .form-field > label { font-size: .8125rem; font-weight: 500; color: var(--text-secondary); }
@@ -241,7 +245,11 @@ h3 { font-size: 1rem; font-weight: 600; }
 .results-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: .9rem; color: var(--text-muted); font-size: .8125rem; }
 .results-heading strong { color: var(--text-primary); font-weight: 550; }
 .jobs-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
-.job-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 1rem; padding: 1.25rem; cursor: pointer; }
+.job-card { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 1rem; padding: 1.25rem; }
+/* One native detail link covers the row; Apply remains a separate sibling link. */
+.job-card-link::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-lg); }
+.job-card-link:focus-visible { outline: none; }
+.job-card-link:focus-visible::after { outline: 2px solid var(--border-focus); outline-offset: 3px; }
 .job-pagination-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
 .profile-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: start; }
 .company-monogram { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-lg); background: var(--accent-soft); color: var(--primary-light); font-weight: 600; font-size: 1.1rem; }
@@ -255,7 +263,7 @@ h3 { font-size: 1rem; font-weight: 600; }
 .job-card-side { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 1rem; }
 .job-card-date, .job-card-salary { color: var(--text-muted); font-size: .75rem; }
 .job-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; }
-.job-card-action { color: var(--primary-light); }
+.job-card-action { position: relative; color: var(--primary-light); }
 .empty-state { display: grid; justify-items: center; gap: .85rem; text-align: center; padding: 3rem 1.5rem; background: var(--bg-card); border: 1px dashed var(--border-card); border-radius: var(--radius-lg); }
 .empty-state-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--radius-lg); background: var(--accent-soft); color: var(--primary-light); margin-bottom: .2rem; }
 .empty-state p { max-width: 52ch; color: var(--text-secondary); font-size: .875rem; }
@@ -315,7 +323,7 @@ h3 { font-size: 1rem; font-weight: 600; }
 .application-section { padding: 1.5rem; display: grid; gap: .875rem; min-width: 0; overflow-wrap: anywhere; }
 .application-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
 .application-field { display: grid; gap: .5rem; max-width: 100%; font-size: .8125rem; color: var(--text-secondary); }
-.application-field select, .application-field textarea { width: 100%; min-width: 0; padding: .7rem; border: 1px solid var(--border-card); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font: inherit; }
+.application-field select, .application-field textarea { width: 100%; min-width: 0; padding: .7rem; border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font: inherit; }
 .application-page > .application-field { max-width: 320px; }
 .application-muted { font-size: .875rem; color: var(--text-secondary); }
 .application-notes-preview { white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-secondary); }

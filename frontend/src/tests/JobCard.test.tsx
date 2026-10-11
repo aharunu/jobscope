@@ -1,13 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { JobCard } from '../components/jobs/JobCard';
 import { JobSummaryResponse } from '../lib/api/types';
-
-const navigation = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock('next/navigation', () => ({
-  useRouter: () => navigation,
-}));
 
 const mockJob: JobSummaryResponse = {
   id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
@@ -62,12 +57,28 @@ describe('JobCard Component', () => {
     expect(screen.getByText('Closed')).toBeInTheDocument();
   });
 
-  it('opens the job with the keyboard without hijacking the nested Apply link', () => {
-    navigation.push.mockClear();
+  it('provides a native detail destination for keyboard and modified-click navigation', () => {
     render(<JobCard job={mockJob} />);
-    fireEvent.keyDown(screen.getByRole('link', {name: /apply on company website/i}), {key: 'Enter'});
-    expect(navigation.push).not.toHaveBeenCalled();
-    fireEvent.keyDown(screen.getByRole('link', {name: /view details for/i}), {key: 'Enter'});
-    expect(navigation.push).toHaveBeenCalledWith(`/jobs/${mockJob.id}`);
+    const detailLink = screen.getByRole('link', { name: /view details for/i });
+    expect(detailLink.tagName).toBe('A');
+    expect(detailLink).toHaveAttribute('href', `/jobs/${mockJob.id}`);
+    expect(detailLink.tabIndex).toBe(0);
+  });
+
+  it('keeps Apply independently focusable without nested interactive links', () => {
+    render(<JobCard job={mockJob} />);
+    const detailLink = screen.getByRole('link', { name: /view details for/i });
+    const applyLink = screen.getByRole('link', { name: /apply on company website/i });
+    expect(detailLink).not.toContainElement(applyLink);
+    expect(applyLink.closest('[role="link"]')).toBeNull();
+    expect(applyLink.tabIndex).toBe(0);
+    expect(screen.getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('retains detail navigation when the external apply URL is unavailable', () => {
+    render(<JobCard job={{ ...mockJob, canonical_url: '' }} />);
+    expect(screen.getByRole('link', { name: /view details for/i })).toHaveAttribute('href', `/jobs/${mockJob.id}`);
+    expect(screen.queryByRole('link', { name: /apply on company website/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Direct apply unavailable')).toBeInTheDocument();
   });
 });

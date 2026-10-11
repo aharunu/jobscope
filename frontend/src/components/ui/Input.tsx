@@ -26,7 +26,7 @@ export const Input: React.FC<InputProps> = ({
       <input
         id={inputId}
         className={`input ${className}`}
-        style={error ? { borderColor: 'var(--danger-border)' } : undefined}
+        style={error ? { borderColor: 'var(--danger-text)' } : undefined}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
         {...props}
