@@ -215,16 +215,14 @@ describe('Comprehensive User Flows (Phase 8.3)', () => {
     const nextBtn = screen.getByRole('button', { name: /next page/i });
     fireEvent.click(nextBtn);
 
-    // 5. Open job card (wait for page 2 load)
+    // 5. Native job link retains its destination after page 2 loads.
     await waitFor(() => {
       expect(
         screen.getByRole('link', { name: /view details for Staff Infrastructure Engineer at Stripe/i })
       ).toBeInTheDocument();
     });
     const jobCard = screen.getByRole('link', { name: /view details for Staff Infrastructure Engineer at Stripe/i });
-    fireEvent.click(jobCard);
-
-    expect(mockPush).toHaveBeenCalledWith('/jobs/job-101');
+    expect(jobCard).toHaveAttribute('href', '/jobs/job-101');
   });
 
   it('FLOW 2: Open job detail -> select Search Profile -> retrieve saved Match -> inspect result', async () => {
