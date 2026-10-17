@@ -28,6 +28,28 @@ const mockJob: JobSummaryResponse = {
 };
 
 describe('JobCard Component', () => {
+  it('shows and highlights the server-provided description-only context as plain text', () => {
+    const { container } = render(<JobCard job={{ ...mockJob, description_match: {
+      before: 'Experience with ', match: 'FastAPI', after: ' and Python is required.',
+    } }} />);
+    expect(screen.getByText('Matched in description:')).toBeInTheDocument();
+    expect(container.querySelector('mark')).toHaveTextContent('FastAPI');
+    expect(container.querySelector('.job-card-excerpt')).toHaveTextContent('Experience with FastAPI and Python');
+  });
+
+  it('does not expose snippet markup as executable HTML', () => {
+    const { container } = render(<JobCard job={{ ...mockJob, description_match: {
+      before: '<img onerror="alert(1)">', match: '<script>', after: '</script>',
+    } }} />);
+    expect(container.querySelector('script')).toBeNull();
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('mark')).toHaveTextContent('<script>');
+  });
+
+  it('omits the description context when the API supplies no description match', () => {
+    render(<JobCard job={mockJob} />);
+    expect(screen.queryByText('Matched in description:')).not.toBeInTheDocument();
+  });
   it('renders all key job metadata accurately', () => {
     render(<JobCard job={mockJob} />);
 

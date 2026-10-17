@@ -9,10 +9,22 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DescriptionMatchResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    before: str
+    match: str
+    after: str
+
+
 class JobSummaryResponse(BaseModel):
     """Read-oriented projection of a canonical job for summary listings."""
 
     model_config = ConfigDict(from_attributes=True)
+
+    description_match: DescriptionMatchResponse | None = Field(
+        default=None, description="Plain-text excerpt for description-only search hits"
+    )
 
     id: uuid.UUID = Field(description="Unique job identifier")
     source_id: uuid.UUID = Field(description="Originating source identifier")

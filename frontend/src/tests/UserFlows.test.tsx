@@ -190,6 +190,26 @@ describe('Comprehensive User Flows (Phase 8.3)', () => {
     mockSearchParams = new URLSearchParams();
   });
 
+  it('restores scope from URL and toggles content with pagination reset', async () => {
+    mockSearchParams = new URLSearchParams('q=%22intern%22&search_scope=title&offset=50');
+    mockListJobs.mockResolvedValue({ jobs: mockJobs, total: 100 });
+    render(<JobsPage />);
+    await waitFor(() => expect(mockListJobs).toHaveBeenCalledWith(
+      expect.objectContaining({ q: '"intern"', search_scope: 'title', offset: 50 }), expect.anything()
+    ));
+    expect(screen.getByRole('switch', { name: 'Include content' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('textbox', { name: 'Search jobs by title' })).toHaveValue('"intern"');
+    fireEvent.click(screen.getByRole('switch', { name: 'Include content' }));
+    await waitFor(() => expect(mockListJobs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: '"intern"', search_scope: 'all', offset: 0 }), expect.anything()
+    ));
+    expect(screen.getByRole('switch', { name: 'Include content' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('switch', { name: 'Include content' }));
+    await waitFor(() => expect(mockReplace).toHaveBeenLastCalledWith(
+      '/jobs?q=%22intern%22&search_scope=title', { scroll: false }
+    ));
+  });
+
   it('FLOW 1: Open /jobs -> search -> filter -> paginate -> open job card', async () => {
     mockListJobs.mockResolvedValue({ jobs: mockJobs, total: 100 });
 
@@ -201,7 +221,7 @@ describe('Comprehensive User Flows (Phase 8.3)', () => {
     });
 
     // 2. Search query change
-    const searchInput = screen.getByLabelText(/search jobs by title or company/i);
+    const searchInput = screen.getByLabelText(/search jobs by title, company or description/i);
     fireEvent.change(searchInput, { target: { value: 'Staff' } });
 
     // 3. Filter change

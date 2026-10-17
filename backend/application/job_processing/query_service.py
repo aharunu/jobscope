@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 
 from backend.application.job_processing.content_cleaning import (
+    clean_html_to_bullets,
     normalize_job_description_and_responsibilities,
 )
 from backend.application.job_processing.dtos import (
+    DescriptionMatchDTO,
     JobDetailDTO,
     JobFilterDTO,
     JobSummaryDTO,
 )
+from backend.application.job_processing.search import search_regex
 from backend.domain.job.entities import Job
 from backend.domain.job.repositories import JobRepository
 
@@ -73,6 +77,7 @@ class JobQueryService:
             work_mode=work_mode,
             employment_type=employment_type,
             search_query=search_query,
+            search_scope=filter_.search_scope,
             limit=filter_.limit,
             offset=filter_.offset,
         )
@@ -85,9 +90,15 @@ class JobQueryService:
             work_mode=work_mode,
             employment_type=employment_type,
             search_query=search_query,
+            search_scope=filter_.search_scope,
         )
 
-        items = [self._to_summary_dto(job) for job in jobs]
+        items = [
+            self._to_summary_dto(
+                job, search_query if filter_.search_scope == "all" else None
+            )
+            for job in jobs
+        ]
         return items, total
 
     async def get_job(self, job_id: uuid.UUID) -> JobDetailDTO | None:
@@ -106,7 +117,7 @@ class JobQueryService:
             raise ValueError(f"Offset must be non-negative, got {offset}")
 
     @staticmethod
-    def _to_summary_dto(job: Job) -> JobSummaryDTO:
+    def _to_summary_dto(job: Job, query: str | None = None) -> JobSummaryDTO:
         """Map canonical Job domain entity to public summary DTO."""
         return JobSummaryDTO(
             id=job.id,
@@ -129,6 +140,27 @@ class JobQueryService:
             source_name=job.source_name or "Unknown",
             ats_type=job.ats_type or "unknown",
             source_url=job.source_url or "",
+            description_match=JobQueryService._description_match(job, query),
+        )
+
+    @staticmethod
+    def _description_match(job: Job, query: str | None) -> DescriptionMatchDTO | None:
+        if not query:
+            return None
+        pattern = re.compile(search_regex(query), re.IGNORECASE)
+        if pattern.search(job.title) or pattern.search(job.company):
+            return None
+        description, _ = normalize_job_description_and_responsibilities(job.description)
+        text = " ".join(clean_html_to_bullets(description).split())
+        found = pattern.search(text)
+        if found is None:
+            return None
+        start = max(0, found.start() - 80)
+        end = min(len(text), found.end() + 120)
+        return DescriptionMatchDTO(
+            before=("…" if start else "") + text[start : found.start()],
+            match=text[found.start() : found.end()],
+            after=text[found.end() : end] + ("…" if end < len(text) else ""),
         )
 
     @staticmethod

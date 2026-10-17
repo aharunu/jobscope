@@ -10,12 +10,33 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
+from backend.application.job_processing.search import parse_search_query, search_regex
 from backend.domain.job.entities import Job, RawJob
 from backend.domain.job.enums import JobStatus
 from backend.domain.job.repositories import JobRepository, RawJobRepository
 from backend.infrastructure.database.models.dedup import JobOccurrenceModel
 from backend.infrastructure.database.models.job import JobModel, RawJobModel
 from backend.infrastructure.database.models.source import SourceModel
+
+
+def _search_matches(query: str, search_scope: str = "all"):
+    """Use identical substring/quoted-term predicates for counting and paging."""
+    term, exact = parse_search_query(query)
+    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    pattern = f"%{escaped}%"
+    description = sa.func.regexp_replace(JobModel.description, "<[^>]+>", " ", "g")
+    description = sa.func.replace(description, "&nbsp;", " ")
+    description = sa.func.replace(description, "&amp;", "&")
+    description = sa.func.regexp_replace(description, r"\s+", " ", "g")
+    columns = (
+        (JobModel.title,)
+        if search_scope == "title"
+        else (JobModel.title, JobModel.company, description)
+    )
+    if exact:
+        regex = search_regex(query)
+        return tuple(column.op("~*")(regex) for column in columns)
+    return tuple(column.ilike(pattern, escape="\\") for column in columns)
 
 
 class SQLAlchemyJobRepository(JobRepository):
@@ -163,6 +184,7 @@ class SQLAlchemyJobRepository(JobRepository):
         work_mode: str | None = None,
         employment_type: str | None = None,
         search_query: str | None = None,
+        search_scope: str = "all",
         limit: int = 50,
         offset: int = 0,
     ) -> list[Job]:
@@ -218,12 +240,9 @@ class SQLAlchemyJobRepository(JobRepository):
             stmt = stmt.where(JobModel.employment_type == employment_type.strip())
 
         if search_query is not None and search_query.strip():
-            q_pat = f"%{search_query.strip()}%"
-            stmt = stmt.where(
-                sa.or_(
-                    JobModel.title.ilike(q_pat),
-                    JobModel.company.ilike(q_pat),
-                )
+            matches = _search_matches(search_query.strip(), search_scope)
+            stmt = stmt.where(sa.or_(*matches)).order_by(
+                sa.case(*[(match, rank) for rank, match in enumerate(matches)], else_=2)
             )
 
         stmt = (
@@ -244,6 +263,7 @@ class SQLAlchemyJobRepository(JobRepository):
         work_mode: str | None = None,
         employment_type: str | None = None,
         search_query: str | None = None,
+        search_scope: str = "all",
     ) -> int:
         """Count canonical jobs matching filter criteria."""
         stmt = select(func.count(JobModel.id)).where(JobModel.merged_into_id.is_(None))
@@ -293,12 +313,8 @@ class SQLAlchemyJobRepository(JobRepository):
             stmt = stmt.where(JobModel.employment_type == employment_type.strip())
 
         if search_query is not None and search_query.strip():
-            q_pat = f"%{search_query.strip()}%"
             stmt = stmt.where(
-                sa.or_(
-                    JobModel.title.ilike(q_pat),
-                    JobModel.company.ilike(q_pat),
-                )
+                sa.or_(*_search_matches(search_query.strip(), search_scope))
             )
 
         result = await self.session.execute(stmt)

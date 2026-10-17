@@ -49,6 +49,7 @@ function JobsContent() {
 
   const [filters, setFilters] = useState<JobFilterParams>({
     q: initialQ,
+    search_scope: searchParams.get('search_scope') === 'title' ? 'title' : 'all',
     status: initialStatus,
     work_mode: initialWorkMode,
     employment_type: initialEmploymentType,
@@ -67,6 +68,7 @@ function JobsContent() {
   // Sync filters from URL search parameters (handles browser Back/Forward & refresh)
   useEffect(() => {
     const q = searchParams.get('q') || '';
+    const search_scope = searchParams.get('search_scope') === 'title' ? 'title' : 'all';
     const status = searchParams.get('status') || '';
     const work_mode = searchParams.get('work_mode') || '';
     const employment_type = searchParams.get('employment_type') || '';
@@ -81,6 +83,7 @@ function JobsContent() {
     setFilters((prev) => {
       if (
         (prev.q || '') === q &&
+        (prev.search_scope || 'all') === search_scope &&
         (prev.status || '') === status &&
         (prev.work_mode || '') === work_mode &&
         (prev.employment_type || '') === employment_type &&
@@ -94,6 +97,7 @@ function JobsContent() {
       }
       return {
         q: q || undefined,
+        search_scope,
         status: status || undefined,
         work_mode: work_mode || undefined,
         employment_type: employment_type || undefined,
@@ -111,6 +115,7 @@ function JobsContent() {
     (newFilters: JobFilterParams) => {
       const params = new URLSearchParams();
       if (newFilters.q) params.set('q', newFilters.q);
+      if (newFilters.search_scope === 'title') params.set('search_scope', 'title');
       if (newFilters.status) params.set('status', newFilters.status);
       if (newFilters.work_mode) params.set('work_mode', newFilters.work_mode);
       if (newFilters.employment_type) params.set('employment_type', newFilters.employment_type);
@@ -188,6 +193,7 @@ function JobsContent() {
   const handleResetFilters = () => {
     setFilters({
       q: undefined,
+      search_scope: filters.search_scope,
       status: undefined,
       work_mode: undefined,
       employment_type: undefined,
@@ -229,7 +235,28 @@ function JobsContent() {
   return (
     <div className="container" style={{ paddingTop: '2rem' }}>
       <JobsHeading />
-      <div className="discovery-search"><JobSearchInput value={filters.q || ''} onChange={handleSearchChange} /></div>
+      <div className="discovery-search">
+        <div className="search-scope">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={filters.search_scope !== 'title'}
+            aria-label="Include content"
+            aria-describedby="search-scope-description"
+            className="search-scope-switch"
+            onClick={() => handleFilterChange({ search_scope: filters.search_scope === 'title' ? 'all' : 'title' })}
+          >
+            <span className="search-scope-track" aria-hidden="true"><span className="search-scope-thumb" /></span>
+            <span>Include content</span>
+          </button>
+          <span id="search-scope-description" className="search-scope-description">
+            {filters.search_scope === 'title' ? 'Title only' : 'Title, company and description'}
+          </span>
+        </div>
+        <JobSearchInput value={filters.q || ''} onChange={handleSearchChange}
+          placeholder={filters.search_scope === 'title' ? 'Search job titles...' : undefined}
+          ariaLabel={filters.search_scope === 'title' ? 'Search jobs by title' : undefined} />
+      </div>
 
       {/* Multi-attribute Filters */}
       <section>
