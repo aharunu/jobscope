@@ -100,6 +100,85 @@ async def test_list_jobs_success_and_dto_mapping() -> None:
 
 
 @pytest.mark.asyncio
+async def test_description_only_excerpt_is_plain_bounded_and_case_insensitive():
+    repo = AsyncMock(spec=JobRepository)
+    job = _make_dummy_job()
+    job.description = (
+        "<p>" + "Intro " * 40 + "FastAPI &amp; Python" + " details" * 40 + "</p>"
+    )
+    repo.list_jobs.return_value = [job]
+    repo.count_jobs.return_value = 1
+    items, total = await JobQueryService(repo).list_jobs(JobFilterDTO(q=" fastapi "))
+    excerpt = items[0].description_match
+    assert total == 1
+    assert excerpt is not None
+    assert excerpt.match == "FastAPI"
+    assert excerpt.before.startswith("…") and excerpt.after.endswith("…")
+    assert "& Python" in excerpt.after
+    assert "<p>" not in excerpt.before + excerpt.after
+    assert len(excerpt.before) <= 81 and len(excerpt.after) <= 121
+    from backend.interfaces.api.schemas.job import JobSummaryResponse
+
+    assert (
+        JobSummaryResponse.model_validate(items[0]).description_match.match == "FastAPI"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("query", [None, " ", "Lead", "Acme", "not present"])
+async def test_no_excerpt_without_a_description_only_match(query):
+    repo = AsyncMock(spec=JobRepository)
+    job = _make_dummy_job()
+    job.description = "Lead Acme experience"
+    repo.list_jobs.return_value = [job]
+    repo.count_jobs.return_value = 1
+    items, _ = await JobQueryService(repo).list_jobs(JobFilterDTO(q=query))
+    assert items[0].description_match is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("query", ["C++", "100%", "a_b", "[test]"])
+async def test_excerpt_treats_query_punctuation_literally(query):
+    repo = AsyncMock(spec=JobRepository)
+    job = _make_dummy_job()
+    job.description = f"Experience with {query} is helpful."
+    repo.list_jobs.return_value = [job]
+    repo.count_jobs.return_value = 1
+    items, _ = await JobQueryService(repo).list_jobs(JobFilterDTO(q=query))
+    assert items[0].description_match.match == query
+
+
+@pytest.mark.asyncio
+async def test_quoted_excerpt_ignores_partial_title_and_partial_description_hits():
+    repo = AsyncMock(spec=JobRepository)
+    job = _make_dummy_job()
+    job.title = "Internet engineer"
+    job.company = "International employer"
+    job.description = "Internet, internal and internship. We need an INTERN."
+    repo.list_jobs.return_value = [job]
+    repo.count_jobs.return_value = 1
+    items, _ = await JobQueryService(repo).list_jobs(JobFilterDTO(q='"intern"'))
+    excerpt = items[0].description_match
+    assert excerpt.match == "INTERN"
+    assert "We need an " in excerpt.before
+    job.description = "Internet access for internal internships."
+    items, _ = await JobQueryService(repo).list_jobs(JobFilterDTO(q='"intern"'))
+    assert items[0].description_match is None
+
+
+@pytest.mark.asyncio
+async def test_quoted_title_hit_has_no_description_excerpt():
+    repo = AsyncMock(spec=JobRepository)
+    job = _make_dummy_job()
+    job.title = "Summer Intern, Engineering"
+    job.description = "Intern wanted"
+    repo.list_jobs.return_value = [job]
+    repo.count_jobs.return_value = 1
+    items, _ = await JobQueryService(repo).list_jobs(JobFilterDTO(q='"intern"'))
+    assert items[0].description_match is None
+
+
+@pytest.mark.asyncio
 async def test_list_jobs_defensive_fallbacks() -> None:
     """Verify list_jobs applies defensive fallback defaults when source is None."""
     mock_repo = AsyncMock(spec=JobRepository)
@@ -176,3 +255,20 @@ async def test_get_job_not_found() -> None:
     result = await service.get_job(uuid.uuid4())
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_title_scope_forwarded_to_count_and_list_without_description_excerpt():
+    repo = AsyncMock(spec=JobRepository)
+    job = _make_dummy_job()
+    job.title = "Intern"
+    job.description = "An intern supports our team."
+    repo.list_jobs.return_value = [job]
+    repo.count_jobs.return_value = 1
+    items, total = await JobQueryService(repo).list_jobs(
+        JobFilterDTO(q='"intern"', search_scope="title")
+    )
+    assert total == 1
+    assert items[0].description_match is None
+    assert repo.list_jobs.call_args.kwargs["search_scope"] == "title"
+    assert repo.count_jobs.call_args.kwargs["search_scope"] == "title"

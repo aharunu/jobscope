@@ -237,6 +237,7 @@ h3 { font-size: 1rem; font-weight: 600; }
 .button-spinner { width: 1rem; height: 1rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
 /* Discovery: real vacancies, compact metadata, full information on detail. */
 .discovery-search { max-width: 760px; margin-bottom: 1.5rem; }
+.job-search-help { margin-top: .5rem; color: var(--text-muted); font-size: .75rem; }
 .discovery-search .input { min-height: 48px; box-shadow: var(--shadow-sm); }
 .filters-panel { padding: 1.1rem 1.25rem; margin-bottom: 1.5rem; }
 .filters-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .9rem; }
@@ -256,6 +257,9 @@ h3 { font-size: 1rem; font-weight: 600; }
 .job-card-copy { min-width: 0; display: grid; align-content: start; gap: .55rem; }
 .job-card-title { font-size: 1.0625rem; font-weight: 600; letter-spacing: -.025em; line-height: 1.45; overflow-wrap: anywhere; }
 .job-card-company { color: var(--text-secondary); font-size: .8125rem; }
+.job-card-excerpt { color: var(--text-secondary); font-size: .8125rem; line-height: 1.6; overflow-wrap: anywhere; }
+.job-card-excerpt-label { font-weight: 550; }
+.job-card-excerpt mark { color: var(--primary-light); background: var(--accent-soft); font-weight: 600; border-radius: 3px; padding-inline: .1rem; }
 .job-card-location { display: flex; gap: .35rem; min-width: 0; color: var(--text-secondary); font-size: .8125rem; }
 .job-card-location svg { flex-shrink: 0; margin-top: 3px; }
 .job-card-location span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
@@ -383,3 +387,11 @@ h3 { font-size: 1rem; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+/* iOS-style search switch; keep the product accent and native keyboard support. */
+.search-scope { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; flex-wrap: wrap; }
+.search-scope-switch { display: inline-flex; align-items: center; gap: .65rem; min-height: 44px; color: var(--text-primary); font-size: .875rem; font-weight: 500; border-radius: var(--radius-sm); }
+.search-scope-track { display: inline-flex; align-items: center; flex-shrink: 0; width: 51px; height: 31px; padding: 2px; border-radius: 999px; background: var(--border-control); transition: background-color 180ms ease; }
+.search-scope-thumb { width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgb(0 0 0 / .2); transition: transform 180ms ease; }
+.search-scope-switch[aria-checked="true"] .search-scope-track { background: var(--primary); }
+.search-scope-switch[aria-checked="true"] .search-scope-thumb { transform: translateX(20px); }
+.search-scope-description { color: var(--text-muted); font-size: .75rem; }

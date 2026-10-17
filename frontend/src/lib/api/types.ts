@@ -8,6 +8,7 @@
  */
 
 export interface JobSummaryResponse {
+  description_match?: { before: string; match: string; after: string } | null;
   id: string;
   source_id: string;
   canonical_url: string;
@@ -54,6 +55,7 @@ export interface JobFilterParams {
   work_mode?: string;
   employment_type?: string;
   q?: string;
+  search_scope?: 'title' | 'all';
   limit?: number;
   offset?: number;
 }

@@ -7,6 +7,7 @@ Endpoints under test:
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -15,6 +16,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from backend.application.job_processing.query_service import JobQueryService
+from backend.application.job_processing.search import search_regex
 from backend.domain.job.entities import Job
 from backend.domain.job.enums import JobStatus
 from backend.domain.job.repositories import JobRepository
@@ -81,6 +83,7 @@ class InMemoryJobRepository(JobRepository):
         work_mode: str | None = None,
         employment_type: str | None = None,
         search_query: str | None = None,
+        search_scope: str = "all",
         limit: int = 50,
         offset: int = 0,
     ) -> list[Job]:
@@ -116,11 +119,17 @@ class InMemoryJobRepository(JobRepository):
         if employment_type is not None:
             matching = [j for j in matching if j.employment_type == employment_type]
         if search_query is not None:
-            q_lower = search_query.lower()
+            pattern = re.compile(search_regex(search_query), re.IGNORECASE)
             matching = [
                 j
                 for j in matching
-                if q_lower in j.title.lower() or q_lower in j.company.lower()
+                if pattern.search(j.title)
+                or (
+                    search_scope == "all"
+                    and (
+                        pattern.search(j.company) or pattern.search(j.description or "")
+                    )
+                )
             ]
 
         epoch = datetime(1970, 1, 1, tzinfo=UTC)
@@ -140,6 +149,7 @@ class InMemoryJobRepository(JobRepository):
         work_mode: str | None = None,
         employment_type: str | None = None,
         search_query: str | None = None,
+        search_scope: str = "all",
     ) -> int:
         jobs = await self.list_jobs(
             status=status,
@@ -150,6 +160,7 @@ class InMemoryJobRepository(JobRepository):
             work_mode=work_mode,
             employment_type=employment_type,
             search_query=search_query,
+            search_scope=search_scope,
             limit=999999,
             offset=0,
         )
@@ -679,3 +690,17 @@ def test_security_zero_source_configuration_leakage_in_detail(
         assert forbidden not in data, (
             f"Security leakage: '{forbidden}' found in job detail response!"
         )
+
+
+def test_title_scope_excludes_company_matches(client: TestClient):
+    full = client.get("/api/jobs", params={"q": "Acme"})
+    title = client.get("/api/jobs", params={"q": "Acme", "search_scope": "title"})
+    assert full.status_code == title.status_code == 200
+    assert full.json()["total"] > 0
+    assert title.json()["total"] == 0
+
+
+def test_invalid_search_scope_rejected(client: TestClient):
+    assert (
+        client.get("/api/jobs", params={"search_scope": "unknown"}).status_code == 422
+    )

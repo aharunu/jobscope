@@ -59,6 +59,7 @@ class JobRepository(Protocol):
         work_mode: str | None = None,
         employment_type: str | None = None,
         search_query: str | None = None,
+        search_scope: str = "all",
         limit: int = 50,
         offset: int = 0,
     ) -> list[Job]:
@@ -75,6 +76,7 @@ class JobRepository(Protocol):
         work_mode: str | None = None,
         employment_type: str | None = None,
         search_query: str | None = None,
+        search_scope: str = "all",
     ) -> int:
         """Count canonical jobs matching filter criteria."""
         ...

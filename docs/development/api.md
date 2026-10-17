@@ -15,6 +15,19 @@ Match retrieval GET routes resolve this identity without provisioning a User or 
 
 ## REST API Endpoints
 
+Jobs `q` searches literal, case-insensitive substrings in title, company and
+description text (HTML tags are excluded); `q` is limited to 200 characters.
+Surround the entire query with double quotes for whole-word/phrase matching:
+`"intern"` excludes internet, internal and internship, but accepts `Intern,`.
+`"data engineer"` matches that contiguous phrase with word boundaries. Quoted
+regex punctuation is literal; unclosed or empty quotes remain literal substrings.
+Title hits rank before company hits,
+then description-only hits; each group retains newest-first/ID ordering before
+pagination. Description-only results include `description_match` with plain-text
+`before`, `match` and `after` context for safe highlighting. Other results return
+null. Filters and total counts use the same search predicates. Without `q`, the
+existing chronological ordering remains. No search index/migration is required.
+
 All application routes are served under `/api` (or at root for health checks):
 
 | Category | Endpoint | Method | Description |
@@ -67,3 +80,8 @@ All application routes are served under `/api` (or at root for health checks):
 | **Applications** | `/api/applications/{id}/status` | PATCH | Transition status and append history |
 | **Applications** | `/api/applications/{id}/notes` | PATCH | Update application notes |
 | **Applications** | `/api/applications/{id}/history` | GET | Retrieve status history |
+
+Search scope: `search_scope=title` restricts `q` to job titles; `search_scope=all`
+(default) also searches company and description. Quoted exact matching works in
+both scopes. Counts and pagination use the same scope; title-only responses do
+not include description match excerpts. The Jobs UI preserves scope in the URL.

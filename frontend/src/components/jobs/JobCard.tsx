@@ -21,6 +21,10 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
         className="job-card-link" aria-label={`View details for ${job.title} at ${job.company}`}>
         {job.title}
       </Link></h2>
+      {job.description_match && <p className="job-card-excerpt">
+        <span className="job-card-excerpt-label">Matched in description: </span>
+        {job.description_match.before}<mark>{job.description_match.match}</mark>{job.description_match.after}
+      </p>}
       {job.location && <div className="job-card-location"><MapPinIcon size={14} aria-hidden="true" /><span title={job.location}>{job.location}</span></div>}
       <div className="job-card-tags">
         {job.work_mode && <Badge variant={modeVariant}>{job.work_mode}</Badge>}

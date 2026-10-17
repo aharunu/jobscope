@@ -42,8 +42,18 @@ class JobFilterDTO:
     work_mode: str | None = None
     employment_type: str | None = None
     q: str | None = None
+    search_scope: str = "all"
     limit: int = 50
     offset: int = 0
+
+
+@dataclass(slots=True)
+class DescriptionMatchDTO:
+    """Bounded plain-text context, never executable provider markup."""
+
+    before: str
+    match: str
+    after: str
 
 
 @dataclass(slots=True)
@@ -70,6 +80,7 @@ class JobSummaryDTO:
     source_name: str | None = None
     ats_type: str | None = None
     source_url: str | None = None
+    description_match: DescriptionMatchDTO | None = None
 
 
 @dataclass(slots=True)

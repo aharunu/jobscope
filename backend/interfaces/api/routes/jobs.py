@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Path, Query, status
 
@@ -61,7 +62,16 @@ async def list_jobs(
     ),
     q: str | None = Query(
         default=None,
-        description="Case-insensitive substring search across title and company",
+        max_length=200,
+        description=(
+            "Case-insensitive literal substring search across title, company and "
+            "description; title matches precede company and description-only matches"
+            '; wrap in double quotes for a whole word or exact phrase (e.g. "intern")'
+        ),
+    ),
+    search_scope: Literal["title", "all"] = Query(
+        default="all",
+        description="Search title only, or include company and description (default)",
     ),
     limit: int = Query(
         default=50,
@@ -85,6 +95,7 @@ async def list_jobs(
         work_mode=work_mode,
         employment_type=employment_type,
         q=q,
+        search_scope=search_scope,
         limit=limit,
         offset=offset,
     )

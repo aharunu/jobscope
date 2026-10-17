@@ -1,12 +1,13 @@
-# Byte-compiled / optimized / DLL files
+# Python byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
 
 # C extensions
 *.so
 
-# Distribution / packaging
+# Distribution & packaging
 .Python
 build/
 develop-eggs/
@@ -26,15 +27,15 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
+# PyInstaller & packaging tools
 *.manifest
 *.spec
 
-# Installer logs
+# Installer & build logs
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Unit test, coverage & benchmarking reports
 htmlcov/
 .tox/
 .nox/
@@ -50,18 +51,12 @@ coverage.xml
 coverage/
 cover/
 
-# Jupyter Notebook
+# Jupyter & IPython
 .ipynb_checkpoints
-
-# IPython
 profile_default/
 ipython_config.py
 
-# Environments
-.env
-.env.*
-!.env.example
-!.env.docker.example
+# Virtual environments
 .venv/
 venv/
 ENV/
@@ -69,13 +64,19 @@ env/
 env.bak/
 venv.bak/
 
-# Ruff / mypy / linters
+# Environment variables & secrets (safe templates kept versioned)
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# Ruff, mypy & Python linters
 .ruff_cache/
 .mypy_cache/
 .dmypy.json
 dmypy.json
 
-# IDE / Editor artifacts
+# IDE, OS & editor artifacts
 .idea/
 .vscode/
 *.swp
@@ -83,8 +84,11 @@ dmypy.json
 *~
 .DS_Store
 Thumbs.db
+Desktop.ini
+*.code-workspace
+.vs/
 
-# Application logs & SQLite
+# Database, local backups & application logs
 logs/
 *.log
 *.sqlite3
@@ -95,13 +99,11 @@ logs/
 *.db-journal
 *.db-wal
 *.db-shm
-
-# Local PostgreSQL backups (may contain candidate/application data)
 /backups/
 *.dump
 *.backup
 
-# Node.js / Frontend dependencies & artifacts
+# Node.js & Frontend dependencies / build artifacts
 node_modules/
 .next/
 out/
@@ -120,12 +122,16 @@ lerna-debug.log*
 # Vercel deployment
 .vercel/
 
-# Local prompt attachments, not application source
+# AI Agents, skills & automation tooling
+.agents/
+skills-lock.json
 /.codex-remote-attachments/
-
-# Local agent reports and generated calibration/backfill/analysis evidence
-# Keep reusable guides under docs/development/ versioned.
 docs/agent-reports/
+.claude/
+.cursor/
+.windsurf/
+.cline/
+.gemini/
 
 # Generated editor code-count snapshots
 /.VSCodeCounter/

@@ -20,6 +20,7 @@ export async function listJobs(
       work_mode: params.work_mode,
       employment_type: params.employment_type,
       q: params.q,
+      search_scope: params.search_scope,
       limit: params.limit,
       offset: params.offset,
     },
