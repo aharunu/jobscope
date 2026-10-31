@@ -12,6 +12,7 @@ permanent copy to a phase report or the root README.
 | [API](api.md) | Implemented endpoint inventory and scoped identity |
 | [Database boundaries](database-contracts.md) | Domain/ORM mapping, transactions, async conversion, health and errors |
 | [Source registry](source-registry.md) | Catalog sync, runtime DTOs, probes, status and read projections |
+| [Source discovery](source-discovery.md) | Local discovery inputs, phased research, review reports and model benchmarks |
 | [Requirements and deterministic matching](requirements-and-deterministic-matching.md) | Extraction, fixed scoring/confidence and known evidence-vs-preference limitation |
 | [Profiles, matching and applications](profiles-matching-applications.md) | Product contracts, persistence, status transitions |
 | [AI matching](ai-matching.md) | Explicit triggers, local/hosted configuration, strict evidence/scoring/cache guarantees |
