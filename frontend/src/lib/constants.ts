@@ -35,6 +35,7 @@ export const ATS_TYPE_OPTIONS = [
   { value: 'teamtailor', label: 'Teamtailor' },
   { value: 'workable', label: 'Workable' },
   { value: 'hirex', label: 'Hirex' },
+  { value: 'hrpeak', label: 'HRPeak' },
   { value: 'bamboohr', label: 'BambooHR' },
   { value: 'oracle', label: 'Oracle' },
 ] as const;

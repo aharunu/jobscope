@@ -49,6 +49,8 @@ from tests.test_greenhouse_crawler_integration import (
 )
 from tests.test_source_sync_service import InMemorySourceRepo, MockCatalogParser
 
+# These offline fixtures cover the original A3 providers. Later providers have
+# their own observed-contract fixtures (for example test_hrpeak_adapter.py).
 URLS = {
     "ashby": "https://jobs.ashbyhq.com/acme",
     "workday": "https://acme.wd3.myworkdayjobs.com/en-US/Careers",
@@ -277,7 +279,7 @@ async def crawl(provider, *responses, src=None, status=200):
     return result, client
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_normal_rich_fields_and_original_raw(provider):
     rows = [job(provider, "1"), job(provider, "2")]
     result, client = await crawl(provider, payload(provider, rows))
@@ -308,13 +310,13 @@ async def test_a3_normal_rich_fields_and_original_raw(provider):
         assert item.metadata["salary"] == "$100 - $200"
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_empty_is_not_a_malformed_root(provider):
     result, _ = await crawl(provider, payload(provider, []))
     assert result.jobs == [] and result.is_complete == (provider in PROVEN)
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_malformed_root_fails_or_explicitly_partial_html(provider):
     body = "<html>not a board</html>" if provider == "hirex" else "bad root"
     if provider == "hirex":
@@ -335,7 +337,7 @@ def without_identity(provider):
     return item
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 @pytest.mark.parametrize("defect", ["identity", "duplicate", "malformed"])
 async def test_a3_coverage_defects_cannot_be_complete(provider, defect):
     first = job(provider)
@@ -352,7 +354,7 @@ async def test_a3_coverage_defects_cannot_be_complete(provider, defect):
     assert len(result.jobs) == 1 and not result.is_complete and result.warnings
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 @pytest.mark.parametrize("status", [401, 404, 429, 503])
 async def test_a3_http_errors_are_never_empty_success(provider, status):
     with pytest.raises(AdapterExecutionError) as error:
@@ -360,13 +362,13 @@ async def test_a3_http_errors_are_never_empty_success(provider, status):
     assert error.value.details == {"status_code": status}
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_network_failure_propagates_safe_error(provider):
     with pytest.raises(AdapterExecutionError):
         await crawl(provider, AdapterExecutionError("network failure"))
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 @pytest.mark.parametrize("bad", [True, 0, -1, 1001, "10"])
 async def test_a3_config_page_size_rejected_before_io(provider, bad):
     client = FakeClient()
@@ -376,7 +378,7 @@ async def test_a3_config_page_size_rejected_before_io(provider, bad):
     assert not client.calls
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 @pytest.mark.parametrize("bad", [True, -1, "0", float("inf")])
 async def test_a3_config_delay_rejected_before_io(provider, bad):
     client = FakeClient()
@@ -386,7 +388,7 @@ async def test_a3_config_delay_rejected_before_io(provider, bad):
     assert not client.calls
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_host_spoof_and_board_rebinding_rejected(provider):
     client = FakeClient()
     src = source(provider)
@@ -402,7 +404,7 @@ async def test_a3_host_spoof_and_board_rebinding_rejected(provider):
     assert not client.calls
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_real_safe_client_body_budget_network_and_429(provider, monkeypatch):
     monkeypatch.setattr(
         socket,
@@ -445,7 +447,7 @@ async def test_a3_real_safe_client_body_budget_network_and_429(provider, monkeyp
             )
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_partial_output_uses_real_ingestion_no_absence_closure(provider):
     src = source(provider)
     jobs, raw, runs = (
@@ -466,7 +468,7 @@ async def test_a3_partial_output_uses_real_ingestion_no_absence_closure(provider
     )
 
 
-def test_a3_factory_all_twelve_and_explicit_unimplemented():
+def test_factory_all_registered_providers_and_explicit_unimplemented():
     registry = create_adapter_registry(FakeClient())
     assert registry.list_supported_types() == sorted(
         ["lever", "greenhouse", *NEW_PROVIDERS]
@@ -475,7 +477,7 @@ def test_a3_factory_all_twelve_and_explicit_unimplemented():
         registry.get_adapter("kariyer_net")
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 def test_a3_catalog_config_inference_and_spoof(provider):
     url = URLS[provider]
     assert classify_ats_type(url) == provider
@@ -732,7 +734,7 @@ async def test_a3_bamboohr_conditional_public_detail():
     assert json.loads(result.jobs[0].raw_content)["detail_json_ld"] == detail
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_exact_first_request_contract(provider):
     _, client = await crawl(provider, payload(provider, [job(provider)]))
     expected = {
@@ -787,7 +789,7 @@ async def test_a3_exact_first_request_contract(provider):
     assert client.calls == [expected[provider]]
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 @pytest.mark.parametrize("bad", [True, 0, -1, 1001, "10"])
 async def test_a3_invalid_page_ceiling_before_io(provider, bad):
     client = FakeClient()
@@ -838,7 +840,7 @@ async def test_a3_proven_nonempty_board_retains_normal_closure(provider):
     assert run.status == CrawlStatus.COMPLETED and run.jobs_closed == 1
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_fatal_acquisition_audits_failed_without_ingestion(provider):
     src = source(provider)
     provider_port, persistence = AsyncMock(), AsyncMock()
@@ -918,7 +920,7 @@ async def test_a3_required_detail_and_page_pacing(monkeypatch):
     assert sleep.await_count == 2
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_request_budget_prevents_first_io(provider, monkeypatch):
     monkeypatch.setattr(
         socket,
@@ -946,7 +948,7 @@ async def test_a3_request_budget_prevents_first_io(provider, monkeypatch):
     assert error.value.code == "ACQUISITION_BUDGET_EXHAUSTED" and not requests
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 @pytest.mark.parametrize("mode", [[], {}, True, "cursor"])
 async def test_a3_invalid_mode_is_safe_config_error(provider, mode):
     client = FakeClient()
@@ -968,7 +970,7 @@ async def test_a3_html_script_without_type_cannot_raise_attribute_error():
     assert not result.jobs and not result.is_complete and result.warnings
 
 
-@pytest.mark.parametrize("provider", NEW_PROVIDERS)
+@pytest.mark.parametrize("provider", tuple(URLS))
 async def test_a3_response_redirect_cannot_change_provider_board(provider):
     class Redirected(FakeClient):
         def _response(self, method, url, kwargs):

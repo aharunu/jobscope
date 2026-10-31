@@ -133,6 +133,10 @@ docs/agent-reports/
 .cline/
 .gemini/
 
+# Local source-discovery catalogs, phases, results and benchmark inputs
+/data/source-discovery/
+/data/discovery*.md
+
 # Generated editor code-count snapshots
 /.VSCodeCounter/
 

@@ -31,6 +31,7 @@ ATS_PREFERENCE: list[str] = [
     "workable",
     "bamboohr",
     "hirex",
+    "hrpeak",
     "teamtailor",
     "oracle",
     "kariyer_net",

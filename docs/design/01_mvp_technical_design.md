@@ -804,12 +804,12 @@ Aşağıdaki özellikler MVP odağını korumak adına bilinçli olarak hariç t
 
 Sistem mimarisinin sonraki aşamaları aşağıdaki dokümanlarda modüler olarak detaylandırılmıştır:
 
-1. **[02_database_and_api_design.md](file:///c:/Users/aharu/Documents/GitHub/Crawler/docs/02_database_and_api_design.md)**:
+1. **[02_database_and_api_design.md](02_database_and_api_design.md)**:
    - PostgreSQL Varlık ve ER Modeli
    - Tablo Şemaları, Tipleri ve Kısıtları (Constraints)
    - FastAPI RESTful API Uç Noktaları
 
-2. **[03_data_model_and_architecture.md](file:///c:/Users/aharu/Documents/GitHub/Crawler/docs/03_data_model_and_architecture.md)**:
+2. **[03_data_model_and_architecture.md](03_data_model_and_architecture.md)**:
    - Nihai ER İlişkileri ve Kardinaliteler (1:N, 1:1, N:M)
    - SQLAlchemy Declarative Modelleri
    - Clean Architecture Repository Protokolleri (`typing.Protocol`)

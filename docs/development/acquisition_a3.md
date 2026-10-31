@@ -1,6 +1,6 @@
 # A3 provider acquisition
 
-The factory registers Lever, Greenhouse and ten new adapters. All use the managed
+The factory registers Lever, Greenhouse and eleven additional adapters. All use the managed
 A2 SafeHttpClient and source-wide acquisition budget. Product ingestion now uses
 bounded Source concurrency; see [ingestion control](ingestion-control.md).
 PostgreSQL admission and short transactions remain authoritative;
@@ -17,6 +17,7 @@ No database migration or credential is required by these public acquisition path
 | Teamtailor | `https://acme.teamtailor.com` | jobs.json and safe same-host continuation | PARTIAL; feed exhaustion is not board proof |
 | Workable | `https://apply.workable.com/acme` | public widget with details=true | PARTIAL; account-dependent continuation |
 | Hirex | `https://app.gethirex.com/o/acme/` | HTML, all nested JobPosting JSON-LD blocks | PARTIAL; HTML cannot prove full coverage |
+| HRPeak | `https://tei.hrpeak.com/jobs` | public HTML list and same-host `/<id>.job` description | PARTIAL; HTML cannot prove full coverage |
 | BambooHR | `https://acme.bamboohr.com/careers` | public careers/list; conditional public JSON-LD detail | PARTIAL; public list/detail variants |
 | Oracle | `https://acme.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1` | unfiltered CE finder limit/offset/TotalJobsCount | PARTIAL; internal hosted endpoint |
 
@@ -24,6 +25,26 @@ Example tokens are placeholders. Never change a Source's board population throug
 config overrides: board/host/site/tenant must agree with its observed URL. Use a
 distinct Source for a different population. Custom-domain boards are not yet
 accepted by the new adapters. No global/EU or Personio .com/.de error fallback.
+
+HRPeak additionally accepts the verified custom host `kariyer.roketsan.com.tr`.
+Only HRPeak tenant roots or `/jobs` URLs bind a Source; arbitrary custom hosts,
+login/application URLs and board-changing redirects are rejected. The parser
+prioritizes recognized HRPeak boards over generic company career pages. Run an
+explicit catalog sync to upgrade existing `custom` records while preserving their
+IDs, active flags and operational configuration. No startup sync is introduced.
+
+HRPeak reads the observed `C_G` jobs table and follows only same-host `/<id>.job`
+links for the `ilanMetni` description. Preview and country-policy rejection defer
+detail acquisition through the existing detail plan. Repeated list entries do not
+repeat detail fetches. Unknown list markup, missing descriptions and HTTP failures
+fail safely; empty recognized tables remain PARTIAL. Pagination/HTML completeness
+is unverified, so HRPeak never authorizes absence closure. No login, application
+submission or challenge bypass is performed.
+
+Public list/detail markup was checked on October 27, 2026 for TEI and Roketsan;
+ENKA and Ziraat Teknoloji also returned public list pages. Catalog recognition
+does not imply every tenant is reachable: Türkiye Sigorta's listed tenant currently
+redirects outside its board binding and remains a safe acquisition failure.
 
 Catalog parsing infers `adapter_config` board/host and, for Workday/Oracle,
 tenant/site/locale. Existing catalog sync preserves prior IDs, active flags and

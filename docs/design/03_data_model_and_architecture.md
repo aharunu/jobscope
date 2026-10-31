@@ -3,8 +3,8 @@
 Bu doküman, veri modelinin nihai kardinalite ilişkilerini, Clean Architecture prensiplerine dayalı domain-repository ayrımını, SQLAlchemy model taslaklarını, Crawler ve Matching motoru soyutlamalarını (abstractions) tanımlar.
 
 - **İlgili Dokümanlar:**
-  - [01_mvp_technical_design.md](file:///c:/Users/aharu/Documents/GitHub/Crawler/docs/01_mvp_technical_design.md) — 45 Maddelik MVP Teknik Tasarım & Mimari Kararlar
-  - [02_database_and_api_design.md](file:///c:/Users/aharu/Documents/GitHub/Crawler/docs/02_database_and_api_design.md) — PostgreSQL Tablo Şemaları ve FastAPI API Tasarımı
+  - [01_mvp_technical_design.md](01_mvp_technical_design.md) — 45 Maddelik MVP Teknik Tasarım & Mimari Kararlar
+  - [02_database_and_api_design.md](02_database_and_api_design.md) — PostgreSQL Tablo Şemaları ve FastAPI API Tasarımı
 
 ---
 

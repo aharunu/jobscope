@@ -7,6 +7,7 @@ import logging
 import math
 import time
 import urllib.parse
+from collections.abc import Callable
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
@@ -38,9 +39,11 @@ class HttpSafeClient(SafeHttpClient):
         client: httpx.AsyncClient | None = None,
         max_response_bytes: int = 15 * 1024 * 1024,
         min_request_interval_seconds: float = 0.0,
+        request_url_policy: Callable[[str], bool] | None = None,
     ) -> None:
         if type(max_response_bytes) is not int or max_response_bytes <= 0:
             raise ValueError("max_response_bytes must be a positive integer")
+        self._request_url_policy = request_url_policy
         self._max_response_bytes = max_response_bytes
         if (
             isinstance(min_request_interval_seconds, bool)
@@ -234,6 +237,16 @@ class HttpSafeClient(SafeHttpClient):
         while True:
             attempt = 0
             while True:
+                # Optional caller restrictions apply before every physical request,
+                # including redirect hops and retries, in addition to SSRF checks.
+                if (
+                    self._request_url_policy is not None
+                    and not self._request_url_policy(current_url)
+                ):
+                    raise AdapterExecutionError(
+                        message="Outbound URL rejected by request policy",
+                        details={"error_type": "request_policy"},
+                    )
                 # SSRF validation before every attempt (including retries)
                 is_safe, error_type, error_msg = validate_target_url_safety(current_url)
                 if not is_safe:

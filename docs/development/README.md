@@ -31,9 +31,10 @@ architecture. They may describe future functionality; they are not feature
 completion checklists. The [product backlog](../roadmap/post_mvp_product_backlog.md)
 records planned work without automatically authorizing a new phase.
 
-The two root audits dated 2026-10-01 preserve the initial architectural/security
-baseline. They are historical evidence, including resolved findings. Local
-`docs/agent-reports/` retains useful final milestone audits and original decisions,
+The [archived audits dated 2026-10-01](../archive/2026-10-01/README.md) preserve
+the initial architectural/security baseline. They are historical evidence,
+including resolved findings. Local `docs/agent-reports/` retains useful final
+milestone audits and original decisions,
 measurements and unresolved limitations. Temporary evidence may be retired once
 its results are recorded. Audit reports do not override current guides or code.
 Do not require ignored evidence files for normal setup.

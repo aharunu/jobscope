@@ -1,10 +1,10 @@
 # Repository Audit Report — JobScope
 
-> Historical audit of 2026-10-01. Findings and implementation counts describe that date, not the current repository. See the [current documentation index](docs/development/README.md) and [product backlog](docs/roadmap/post_mvp_product_backlog.md) for maintained guidance. Original evidence is retained below.
+> Historical audit of 2026-10-01. Findings and implementation counts describe that date, not the current repository. See the [current documentation index](../../development/README.md) and [product backlog](../../roadmap/post_mvp_product_backlog.md) for maintained guidance. Original findings are retained below. Code links point to the current checkout; cited line numbers describe the historical audit.
 
 **Date:** 2026-10-01  
 **Auditor:** Senior Architecture Review  
-**Repository:** `c:\Users\aharu\Documents\GitHub\jobscope`
+**Repository:** `jobscope`
 
 ---
 
@@ -309,10 +309,10 @@ The architecture is genuinely well-implemented for a project of this scale. The 
 
 | Aspect | Detail |
 |--------|--------|
-| **Location** | [`backend/application/matching/exceptions.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/matching/exceptions.py) |
+| **Location** | [`backend/application/matching/exceptions.py`](../../../backend/application/matching/exceptions.py) |
 | **Problem** | `MatchingError`, `JobNotFoundError`, `SearchProfileNotFoundError`, `BaseProfileNotFoundError` extend plain `Exception`, not `JobScopeError` |
 | **Principle** | Liskov Substitution / consistency |
-| **Consequence** | These exceptions are caught manually with `HTTPException` in [`routes/matching.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/interfaces/api/routes/matching.py#L49-L63) instead of being handled by the centralized `jobscope_error_handler` |
+| **Consequence** | These exceptions are caught manually with `HTTPException` in [`routes/matching.py`](../../../backend/interfaces/api/routes/matching.py#L49-L63) instead of being handled by the centralized `jobscope_error_handler` |
 | **Fix** | Extend `JobScopeError` with appropriate `status_code` and `code` attributes |
 
 **Violation 2: Empty application packages create false organization**
@@ -328,7 +328,7 @@ The architecture is genuinely well-implemented for a project of this scale. The 
 
 | Aspect | Detail |
 |--------|--------|
-| **Location** | [`crawl_persistence.py:110-123`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/crawl_persistence.py#L110-L123) |
+| **Location** | [`crawl_persistence.py:110-123`](../../../backend/infrastructure/database/crawl_persistence.py#L110-L123) |
 | **Problem** | `execute_ingestion()` directly instantiates `JobNormalizer()`, `DeterministicRequirementExtractor()`, and all repositories — acting as a mini composition root |
 | **Consequence** | Hard to override dependencies for testing; tight coupling |
 | **Fix** | Accept pre-configured `JobIngestionService` or use factory injection |
@@ -395,11 +395,11 @@ Business logic is correctly concentrated in:
 
 ### Potential Issues
 
-1. **Engine singleton with global mutable state** ([`engine.py:7`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/engine.py#L7)): `_engine` and `_session_factory` are module-level globals. Thread-safe for async but fragile for testing.
+1. **Engine singleton with global mutable state** ([`engine.py:7`](../../../backend/infrastructure/database/engine.py#L7)): `_engine` and `_session_factory` are module-level globals. Thread-safe for async but fragile for testing.
 
-2. **Silent exception swallowing** in [`normalizer.py:184`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_processing/normalizer.py#L184) and [`content_cleaning.py:100`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_processing/content_cleaning.py#L100): `pass` in exception handlers — errors during date parsing and content cleaning are silently ignored without logging.
+2. **Silent exception swallowing** in [`normalizer.py:184`](../../../backend/application/job_processing/normalizer.py#L184) and [`content_cleaning.py:100`](../../../backend/application/job_processing/content_cleaning.py#L100): `pass` in exception handlers — errors during date parsing and content cleaning are silently ignored without logging.
 
-3. **Double engine disposal** in lifespan ([`main.py:53-56`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/interfaces/api/main.py#L53-L56)): `engine.dispose()` and `dispose_engine()` are both called, the second call accesses the global singleton which may already be None.
+3. **Double engine disposal** in lifespan ([`main.py:53-56`](../../../backend/interfaces/api/main.py#L53-L56)): `engine.dispose()` and `dispose_engine()` are both called, the second call accesses the global singleton which may already be None.
 
 ### Error Handling — **Mostly Good**
 - Centralized `JobScopeError` hierarchy with structured error responses
@@ -436,7 +436,7 @@ Business logic is correctly concentrated in:
 
 ### Potential Issues
 
-1. **`external_job_id` nullable + unique constraint** ([`job.py:121-127`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/models/job.py#L121-L127)): The `UniqueConstraint("source_id", "external_job_id")` allows multiple NULL `external_job_id` entries per source in PostgreSQL (NULLs are considered distinct). This is correct behavior but worth documenting.
+1. **`external_job_id` nullable + unique constraint** ([`job.py:121-127`](../../../backend/infrastructure/database/models/job.py#L121-L127)): The `UniqueConstraint("source_id", "external_job_id")` allows multiple NULL `external_job_id` entries per source in PostgreSQL (NULLs are considered distinct). This is correct behavior but worth documenting.
 
 2. **No `location` index**: The `location` column on `jobs` is filterable via API but has no database index. This will become a performance issue at scale.
 
@@ -536,7 +536,7 @@ The test suite is extensive with 68 backend test files covering:
 
 | Aspect | Detail |
 |--------|--------|
-| **Location** | [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16) |
+| **Location** | `.env:16` |
 | **Evidence** | `DATABASE_URL=postgresql+asyncpg://jobscope:[REDACTED]@localhost:5432/jobscope` — password `[REDACTED]` committed |
 | **Severity** | MEDIUM (local dev password, but `.env` should never be committed) |
 | **Mitigation** | `.gitignore` includes `.env` but the file is already tracked |
@@ -555,13 +555,13 @@ The test suite is extensive with 68 backend test files covering:
 
 | Aspect | Detail |
 |--------|--------|
-| **Location** | [`docker-compose.yml:9`](file:///c:/Users/aharu/Documents/GitHub/jobscope/docker-compose.yml#L9) |
+| **Location** | [`docker-compose.yml:9`](../../../docker-compose.yml#L9) |
 | **Evidence** | `POSTGRES_PASSWORD: jobscope` — should reference environment variable for production |
 | **Severity** | LOW (acceptable for local dev) |
 
 ### Good Security Practices Observed
-- **SSRF protection** with comprehensive IP/DNS validation ([`ssrf.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/http/ssrf.py))
-- **Secret masking in logs** via `SecretMaskingFilter` ([`logger.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/logging/logger.py))
+- **SSRF protection** with comprehensive IP/DNS validation ([`ssrf.py`](../../../backend/infrastructure/http/ssrf.py))
+- **Secret masking in logs** via `SecretMaskingFilter` ([`logger.py`](../../../backend/infrastructure/logging/logger.py))
 - **X-User-Id header validation** with UUID parsing and format check
 - **Production auth enforcement** — rejects unauthenticated requests when `environment != development`
 - **Global exception handler** that doesn't leak internal details
@@ -595,7 +595,7 @@ The test suite is extensive with 68 backend test files covering:
 ## 14. Configuration Review
 
 ### Settings Architecture — **Good**
-- Pydantic Settings with `.env` file support ([`settings.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/config/settings.py))
+- Pydantic Settings with `.env` file support ([`settings.py`](../../../backend/infrastructure/config/settings.py))
 - Cached singleton via `@lru_cache` on `get_settings()`
 - Database URL validation (`postgresql+asyncpg://` or `postgresql://`)
 - Reasonable defaults for all settings
@@ -603,7 +603,7 @@ The test suite is extensive with 68 backend test files covering:
 ### Issues
 
 1. **Missing `.env.example`**: README references it but it doesn't exist
-2. **Hardcoded Alembic URL** in [`alembic.ini:17`](file:///c:/Users/aharu/Documents/GitHub/jobscope/alembic.ini#L17): `sqlalchemy.url = postgresql+asyncpg://jobscope:jobscope@localhost:5432/jobscope` — though it's noted as "overridden dynamically by env.py"
+2. **Hardcoded Alembic URL** in [`alembic.ini:17`](../../../alembic.ini#L17): `sqlalchemy.url = postgresql+asyncpg://jobscope:jobscope@localhost:5432/jobscope` — though it's noted as "overridden dynamically by env.py"
 3. **`DEBUG=true` default**: Default `debug=True` in Settings means debug mode is on by default
 4. **No environment validation**: No check that `ENVIRONMENT` is one of `development|test|production`
 5. **`.env` password mismatch**: `.env` has `[REDACTED]` but `docker-compose.yml` has `jobscope` as password
@@ -695,7 +695,7 @@ The README is comprehensive and well-structured, covering:
 
 | Aspect | Detail |
 |--------|--------|
-| **Evidence** | Domain entities ([`application/entities.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/domain/application/entities.py)), enums ([`application/enums.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/domain/application/enums.py)), ORM models ([`models/application.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/models/application.py)), and migration exist. Empty `application/application_tracking/` package. |
+| **Evidence** | Domain entities ([`application/entities.py`](../../../backend/domain/application/entities.py)), enums ([`application/enums.py`](../../../backend/domain/application/enums.py)), ORM models ([`models/application.py`](../../../backend/infrastructure/database/models/application.py)), and migration exist. Empty `application/application_tracking/` package. |
 | **What's Missing** | Application service, repository implementation, API routes, schemas, tests |
 | **Where** | `application/application_tracking/services.py`, `infrastructure/database/repositories/application_repository.py`, `interfaces/api/routes/applications.py` |
 | **Why It Matters** | Core use case — users need to track which jobs they've applied to |
@@ -705,7 +705,7 @@ The README is comprehensive and well-structured, covering:
 
 | Aspect | Detail |
 |--------|--------|
-| **Evidence** | Domain entity ([`cv/entities.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/domain/cv/entities.py)), enums, ORM model ([`models/cv.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/models/cv.py)), migration exist. No service, no API, no parser. |
+| **Evidence** | Domain entity ([`cv/entities.py`](../../../backend/domain/cv/entities.py)), enums, ORM model ([`models/cv.py`](../../../backend/infrastructure/database/models/cv.py)), migration exist. No service, no API, no parser. |
 | **What's Missing** | File upload endpoint, CV parsing service, profile import logic |
 | **Scope** | Future (useful but not blocking core workflow) |
 
@@ -748,11 +748,11 @@ The README is comprehensive and well-structured, covering:
 **No TODO, FIXME, HACK, or XXX comments found** in the backend or frontend source code. The codebase is remarkably clean of technical debt markers.
 
 The `pass` statements found are all legitimate:
-- [`ssrf.py:69`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/http/ssrf.py#L69): Catch `ValueError` for non-IP hostnames — intentional flow control
-- [`base.py:14`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/base.py#L14): Empty `DeclarativeBase` — standard SQLAlchemy pattern
-- [`migrations/env.py:94`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/database/migrations/env.py#L94): Standard Alembic template
-- [`normalizer.py:184`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_processing/normalizer.py#L184): Silent date parsing failure (should log warning)
-- [`content_cleaning.py:100`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_processing/content_cleaning.py#L100): Silent content cleaning failure (should log warning)
+- [`ssrf.py:69`](../../../backend/infrastructure/http/ssrf.py#L69): Catch `ValueError` for non-IP hostnames — intentional flow control
+- [`base.py:14`](../../../backend/infrastructure/database/base.py#L14): Empty `DeclarativeBase` — standard SQLAlchemy pattern
+- [`migrations/env.py:94`](../../../backend/infrastructure/database/migrations/env.py#L94): Standard Alembic template
+- [`normalizer.py:184`](../../../backend/application/job_processing/normalizer.py#L184): Silent date parsing failure (should log warning)
+- [`content_cleaning.py:100`](../../../backend/application/job_processing/content_cleaning.py#L100): Silent content cleaning failure (should log warning)
 
 ---
 
@@ -940,7 +940,7 @@ Phase 4: Scale & Enhancement (Long-term)
 
 **Problem:** `.env` file containing `DATABASE_URL=postgresql+asyncpg://jobscope:[REDACTED]@localhost:5432/jobscope` is committed to Git.
 
-**Location:** [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16)
+**Location:** `.env:16`
 
 **Evidence:** File exists in repository. `.gitignore` includes `.env` (line 61), indicating intent to exclude it, but the file was already tracked before the rule was added.
 
@@ -970,13 +970,13 @@ git rm --cached .env
 
 ### High Priority
 
-**[HIGH-001]** README API documentation mismatch — `/api/v1/` paths, wrong endpoint names. Location: [`README.md:216-229`](file:///c:/Users/aharu/Documents/GitHub/jobscope/README.md#L216-L229)
+**[HIGH-001]** README API documentation mismatch — `/api/v1/` paths, wrong endpoint names. Location: [`README.md:216-229`](../../../README.md#L216-L229)
 
-**[HIGH-002]** Password mismatch between [`.env:16`](file:///c:/Users/aharu/Documents/GitHub/jobscope/.env#L16) (`[REDACTED]`) and [`docker-compose.yml:9`](file:///c:/Users/aharu/Documents/GitHub/jobscope/docker-compose.yml#L9) (`jobscope`). Application will fail to connect if using wrong config.
+**[HIGH-002]** Password mismatch between `.env:16` (`[REDACTED]`) and [`docker-compose.yml:9`](../../../docker-compose.yml#L9) (`jobscope`). Application will fail to connect if using wrong config.
 
-**[HIGH-003]** Missing `.env.example` — setup instructions reference non-existent file. Location: [`README.md:122`](file:///c:/Users/aharu/Documents/GitHub/jobscope/README.md#L122)
+**[HIGH-003]** Missing `.env.example` — setup instructions reference non-existent file. Location: [`README.md:122`](../../../README.md#L122)
 
-**[HIGH-004]** Matching exceptions don't participate in centralized error handling. Location: [`application/matching/exceptions.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/matching/exceptions.py)
+**[HIGH-004]** Matching exceptions don't participate in centralized error handling. Location: [`application/matching/exceptions.py`](../../../backend/application/matching/exceptions.py)
 
 **[HIGH-005]** No frontend Profile management page despite full backend API. Users cannot set up their profile through the UI, which is required before matching can work.
 
@@ -986,7 +986,7 @@ git rm --cached .env
 
 **[MED-001]** Application Tracking domain fully modeled but zero implementation.
 
-**[MED-002]** Silent exception handling in [`normalizer.py:184`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_processing/normalizer.py#L184) and [`content_cleaning.py:100`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_processing/content_cleaning.py#L100).
+**[MED-002]** Silent exception handling in [`normalizer.py:184`](../../../backend/application/job_processing/normalizer.py#L184) and [`content_cleaning.py:100`](../../../backend/application/job_processing/content_cleaning.py#L100).
 
 **[MED-003]** Empty `application/job_matching/` package creates confusion with existing `application/matching/`.
 

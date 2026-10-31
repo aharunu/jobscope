@@ -130,8 +130,10 @@ contracts and the distinction between design intent and historical evidence.
 - [Provider country filtering](docs/development/provider-country-filtering.md)
 - [Hybrid deduplication](docs/development/hybrid-deduplication.md)
 - [Maintenance tools](docs/development/maintenance-tools.md)
+- [Historical audits (2026-10-01)](docs/archive/2026-10-01/README.md)
 
 Reusable scripts, source, migrations, tests and safe environment templates are
-versioned. Real `.env*`, local backups, attachments, reports and generated evidence
-remain ignored. Local `docs/agent-reports/` contains dated audit/acceptance evidence;
-it is not required to launch the application.
+versioned. Real `.env*`, local backups, attachments and generated reports/evidence
+remain ignored. Selected historical audits are versioned under `docs/archive/`.
+Local `docs/agent-reports/` contains dated audit/acceptance evidence; it is not
+required to launch the application.

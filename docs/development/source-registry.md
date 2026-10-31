@@ -11,6 +11,10 @@ Source entries and provider configuration; adapters acquire Jobs. Synchronizatio
 is explicit and idempotent, not a startup/background discovery service. Malformed
 catalog rows are skipped with warnings rather than aborting all valid entries.
 
+The derived provider modules, ten-entry discovery phases and adapter backlog live
+under `data/source-discovery/`. They do not replace the canonical catalog or get
+imported automatically. See [the phased discovery workflow](source-discovery.md).
+
 Source URL normalization trims whitespace, lowercases scheme/host, removes
 fragments/tracking parameters, sorts retained functional query parameters and
 removes trailing path slashes. It preserves path case. Normalization is not an
@@ -41,6 +45,11 @@ product ingestion selector excludes `custom` and Kariyer.net because neither has
 an acquisition adapter. Provider-aware schemas validate existing JSONB configuration
 at the adapter boundary; recognition alone does not prove a board is supported.
 See [provider contracts](acquisition_a3.md) and [acquisition authority](acquisition-architecture.md).
+
+HRPeak tenant boards and the verified Roketsan custom domain are recognized and
+registered for acquisition. An explicit catalog sync upgrades matching `custom`
+rows without changing Source IDs or manual operational settings. HRPeak's public
+HTML acquisition is always PARTIAL and cannot close absent jobs.
 
 Source list queries support active/inactive/all filtering, provider filtering,
 case-insensitive search over name/company/URL and bounded pagination with

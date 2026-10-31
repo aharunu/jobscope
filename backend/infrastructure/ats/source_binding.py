@@ -17,6 +17,7 @@ NEW_PROVIDERS = (
     "teamtailor",
     "workable",
     "hirex",
+    "hrpeak",
     "bamboohr",
     "oracle",
 )
@@ -109,6 +110,14 @@ def source_binding(
     elif provider == "hirex":
         if host == "app.gethirex.com" and len(parts) == 2 and parts[0] == "o":
             board = parts[1]
+    elif provider == "hrpeak":
+        match = re.fullmatch(rf"({LABEL})\.hrpeak\.com", host)
+        if parts in [[], ["jobs"]] and not p.query:
+            if match and match[1] != "www":
+                board = match[1]
+            elif host == "kariyer.roketsan.com.tr":
+                # Observed HRPeak custom domain; never infer arbitrary custom hosts.
+                board = "roketsan"
     elif provider == "workday":
         match = re.fullmatch(rf"({LABEL})\.(wd\d+)\.myworkdayjobs\.com", host)
         if match:

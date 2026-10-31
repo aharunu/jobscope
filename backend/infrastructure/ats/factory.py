@@ -8,6 +8,7 @@ from backend.infrastructure.ats.ashby.adapter import AshbyAdapter
 from backend.infrastructure.ats.bamboohr.adapter import BambooHRAdapter
 from backend.infrastructure.ats.greenhouse import GreenhouseAdapter
 from backend.infrastructure.ats.hirex.adapter import HirexAdapter
+from backend.infrastructure.ats.hrpeak.adapter import HRPeakAdapter
 from backend.infrastructure.ats.lever import LeverAdapter
 from backend.infrastructure.ats.oracle.adapter import OracleAdapter
 from backend.infrastructure.ats.personio.adapter import PersonioAdapter
@@ -44,6 +45,7 @@ def create_adapter_registry(http_client: SafeHttpClient) -> ATSAdapterRegistry:
                     TeamtailorAdapter,
                     WorkableAdapter,
                     HirexAdapter,
+                    HRPeakAdapter,
                     BambooHRAdapter,
                     OracleAdapter,
                 )

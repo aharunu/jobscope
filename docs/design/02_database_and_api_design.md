@@ -3,8 +3,8 @@
 Bu doküman, sistemin PostgreSQL veritabanı şemasını, tablo yapılarını, kısıtlarını (constraints), veri tiplerini ve FastAPI REST API uç noktalarını (endpoints) detaylandırır.
 
 - **İlgili Dokümanlar:**
-  - [01_mvp_technical_design.md](file:///c:/Users/aharu/Documents/GitHub/Crawler/docs/01_mvp_technical_design.md) — 45 Maddelik MVP Teknik Tasarım & Mimari Kararlar
-  - [03_data_model_and_architecture.md](file:///c:/Users/aharu/Documents/GitHub/Crawler/docs/03_data_model_and_architecture.md) — ER İlişkileri, SQLAlchemy Modelleri, Clean Architecture & Adapter Mimarisi
+  - [01_mvp_technical_design.md](01_mvp_technical_design.md) — 45 Maddelik MVP Teknik Tasarım & Mimari Kararlar
+  - [03_data_model_and_architecture.md](03_data_model_and_architecture.md) — ER İlişkileri, SQLAlchemy Modelleri, Clean Architecture & Adapter Mimarisi
 
 ---
 

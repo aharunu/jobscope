@@ -15,6 +15,16 @@ are intentionally retained, not periodically deleted by repository cleanup.
 - `start.ps1` / `stop.ps1`: documented local Docker wrappers; see
   [the development runbook](local-development.md).
 
+## Career-board discovery
+
+Create the ignored local `data/discovery-pilot.md` using the input example in
+[discovery usage](source-discovery.md) before running the pilot.
+`python -m scripts.discover_sources --input data/discovery-pilot.md` reads that file,
+follows bounded public career links/iframes and writes candidates to ignored
+`docs/agent-reports/discovered-job-sources.md`. It never syncs Sources or persists
+Jobs. See [discovery usage and limits](source-discovery.md) for configuration,
+result statuses and browser/agent follow-up.
+
 ## Read-only run profiler
 
 ```powershell

@@ -18,6 +18,7 @@ class KnownATSType(enum.StrEnum):
     WORKABLE = "workable"
     BAMBOOHR = "bamboohr"
     HIREX = "hirex"
+    HRPEAK = "hrpeak"
     TEAMTAILOR = "teamtailor"
     ORACLE = "oracle"
     KARIYER_NET = "kariyer_net"

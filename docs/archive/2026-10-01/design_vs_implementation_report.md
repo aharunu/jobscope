@@ -1,6 +1,6 @@
 # Tasarım Dokümanları vs. Gerçek İmplementasyon — Uyum Analizi
 
-> Historical audit of 2026-10-01. Findings and implementation counts describe that date, not the current repository. See the [current documentation index](docs/development/README.md) and [product backlog](docs/roadmap/post_mvp_product_backlog.md) for maintained guidance. Original evidence is retained below.
+> Historical audit of 2026-10-01. Findings and implementation counts describe that date, not the current repository. See the [current documentation index](../../development/README.md) and [product backlog](../../roadmap/post_mvp_product_backlog.md) for maintained guidance. Original findings are retained below. Code links point to the current checkout; cited line numbers describe the historical audit.
 
 **Tarih:** 2026-10-01  
 **Kapsam:** `docs/design/` altındaki 3 tasarım dokümanı vs. gerçek kod tabanı  
@@ -43,7 +43,7 @@
 
 | Madde | Tasarım | Gerçek | Uyum |
 |-------|---------|--------|------|
-| MD Source Catalog → Import → DB | Markdown dosyadan sync | [`markdown_source_parser.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/infrastructure/parsers/markdown_source_parser.py) + sync endpoint — tam uyumlu | ✅ TAM |
+| MD Source Catalog → Import → DB | Markdown dosyadan sync | [`markdown_source_parser.py`](../../../backend/infrastructure/parsers/markdown_source_parser.py) + sync endpoint — tam uyumlu | ✅ TAM |
 | Source modeli (adapter_config, pagination_config vb.) | 10+ alan | ORM model birebir eşleşiyor: `adapter_config`, `pagination_config`, `endpoint_config`, `rate_limit_config`, `metadata` hepsi JSONB | ✅ TAM |
 | Manuel tetikleme (Crawl Now) | Manuel crawl | `POST /api/crawl/run` — tam uyumlu | ✅ TAM |
 | Hata izolasyonu | Bir kaynak hatası diğerini durdurmaz | `CrawlerOrchestrator` her source'u bağımsız try/except ile çalıştırıyor | ✅ TAM |
@@ -82,7 +82,7 @@
 | Madde | Tasarım | Gerçek | Uyum |
 |-------|---------|--------|------|
 | Matching girdisi: Base + Search + Job | Üçlü girdi | `MatchingService.match_job()` tam olarak bu üçlüyü kullanıyor | ✅ TAM |
-| Deterministik ağırlıklar (Role %20, Skill %30, Exp %20, Loc %10, Edu %10, Other %10) | 6 kategori, %100 | [`deterministic_engine.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/domain/matching/deterministic_engine.py) — `CATEGORY_WEIGHTS` birebir eşleşiyor | ✅ TAM |
+| Deterministik ağırlıklar (Role %20, Skill %30, Exp %20, Loc %10, Edu %10, Other %10) | 6 kategori, %100 | [`deterministic_engine.py`](../../../backend/domain/matching/deterministic_engine.py) — `CATEGORY_WEIGHTS` birebir eşleşiyor | ✅ TAM |
 | Requirement-level scoring: Req → Cat → Weighted Total | Hiyerarşik skor | Her requirement ayrı `RequirementMatch` ile değerlendiriliyor, kategoriye toplanıyor | ✅ TAM |
 | UNKNOWN ≠ NOT_MATCHED ilkesi | Bilinmeyen veri cezalandırmaz | `MatchStatus.UNKNOWN` enum değeri var, Confidence düşürülüyor | ✅ TAM |
 | Blocker mekanizması | Hard req → Blocker | `BLOCKER_SCORE_CAP = 40.00` — blocker varsa skor cap'leniyor, sıfırlanmıyor | ✅ TAM |
@@ -225,7 +225,7 @@
 
 | Tasarım | Gerçek | Uyum |
 |---------|--------|------|
-| `ATSAdapter` Protocol | `ATSAdapter` Protocol in [`ports.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/application/job_discovery/ports.py) | ✅ TAM |
+| `ATSAdapter` Protocol | `ATSAdapter` Protocol in [`ports.py`](../../../backend/application/job_discovery/ports.py) | ✅ TAM |
 | `adapter.py` + `parser.py` per ATS | Greenhouse: `adapter.py` (13.7KB), Lever: `adapter.py` (11.9KB) — parser entegre | 🟡 Parser ayrı dosya değil |
 | Workday adapter | Boş `__init__.py` | ❌ UYGULANMAMIŞ |
 | Ashby adapter | Boş `__init__.py` | ❌ UYGULANMAMIŞ |
@@ -235,13 +235,13 @@
 
 | Tasarım | Gerçek | Uyum |
 |---------|--------|------|
-| `role_matcher.py` (%20) | `RoleEvaluator` in [`evaluators/`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/domain/matching/evaluators) | ✅ TAM (isim farklı: matcher → evaluator) |
+| `role_matcher.py` (%20) | `RoleEvaluator` in [`evaluators/`](../../../backend/domain/matching/evaluators) | ✅ TAM (isim farklı: matcher → evaluator) |
 | `skill_matcher.py` (%30) | `SkillEvaluator` | ✅ TAM |
 | `experience_matcher.py` (%20) | `ExperienceEvaluator` | ✅ TAM |
 | `location_matcher.py` (%10) | `LocationEvaluator` | ✅ TAM |
 | `education_matcher.py` (%10) | `EducationEvaluator` | ✅ TAM |
 | `requirement_matcher.py` (%10) | `OtherRequirementEvaluator` | ✅ TAM |
-| `deterministic_engine.py` | [`deterministic_engine.py`](file:///c:/Users/aharu/Documents/GitHub/jobscope/backend/domain/matching/deterministic_engine.py) | ✅ TAM |
+| `deterministic_engine.py` | [`deterministic_engine.py`](../../../backend/domain/matching/deterministic_engine.py) | ✅ TAM |
 | AI modules: `analyzer.py`, `prompt.py`, `schema.py`, `evidence.py`, `provider.py` | — | ❌ UYGULANMAMIŞ |
 | Motor çalışma döngüsü: Det → User → AI → Final | Deterministic kısmı tam | 🟡 AI kısmı eksik |
 
